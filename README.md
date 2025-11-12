@@ -238,3 +238,21 @@ It calculates each person's net balance (Total Paid - Total Owed).
 It separates people into "Debtors" (negative balance) and "Creditors" (positive balance).
 
 It then matches the largest debtor with the largest creditor to generate the minimum number of transactions.
+
+🤝 Contributing
+
+Contributions are very welcome! Please feel free to fork the repo and create a Pull Request or submit an Issue if you find a bug or want to add a feature.
+
+Fork this repository.
+
+Create a new feature branch (git checkout -b feature/CoolFeature).
+
+Commit your changes (git commit -m 'Add some CoolFeature').
+
+Push to the branch (git push origin feature/CoolFeature).
+
+Open a Pull Request.
+
+📄 License
+
+This project is licensed under the MIT License.
