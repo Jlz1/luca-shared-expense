@@ -1,34 +1,38 @@
 package com.example.luca.ui.theme
 
-import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import com.example.luca.R
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+// 1. Daftarkan filenya satu-satu sesuai nama di res/font
+val InstrumentSansFamily = FontFamily(
+    Font(R.font.is_regular, FontWeight.Normal),
+    Font(R.font.is_medium, FontWeight.Medium),
+    Font(R.font.is_semibold, FontWeight.SemiBold),
+    Font(R.font.is_bold, FontWeight.Bold)
 )
+
+// 2. Shortcut buat dipanggil di UI
+object AppFont {
+    val Regular = TextStyle(
+        fontFamily = InstrumentSansFamily,
+        fontWeight = FontWeight.Normal
+    )
+
+    val Medium = TextStyle(
+        fontFamily = InstrumentSansFamily,
+        fontWeight = FontWeight.Medium
+    )
+
+    val SemiBold = TextStyle(
+        fontFamily = InstrumentSansFamily,
+        fontWeight = FontWeight.SemiBold
+    )
+
+    val Bold = TextStyle(
+        fontFamily = InstrumentSansFamily,
+        fontWeight = FontWeight.Bold
+    )
+}
