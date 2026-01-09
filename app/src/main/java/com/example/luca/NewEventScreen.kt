@@ -63,7 +63,7 @@ fun NewEventScreen() {
             }
 
             // Bottom Action Area (Fixed at bottom)
-            BottomActionArea()
+            BottomActionAreaNew()
         }
     }
 }
@@ -313,7 +313,7 @@ fun EmptyStateMessage() {
 
 // Bottom Action Area Component
 @Composable
-fun BottomActionArea(
+fun BottomActionAreaNew(
     onAddActivityClick: () -> Unit = {}
 ) {
     Box(
