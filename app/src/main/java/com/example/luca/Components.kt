@@ -192,7 +192,7 @@ fun ParticipantItem(
     ) {
         Box(
             modifier = Modifier
-                .size(60.dp)
+                .size(60.dp) // Ukuran lingkaran luar (Container)
                 .clip(CircleShape)
                 .background(UIGrey)
                 .testTag(if (isAddButton) "btn_add_participant" else "avatar_$name"),
@@ -201,15 +201,18 @@ fun ParticipantItem(
             if (isAddButton) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_add_button),
-                    // Perubahan di sini: Menggunakan Literal String
                     contentDescription = "Add Participant",
-                    tint = UIBlack
+                    tint = UIBlack,
+                    // --- PERUBAHAN DI SINI ---
+                    // Memperbesar ukuran Plus agar proporsional di dalam lingkaran
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
+        // Jika bukan tombol Add, tampilkan nama di bawahnya
         if (!isAddButton) {
             Text(
                 text = name,
@@ -221,7 +224,6 @@ fun ParticipantItem(
         }
     }
 }
-
 
 @Preview
 @Composable

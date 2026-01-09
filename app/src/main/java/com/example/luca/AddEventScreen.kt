@@ -1,18 +1,19 @@
 package com.example.luca
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,7 +27,6 @@ import com.example.luca.ui.theme.UIWhite
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIDarkGrey
 
-// Dummy Data
 data class Participant(val id: Int, val name: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,27 +37,28 @@ fun AddScreen() {
     var locationInput by remember { mutableStateOf("") }
     var dateInput by remember { mutableStateOf("") }
 
-    val participants = remember {
-        listOf(
-            Participant(1, "Jeremy E"),
-            Participant(2, "Steven K"),
-            Participant(3, "Michael K"),
-            Participant(4, "Abe"),
-            Participant(5, "Sarah L"),
-        )
-    }
+    val participants = remember { mutableStateListOf<Participant>() }
 
     Scaffold(
-        containerColor = UIBackground, // Menggunakan UIBackground (Cream/Putih Tulang)
+        containerColor = UIBackground,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "New Event", // Literal String
+                        text = "New Event",
                         style = AppFont.SemiBold,
                         fontWeight = FontWeight.Bold,
                         color = UIBlack
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { /* Handle Bac    k */ }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = UIBlack
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = UIBackground
@@ -78,25 +79,48 @@ fun AddScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
-                    .background(UIGrey) // Menggunakan UIGrey
+                    .height(240.dp)
             ) {
-                Text(
-                    text = "Image Placeholder", // Literal String
-                    color = UIDarkGrey,
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = UIGrey,
+                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // BAGIAN LOGO / ICON
+                        // Ganti R.drawable.ic_launcher_foreground dengan nama file logo XML kamu
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            contentDescription = "Placeholder Logo",
+                            modifier = Modifier.size(64.dp)
+                        )
 
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Tap to add cover photo",
+                            color = UIDarkGrey,
+                            style = AppFont.Regular
+                        )
+                    }
+                }
+
+                // Tombol Change Photo
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = UIWhite
+                        .padding(end = 20.dp, bottom = 20.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = UIWhite,
+                    shadowElevation = 4.dp
                 ) {
                     Text(
-                        text = "Change Photo", // Literal String
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        text = "Change Photo",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         fontSize = 12.sp,
                         style = AppFont.SemiBold,
                         color = UIBlack
@@ -105,12 +129,12 @@ fun AddScreen() {
             }
 
             // --- 2. Form & Inputs ---
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
 
                 InputSection(
-                    label = "Title", // Literal String
+                    label = "Title",
                     value = titleInput,
-                    placeholder = "Snorkeling Trip", // Literal String
+                    placeholder = "New Event",
                     testTag = "input_title",
                     onValueChange = { titleInput = it }
                 )
@@ -118,9 +142,9 @@ fun AddScreen() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 InputSection(
-                    label = "Location", // Literal String
+                    label = "Location",
                     value = locationInput,
-                    placeholder = "Thousand Islands, Indonesia", // Literal String
+                    placeholder = "Event Location (Optional)",
                     testTag = "input_location",
                     onValueChange = { locationInput = it }
                 )
@@ -128,9 +152,9 @@ fun AddScreen() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 InputSection(
-                    label = "Date", // Literal String
+                    label = "Date",
                     value = dateInput,
-                    placeholder = "December 20, 2025", // Literal String
+                    placeholder = "Event Date (Optional)",
                     testTag = "input_date",
                     onValueChange = { dateInput = it }
                 )
@@ -139,36 +163,36 @@ fun AddScreen() {
 
                 // --- Participants ---
                 Text(
-                    text = "Participants", // Literal String
+                    text = "Participants",
                     style = AppFont.SemiBold,
                     fontSize = 16.sp,
                     color = UIBlack,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(end = 16.dp)
                 ) {
-                    item { ParticipantItem(name = "You", isYou = true) } // Literal String
+                    item { ParticipantItem(name = "You", isYou = true) }
                     items(participants) { person -> ParticipantItem(name = person.name) }
                     item { ParticipantItem(name = "", isAddButton = true) }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 // --- Button Continue ---
                 Button(
                     onClick = { },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow), // Menggunakan Kuning Project
-                    shape = RoundedCornerShape(25.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
+                    shape = RoundedCornerShape(28.dp)
                 ) {
                     Text(
-                        text = "Continue", // Literal String
-                        color = UIBlack, // Text hitam di atas kuning
+                        text = "Continue",
+                        color = UIBlack,
                         style = AppFont.SemiBold,
                         fontSize = 16.sp
                     )
@@ -180,7 +204,10 @@ fun AddScreen() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    apiLevel = 36 // Wajib 34 agar Preview tidak crash
+)
 @Composable
 fun AddScreenPreview() {
     LucaTheme {
