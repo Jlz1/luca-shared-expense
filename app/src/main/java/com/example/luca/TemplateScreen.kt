@@ -37,7 +37,7 @@ fun TemplateScreen() {
             .padding(innerPadding), // PENTING!
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Mulai Ngoding Disini")
+            Text(text = "New Event Screen")
         }
     }
 }
