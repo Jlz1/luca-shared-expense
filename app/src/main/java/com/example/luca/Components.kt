@@ -4,9 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,18 +14,26 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FabPosition
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+// import androidx.compose.ui.res.stringResource -> Sudah tidak dipakai
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +41,8 @@ import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBlack
+import com.example.luca.ui.theme.UIDarkGrey
+import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
@@ -125,6 +135,93 @@ fun FloatingNavbar() {
     }
     Spacer(modifier = Modifier.height(25.dp).width(100.dp))
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InputSection(
+    label: String,
+    value: String,
+    placeholder: String,
+    testTag: String,
+    onValueChange: (String) -> Unit
+) {
+    Column {
+        Text(
+            text = label,
+            style = AppFont.SemiBold,
+            fontSize = 16.sp,
+            color = UIBlack,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = {
+                Text(text = placeholder, color = UIDarkGrey)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .testTag(testTag),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = UIWhite,
+                unfocusedContainerColor = UIWhite,
+                disabledContainerColor = UIWhite,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedTextColor = UIBlack,
+                unfocusedTextColor = UIBlack
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
+    }
+}
+
+@Composable
+fun ParticipantItem(
+    name: String,
+    isAddButton: Boolean = false,
+    isYou: Boolean = false
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(60.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(UIGrey)
+                .testTag(if (isAddButton) "btn_add_participant" else "avatar_$name"),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isAddButton) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_add_button),
+                    // Perubahan di sini: Menggunakan Literal String
+                    contentDescription = "Add Participant",
+                    tint = UIBlack
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        if (!isAddButton) {
+            Text(
+                text = name,
+                fontSize = 12.sp,
+                style = if (isYou) AppFont.SemiBold else AppFont.Regular,
+                maxLines = 1,
+                color = UIBlack
+            )
+        }
+    }
+}
+
 
 @Preview
 @Composable
