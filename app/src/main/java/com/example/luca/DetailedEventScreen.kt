@@ -14,11 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 
 // Definisi Warna Hardcoded sesuai request (bisa dipindah ke Color.kt nanti)
@@ -57,6 +59,24 @@ fun DetailedEventScreen() {
             }
 
             // 3. Bottom Action Area (Sticky at Bottom)
+            // Gradient Fade Overlay - Membuat konten terlihat samar di bawah tombol
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(120.dp) // Tinggi area fade
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent, // Atas transparan
+                                Color.White.copy(alpha = 0.3f), // Mulai fade
+                                Color.White.copy(alpha = 0.7f), // Makin solid
+                                Color.White // Bawah solid putih
+                            )
+                        )
+                    )
+            )
+
             BottomActionArea(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -131,13 +151,13 @@ fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: Stri
                 Text(
                     text = title,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = AppFont.SemiBold,
                     color = Color.Black
                 )
                 Text(
                     text = payer,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = AppFont.Medium,
                     color = TextGray
                 )
             }
@@ -146,7 +166,7 @@ fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: Stri
             Text(
                 text = price,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                style = AppFont.SemiBold,
                 color = PricePink // Warna merah/pink khusus
             )
         }
@@ -155,17 +175,15 @@ fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: Stri
 
 @Composable
 fun BottomActionArea(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween, // Pisah kiri dan kanan
-        verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = modifier.fillMaxWidth()
     ) {
-        // Tombol Summarize
+        // Tombol Summarize - Di tengah
         Surface(
             modifier = Modifier
                 .height(50.dp)
-                .weight(1f) // Mengambil sisa ruang, tapi kita limit max width via padding nanti jika perlu
-                .padding(end = 16.dp), // Jarak ke FAB
+                .width(200.dp)
+                .align(Alignment.Center), // Posisi tengah
             shape = RoundedCornerShape(50), // Pill Shape
             color = Color.White,
             border = BorderStroke(2.dp, UiAccentYellow),
@@ -177,16 +195,18 @@ fun BottomActionArea(modifier: Modifier = Modifier) {
             ) {
                 Text(
                     text = "Summarize",
+                    style = AppFont.SemiBold,
                     color = Color.Black,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp
+                    fontSize = 20.sp
                 )
             }
         }
 
-        // Tombol FAB (+)
+        // Tombol FAB (+) - Mepet kanan
         Surface(
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier
+                .size(64.dp)
+                .align(Alignment.CenterEnd), // Posisi kanan
             shape = CircleShape,
             color = UiAccentYellow,
             shadowElevation = 6.dp
