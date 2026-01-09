@@ -1,0 +1,223 @@
+package com.example.luca
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+//import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.luca.ui.theme.LucaTheme
+
+// Definisi Warna Hardcoded sesuai request (bisa dipindah ke Color.kt nanti)
+val UiAccentYellow = Color(0xFFFFD54F) // Warna sample kuning
+val PricePink = Color(0xFFF53B57)
+val TextGray = Color(0xFF808080)
+
+@Composable
+fun DetailedEventScreen() {
+    Scaffold(
+        topBar = {
+            HeaderSection()
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // 1. Scrollable Content (Container Utama)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()) // Scrollable vertical
+                    .padding(bottom = 100.dp) // PENTING: Padding bawah agar item terakhir tidak tertutup Bottom Button
+            ) {
+                // Placeholder Components
+                EventCard()
+                Spacer(modifier = Modifier.height(16.dp))
+                SearchBar()
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 2. Activity List Section
+                ActivitySection()
+            }
+
+            // 3. Bottom Action Area (Sticky at Bottom)
+            BottomActionArea(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
+            )
+        }
+    }
+}
+
+//Activity Section
+@Composable
+fun ActivitySection() {
+    // Data dummy dipindah kesini agar rapi
+    val activities = listOf(
+        ActivityData(Color(0xFFFF9800), "Simple Breakfast", "Paid by You", "Rp.123.000"),
+        ActivityData(Color(0xFF4CAF50), "Gocar to Denpasar", "Paid by Steven K", "Rp.92.000"),
+        ActivityData(Color(0xFF2196F3), "Toll Fee", "Paid by Jeremy E", "Rp.17.000"),
+        ActivityData(Color(0xFFE91E63), "Barong Shirts", "Paid by Michael K", "Rp.105.000"),
+        ActivityData(Color(0xFF9C27B0), "Beach Ticket", "Paid by You", "Rp.250.000"),
+        ActivityData(Color(0xFFFF5722), "Dinner Jimbaran", "Paid by Steven K", "Rp.500.000")
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp), // Padding kiri-kanan agar card tidak nempel layar
+        verticalArrangement = Arrangement.spacedBy(16.dp) // Jarak antar card vertikal
+    ) {
+        // Loop manual (pengganti LazyColumn)
+        activities.forEach { item ->
+            ActivityItemCard(
+                iconColor = item.color,
+                title = item.title,
+                payer = item.payer,
+                price = item.price
+            )
+        }
+    }
+}
+
+@Composable
+//Activity item
+fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: String) {
+    // Menggunakan Surface untuk efek Card Putih + Shadow (Floating)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp), // Tinggi fixed agar rapi (opsional, bisa wrap_content)
+        shape = RoundedCornerShape(24.dp), // Sangat bulat
+        color = Color.White,
+        shadowElevation = 6.dp // Efek bayangan agar 'pop'
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Icon (Kiri) - Diganti dengan circle berwarna
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(iconColor, CircleShape) // Circle solid dengan warna penuh
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 2. Text Content (Tengah)
+            Column(
+                modifier = Modifier.weight(1f) // Mendorong harga ke kanan mentok
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Text(
+                    text = payer,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextGray
+                )
+            }
+
+            // 3. Price (Kanan)
+            Text(
+                text = price,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = PricePink // Warna merah/pink khusus
+            )
+        }
+    }
+}
+
+@Composable
+fun BottomActionArea(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween, // Pisah kiri dan kanan
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Tombol Summarize
+        Surface(
+            modifier = Modifier
+                .height(50.dp)
+                .weight(1f) // Mengambil sisa ruang, tapi kita limit max width via padding nanti jika perlu
+                .padding(end = 16.dp), // Jarak ke FAB
+            shape = RoundedCornerShape(50), // Pill Shape
+            color = Color.White,
+            border = BorderStroke(2.dp, UiAccentYellow),
+            shadowElevation = 4.dp
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Text(
+                    text = "Summarize",
+                    color = Color.Black,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        }
+
+        // Tombol FAB (+)
+        Surface(
+            modifier = Modifier.size(64.dp),
+            shape = CircleShape,
+            color = UiAccentYellow,
+            shadowElevation = 6.dp
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Activity",
+                    tint = Color.Black,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+    }
+}
+
+// --- Data Helper ---
+data class ActivityData(
+    val color: Color,
+    val title: String,
+    val payer: String,
+    val price: String
+)
+
+@Preview(showBackground = true)
+@Composable
+fun DetailedEventPreview(){
+    LucaTheme {
+        DetailedEventScreen()
+    }
+}
