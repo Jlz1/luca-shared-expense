@@ -34,7 +34,6 @@ import com.example.luca.ui.theme.UIWhite
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddActivityScreen() {
-    // State
     var titleInput by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Select a Category") }
     var selectedPayer by remember { mutableStateOf("Payer") }
@@ -47,12 +46,13 @@ fun AddActivityScreen() {
                     Text(
                         text = "New Activity",
                         style = AppFont.SemiBold,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 20.sp,
                         color = UIBlack
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle Back */ }) {
+                    IconButton(onClick = { }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -61,24 +61,23 @@ fun AddActivityScreen() {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIBackground
+                    containerColor = UIWhite
                 )
             )
         },
-
         bottomBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(UIBackground)
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
-                    .imePadding()
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
                     onClick = { },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(220.dp)
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
                     shape = RoundedCornerShape(28.dp)
@@ -87,14 +86,14 @@ fun AddActivityScreen() {
                         text = "Continue",
                         color = UIBlack,
                         style = AppFont.SemiBold,
-                        fontSize = 16.sp
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     )
                 }
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -102,7 +101,6 @@ fun AddActivityScreen() {
                 .padding(horizontal = 20.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-
             InputSection(
                 label = "Title",
                 value = titleInput,
@@ -143,12 +141,12 @@ fun AddActivityScreen() {
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = null,
+                            contentDescription = "Category Icon",
                             tint = UIBlack
                         )
                     }
                 },
-                onClick = { /* Handle Click */ }
+                onClick = { }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -163,13 +161,13 @@ fun AddActivityScreen() {
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
-                            contentDescription = null,
+                            contentDescription = "Payer Icon",
                             tint = UIDarkGrey,
                             modifier = Modifier.size(28.dp)
                         )
                     }
                 },
-                onClick = { /* Handle Click */ }
+                onClick = { }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -228,7 +226,10 @@ fun DropdownTriggerSection(
     }
 }
 
-@Preview(showBackground = true, apiLevel = 36)
+@Preview(
+    showBackground = true,
+    apiLevel = 36
+)
 @Composable
 fun AddActivityScreenPreview() {
     LucaTheme {
