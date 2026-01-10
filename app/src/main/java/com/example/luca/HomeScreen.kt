@@ -2,6 +2,7 @@ package com.example.luca
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -37,12 +40,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIAccentRed
 import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
+import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
@@ -172,9 +178,17 @@ fun TripCardItem(width: Dp, index: Int) {
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
                             .background(UIDarkGrey),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.BottomEnd
                     ) {
-                        Text(text = "nanti ini isinya foto")
+                        Text(text = "nanti ini isinya foto",
+                            modifier = Modifier.fillMaxWidth().height(140.dp),
+                            textAlign = TextAlign.Center)
+
+                        Box(
+                            modifier = Modifier.padding(10.dp)
+                        ) {
+                            StackedAvatarRow(List(4, {"a"}))
+                        }
                     }
                 }
 
@@ -245,6 +259,47 @@ fun TempSearchBar() {
                 color = UIDarkGrey
             )
         }
+    }
+}
+
+@Composable
+fun StackedAvatarRow(
+    avatars: List<String>, // List URL gambar
+    maxVisible: Int = 4    // Maksimal bunderan yang muncul (termasuk counter)
+) {
+    // 1. Hitung Logic Sisa
+    // Kalau jumlah total > maxVisible, kita cuma tampilin (max - 1) foto, sisanya buat counter
+    val isOverflow = avatars.size > maxVisible
+    val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
+    val remainingCount = avatars.size - visibleCount
+
+    Row(
+        // 2. Bikin efek numpuk (Spacing Negatif)
+        horizontalArrangement = Arrangement.spacedBy((-10).dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Render Foto
+        for (i in 0 until visibleCount) {
+            AvatarItem(
+                imageUrl = avatars[i],
+                zIndex = (visibleCount - i).toFloat()
+            )
+        }
+    }
+}
+
+// Komponen Foto Bulat
+@Composable
+fun AvatarItem(imageUrl: String, zIndex: Float) {
+    Box(
+        modifier = Modifier
+            .size(30.dp) // Ukuran Lingkaran
+            .zIndex(zIndex) // <--- PENTING BUAT TUMPUKAN
+            .clip(CircleShape)
+            .border(2.dp, UIWhite, CircleShape) // Border putih pemisah
+            .background(UIAccentRed) // Placeholder bg
+    ) {
+
     }
 }
 
