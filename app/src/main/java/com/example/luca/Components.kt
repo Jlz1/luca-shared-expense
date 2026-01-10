@@ -4,20 +4,19 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,36 +32,41 @@ import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBlack
+import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
 fun HeaderSection() {
     Surface(
+        color = UIWhite,
         modifier = Modifier
             .fillMaxWidth()
-            .height(70.dp),
-        color = UIWhite
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp),
+                .statusBarsPadding()
+                .height(50.dp)
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .background(UIWhite),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Icon(painter = painterResource(id = R.drawable.ic_hamburger_sidebar),
                 contentDescription = "Sidebar Icon",
-                tint = UIBlack
+                tint = UIBlack,
+                modifier = Modifier.size(22.dp)
             )
 
             Text(text = "Luca",
                 style = AppFont.SemiBold,
                 color = UIBlack,
                 fontWeight = FontWeight.Bold,
-                fontSize = 28.sp)
+                fontSize = 22.sp)
 
             Image(painter = painterResource(id = R.drawable.ic_luca_logo),
                 contentDescription = "Luca Logo",
-                Modifier.size(31.dp))
+                Modifier.size(26.dp))
         }
     }
 }
