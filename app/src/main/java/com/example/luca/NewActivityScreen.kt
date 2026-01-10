@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
@@ -74,22 +73,11 @@ fun AddActivityScreen() {
                     .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { },
-                    modifier = Modifier
-                        .width(220.dp)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text(
-                        text = "Continue",
-                        color = UIBlack,
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                }
+                // --- PENGGUNAAN KOMPONEN BARU DI SINI ---
+                PrimaryButton(
+                    text = "Continue",
+                    onClick = { /* Handle Continue */ }
+                )
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -175,6 +163,7 @@ fun AddActivityScreen() {
     }
 }
 
+// Komponen helper lokal untuk dropdown (tetap di sini atau bisa dipindah ke Components jika mau)
 @Composable
 fun DropdownTriggerSection(
     label: String,

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -32,7 +34,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-// import androidx.compose.ui.res.stringResource -> Sudah tidak dipakai
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -208,8 +209,6 @@ fun ParticipantItem(
                     painter = painterResource(id = R.drawable.ic_add_button),
                     contentDescription = "Add Participant",
                     tint = UIBlack,
-                    // --- PERUBAHAN DI SINI ---
-                    // Memperbesar ukuran Plus agar proporsional di dalam lingkaran
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -217,7 +216,6 @@ fun ParticipantItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Jika bukan tombol Add, tampilkan nama di bawahnya
         if (!isAddButton) {
             Text(
                 text = name,
@@ -230,10 +228,37 @@ fun ParticipantItem(
     }
 }
 
+@Composable
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .width(220.dp)
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        Text(
+            text = text,
+            color = UIBlack,
+            style = AppFont.SemiBold,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
+        )
+    }
+}
+
 @Preview
 @Composable
 fun ComponentsPreview(){
     LucaTheme {
-        TemplateScreen()
+        // Preview dummy
+        Column(modifier = Modifier.background(UIWhite).padding(16.dp)) {
+            PrimaryButton(text = "Test Button", onClick = {})
+        }
     }
 }
