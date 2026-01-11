@@ -36,6 +36,9 @@ import com.example.luca.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddActivityScreen2() {
+    // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
+    var isSplitEqual by remember { mutableStateOf(false) }
+
     Scaffold(
         containerColor = UIBackground,
         topBar = {
@@ -126,16 +129,17 @@ fun AddActivityScreen2() {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        // --- SWITCH YANG SUDAH DIPERBAIKI ---
                         Switch(
-                            checked = false,
-                            onCheckedChange = {},
+                            checked = isSplitEqual, // Menggunakan variable state
+                            onCheckedChange = { isSplitEqual = it }, // Update state saat diklik
                             modifier = Modifier
                                 .scale(1.2f)
                                 .height(30.dp),
                             colors = SwitchDefaults.colors(
                                 uncheckedThumbColor = UIWhite,
                                 uncheckedTrackColor = UIGrey,
-                                checkedTrackColor = UIAccentYellow,
+                                checkedTrackColor = UIAccentYellow, // Warna saat ON
                                 uncheckedBorderColor = Color.Transparent,
                                 checkedBorderColor = Color.Transparent
                             )

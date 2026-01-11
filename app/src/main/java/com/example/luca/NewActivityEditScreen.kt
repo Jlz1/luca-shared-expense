@@ -37,8 +37,14 @@ import com.example.luca.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewActivityEditScreen() {
-    // State for the editable title
     var activityTitle by remember { mutableStateOf("Dinner at Floating Resto") }
+    var isEqualSplit by remember { mutableStateOf(false) }
+
+    // State untuk Total Bill Card (Tax & Discount Global)
+    var taxPercent by remember { mutableStateOf("10") }
+    var taxAmount by remember { mutableStateOf("Rp12.000") }
+    var globalDiscPercent by remember { mutableStateOf("0") }
+    var globalDiscAmount by remember { mutableStateOf("Rp0") }
 
     Scaffold(
         containerColor = UIBackground,
@@ -75,7 +81,7 @@ fun NewActivityEditScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Scrollable main content
+            // Scrollable Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -84,14 +90,14 @@ fun NewActivityEditScreen() {
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Participants section and equal split toggle
+                // --- 1. PARTICIPANTS & SPLIT ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Participants list box
+                    // Box Kiri
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -100,29 +106,21 @@ fun NewActivityEditScreen() {
                             .background(UIWhite)
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                // Using helpers from NewActivityScreen2.kt
                                 item { GreyAvatarItem("You") }
                                 item { GreyAvatarItem("Jeremy E") }
                                 item { GreyAvatarItem("Abel M") }
                             }
                         }
-                        // Small edit icon overlay
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                        ) {
-                            SmallEditCircle()
+                        Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                            SmallEditCircle(onClick = {})
                         }
                     }
 
-                    // Equal split toggle box
+                    // Box Kanan
                     Column(
                         modifier = Modifier
                             .width(100.dp)
@@ -132,19 +130,12 @@ fun NewActivityEditScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "Equal Split",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = UIBlack
-                        )
+                        Text("Equal Split", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UIBlack)
                         Spacer(modifier = Modifier.height(6.dp))
                         Switch(
-                            checked = false,
-                            onCheckedChange = {},
-                            modifier = Modifier
-                                .scale(1.2f)
-                                .height(30.dp),
+                            checked = isEqualSplit,
+                            onCheckedChange = { isEqualSplit = it },
+                            modifier = Modifier.scale(1.2f).height(30.dp),
                             colors = SwitchDefaults.colors(
                                 uncheckedThumbColor = UIWhite,
                                 uncheckedTrackColor = UIGrey,
@@ -158,7 +149,7 @@ fun NewActivityEditScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Receipt card section (Wavy shape)
+                // --- 2. RECEIPT CARD ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,7 +157,7 @@ fun NewActivityEditScreen() {
                         .background(UIWhite)
                         .padding(20.dp)
                 ) {
-                    // Editable Receipt Header
+                    // Header Editable
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -186,25 +177,15 @@ fun NewActivityEditScreen() {
                                 singleLine = true
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            SmallEditCircle()
+                            SmallEditCircle(onClick = {})
                         }
-                        Text(
-                            text = "Paid by Abel M",
-                            style = AppFont.Regular,
-                            fontSize = 12.sp,
-                            color = UIDarkGrey
-                        )
+                        Text("Paid by Abel M", style = AppFont.Regular, fontSize = 12.sp, color = UIDarkGrey)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Editable Item List
-                    // Only showing one item as requested
-                    EditableItemRow(
-                        initialQty = "1x",
-                        initialName = "Gurame Bakar Kecap",
-                        initialPrice = "Rp120.000"
-                    )
+                    // ITEM LIST
+                    EditableItemRow(initialQty = "1x", initialName = "Gurame Bakar Kecap", initialPrice = "Rp120.000")
 
                     Spacer(modifier = Modifier.height(24.dp))
                     HorizontalDivider(thickness = 2.dp, color = UIGrey)
@@ -213,7 +194,7 @@ fun NewActivityEditScreen() {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Total Bill section (Separate Card)
+                // --- 3. TOTAL BILL CARD ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -222,61 +203,48 @@ fun NewActivityEditScreen() {
                         .padding(16.dp)
                 ) {
                     // Subtotal
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
-                        Text(text = "Rp120.000", fontSize = 12.sp, color = UIDarkGrey)
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                        Text("Subtotal", fontSize = 12.sp, color = UIDarkGrey)
+                        Text("Rp120.000", fontSize = 12.sp, color = UIDarkGrey)
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
-                    // Tax (Percentage editable, result disabled)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    // Tax (SEKARANG EDITABLE)
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Tax", fontSize = 12.sp, color = UIDarkGrey)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            SmallInputBox(value = "10", onValueChange = {}, suffix = "%", width = 50.dp, enabled = false)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            SmallInputBox(value = "Rp12.000", onValueChange = {}, suffix = "", width = 75.dp, enabled = false)
+                            // enabled = true (default)
+                            SmallInputBox(value = taxPercent, onValueChange = { taxPercent = it }, suffix = "%", width = 50.dp)
+                            Spacer(Modifier.width(8.dp))
+                            SmallInputBox(value = taxAmount, onValueChange = { taxAmount = it }, suffix = "", width = 75.dp)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
-                    // Global Discount (Both disabled/gray for now)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    // Global Discount (SEKARANG EDITABLE)
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Discount", fontSize = 12.sp, color = UIDarkGrey)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            SmallInputBox(value = "0", onValueChange = {}, suffix = "%", width = 50.dp, enabled = false)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            SmallInputBox(value = "Rp0", onValueChange = {}, suffix = "", width = 75.dp, enabled = false)
+                            // enabled = true (default)
+                            SmallInputBox(value = globalDiscPercent, onValueChange = { globalDiscPercent = it }, suffix = "%", width = 50.dp)
+                            Spacer(Modifier.width(8.dp))
+                            SmallInputBox(value = globalDiscAmount, onValueChange = { globalDiscAmount = it }, suffix = "", width = 75.dp)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    // Final Total
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "Total Bill", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UIBlack)
-                        Text(text = "Rp132.000", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+                    // Total Result
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                        Text("Total Bill", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+                        Text("Rp132.000", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(120.dp))
             }
 
-            // Floating Check/Save Button
+            // Floating Check Button
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -303,7 +271,7 @@ fun NewActivityEditScreen() {
     }
 }
 
-// Component for a single editable item row
+// --- EDITABLE ITEM ROW (Border 1dp) ---
 @Composable
 fun EditableItemRow(initialQty: String, initialName: String, initialPrice: String) {
     var qty by remember { mutableStateOf(initialQty) }
@@ -317,7 +285,7 @@ fun EditableItemRow(initialQty: String, initialName: String, initialPrice: Strin
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        // Quantity Box (Left side)
+        // 1. QTY BOX
         Box(
             modifier = Modifier
                 .border(1.dp, UIDarkGrey, RoundedCornerShape(6.dp))
@@ -333,14 +301,12 @@ fun EditableItemRow(initialQty: String, initialName: String, initialPrice: Strin
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // Middle Column (Name and Discount)
-        // Wraps name and discount to allow full alignment control
+        // 2. MIDDLE COLUMN (Nama & Diskon)
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            // Name Row with Price
+            // Baris 1: Nama Makanan + Harga
             Row(modifier = Modifier.fillMaxWidth()) {
-                // Name Input
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -353,7 +319,6 @@ fun EditableItemRow(initialQty: String, initialName: String, initialPrice: Strin
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Price Input (Fixed width on the right)
                 BasicTextField(
                     value = price,
                     onValueChange = { price = it },
@@ -367,33 +332,32 @@ fun EditableItemRow(initialQty: String, initialName: String, initialPrice: Strin
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Discount Row
-            // Uses SpaceBetween to push label left and inputs right
+            // Baris 2: Discount Label + Inputs
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Discount Label
+                // Label Discount (Rata Kiri)
                 Text(
                     text = "Discount",
                     fontSize = 12.sp,
                     color = UIDarkGrey,
-                    modifier = Modifier.padding(start = 8.dp) // Aligns with text in the box above
+                    modifier = Modifier.padding(start = 8.dp)
                 )
 
-                // Discount Inputs
+                // Inputs (Rata Kanan) - INI JUGA SAYA BUAT DISABLED UNTUK ITEM (Sesuai request terakhir)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SmallInputBox(value = discPercent, onValueChange = { discPercent = it }, suffix = "%", width = 50.dp)
+                    SmallInputBox(value = discPercent, onValueChange = { discPercent = it }, suffix = "%", width = 50.dp, enabled = true)
                     Spacer(modifier = Modifier.width(8.dp))
-                    SmallInputBox(value = discAmount, onValueChange = { discAmount = it }, suffix = "", width = 75.dp)
+                    SmallInputBox(value = discAmount, onValueChange = { discAmount = it }, suffix = "", width = 75.dp, enabled = true)
                 }
             }
         }
     }
 }
 
-// Component for small numerical input boxes (used for tax, discount)
+// --- SMALL INPUT BOX (Border 1dp) ---
 @Composable
 fun SmallInputBox(
     value: String,
@@ -408,7 +372,7 @@ fun SmallInputBox(
         enabled = enabled,
         textStyle = TextStyle(
             fontSize = 12.sp,
-            color = if (enabled) UIBlack else UIDarkGrey, // Grey text when disabled
+            color = if (enabled) UIBlack else UIDarkGrey, // Hitam jika aktif, Abu jika mati
             textAlign = TextAlign.End
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -439,12 +403,13 @@ fun SmallInputBox(
 }
 
 @Composable
-fun SmallEditCircle() {
+fun SmallEditCircle(onClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .size(21.dp)
             .clip(CircleShape)
-            .background(UIAccentYellow),
+            .background(UIAccentYellow)
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(

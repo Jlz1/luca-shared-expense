@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         // Hapus enableEdgeToEdge() jika menyebabkan masalah atau pastikan sudah di-import
         setContent {
             LucaTheme {
-                NewActivityEditScreen()
+                HomeScreen()
             }
         }
         enableEdgeToEdge(

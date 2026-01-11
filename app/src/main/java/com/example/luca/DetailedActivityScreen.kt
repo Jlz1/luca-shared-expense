@@ -28,6 +28,9 @@ import com.example.luca.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailedActivityScreen() {
+    // State agar switch bisa berubah warna saat diklik
+    var isSplitEqual by remember { mutableStateOf(false) }
+
     Scaffold(
         containerColor = UIBackground,
         topBar = {
@@ -79,7 +82,7 @@ fun DetailedActivityScreen() {
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Participants and split toggle section
+                // --- 1. PARTICIPANTS & SPLIT ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -125,9 +128,10 @@ fun DetailedActivityScreen() {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        // Switch logic fixed: Now interactive
                         Switch(
-                            checked = false,
-                            onCheckedChange = {},
+                            checked = isSplitEqual,
+                            onCheckedChange = { isSplitEqual = it },
                             modifier = Modifier
                                 .scale(1.2f)
                                 .height(30.dp),
@@ -144,7 +148,7 @@ fun DetailedActivityScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Receipt card section
+                // --- 2. RECEIPT CARD ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,7 +220,7 @@ fun DetailedActivityScreen() {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Total bill card
+                // --- 3. TOTAL BILL CARD ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
