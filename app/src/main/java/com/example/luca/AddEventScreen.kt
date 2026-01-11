@@ -20,12 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIWhite
-import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIDarkGrey
+import com.example.luca.ui.theme.UIGrey
+import com.example.luca.ui.theme.UIWhite
 
 data class Participant(val id: Int, val name: String)
 
@@ -52,7 +51,7 @@ fun AddScreen() {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle Bac    k */ }) {
+                    IconButton(onClick = { /* Handle Back */ }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -91,8 +90,6 @@ fun AddScreen() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // BAGIAN LOGO / ICON
-                        // Ganti R.drawable.ic_launcher_foreground dengan nama file logo XML kamu
                         Image(
                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
                             contentDescription = "Placeholder Logo",
@@ -182,19 +179,17 @@ fun AddScreen() {
                 Spacer(modifier = Modifier.height(40.dp))
 
                 // --- Button Continue ---
-                Button(
-                    onClick = { },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
-                    shape = RoundedCornerShape(28.dp)
+                // REVISI: Modifier.fillMaxWidth() dihapus dari PrimaryButton
+                // Box tetap ada untuk memastikan button berada di tengah (Center)
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
+                    PrimaryButton(
                         text = "Continue",
-                        color = UIBlack,
-                        style = AppFont.SemiBold,
-                        fontSize = 16.sp
+                        onClick = { /* Handle Continue Action */ }
+                        // Kita TIDAK menambahkan modifier fillMaxWidth di sini
+                        // sehingga ukurannya kembali ke default 220.dp (pendek)
                     )
                 }
 
@@ -206,7 +201,7 @@ fun AddScreen() {
 
 @Preview(
     showBackground = true,
-    apiLevel = 36 // Wajib 34 agar Preview tidak crash
+    apiLevel = 36
 )
 @Composable
 fun AddScreenPreview() {
