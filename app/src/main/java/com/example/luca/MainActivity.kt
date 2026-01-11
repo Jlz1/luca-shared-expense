@@ -19,6 +19,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             LucaTheme {
                 TemplateScreen()
+                FillProfileScreen()
+                FinalScreen()
+                FinalSignUpScreen()
+                GreetingScreen()
+                LoginScreen()
+                SignUpScreen()
             }
         }
     }
@@ -28,6 +34,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TemplatePreview() {
     LucaTheme {
-        TemplateScreen()
+//        TemplateScreen()
+        FillProfileScreen()
     }
 }
