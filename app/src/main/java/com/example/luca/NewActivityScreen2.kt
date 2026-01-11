@@ -19,10 +19,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color // Perlu import ini jika pakai Color.Transparent langsung
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
@@ -65,7 +71,7 @@ fun AddActivityScreen2() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // --- MAIN CONTENT (SCROLLABLE) ---
+            // Scrollable main content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -74,14 +80,14 @@ fun AddActivityScreen2() {
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- BAGIAN ATAS: Participants & Equal Split ---
+                // Participants and Split toggle section
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Box Kiri: Participants List
+                    // Participants list
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -102,7 +108,7 @@ fun AddActivityScreen2() {
                         }
                     }
 
-                    // Box Kanan: Equal Split
+                    // Equal Split toggle
                     Column(
                         modifier = Modifier
                             .width(100.dp)
@@ -120,7 +126,6 @@ fun AddActivityScreen2() {
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // --- SWITCH FIX ---
                         Switch(
                             checked = false,
                             onCheckedChange = {},
@@ -131,22 +136,20 @@ fun AddActivityScreen2() {
                                 uncheckedThumbColor = UIWhite,
                                 uncheckedTrackColor = UIGrey,
                                 checkedTrackColor = UIAccentYellow,
-                                // HILANGKAN BORDER:
-                                uncheckedBorderColor = UITransparent,
-                                checkedBorderColor = UITransparent
+                                uncheckedBorderColor = Color.Transparent,
+                                checkedBorderColor = Color.Transparent
                             )
                         )
-                        // ------------------
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- RECEIPT CARD ---
+                // Receipt Card section
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(ReceiptWaveShape(waveWidth = 45.dp, waveHeight = 25.dp))
                         .background(UIWhite)
                         .padding(20.dp)
                 ) {
@@ -171,29 +174,35 @@ fun AddActivityScreen2() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Item 1
+                    // Receipt Item
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
+                        Text(
+                            text = "1x",
+                            color = UIDarkGrey,
+                            fontSize = 14.sp,
+                            modifier = Modifier.width(28.dp)
+                        )
+
                         Column(modifier = Modifier.weight(1f)) {
-                            Row {
-                                Text(text = "1x   ", color = UIDarkGrey, fontSize = 14.sp)
-                                Text(
-                                    text = "Gurame Bakar Kecap",
-                                    color = UIBlack,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Gurame Bakar Kecap",
+                                color = UIBlack,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 item { MiniAvatar() }
                                 item { MiniAvatar() }
                                 item { MiniAvatar() }
                             }
                         }
+
                         Text(
                             text = "Rp120.000",
                             color = UIBlack,
@@ -209,13 +218,13 @@ fun AddActivityScreen2() {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // --- TOTAL BILL CARD ---
+                // Total Bill section
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(UIWhite)
-                        .padding(10.dp)
+                        .padding(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -224,7 +233,7 @@ fun AddActivityScreen2() {
                         Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
                         Text(text = "Rp120.000", fontSize = 12.sp, color = UIDarkGrey)
                     }
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -232,7 +241,7 @@ fun AddActivityScreen2() {
                         Text(text = "Tax (10%)", fontSize = 12.sp, color = UIDarkGrey)
                         Text(text = "Rp12.000", fontSize = 12.sp, color = UIDarkGrey)
                     }
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -246,7 +255,7 @@ fun AddActivityScreen2() {
                 Spacer(modifier = Modifier.height(120.dp))
             }
 
-            // --- FLOATING BUTTONS ---
+            // Floating action buttons
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -254,18 +263,21 @@ fun AddActivityScreen2() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                FabCircleButton(size = 45.dp, icon = Icons.Default.Edit) { }
-                FabCircleButton(size = 56.dp, icon = null) {
+                FabCircleButton(size = 45.dp) {
+                    Icon(Icons.Default.Edit, null, tint = UIBlack)
+                }
+
+                FabCircleButton(size = 56.dp) {
                     Icon(
-                        painter = painterResource(id = android.R.drawable.ic_menu_camera),
+                        painter = painterResource(id = R.drawable.ic_scan_button),
                         contentDescription = "Scan",
-                        tint = UIBlack,
+                        tint = Color.Unspecified, // Use Unspecified if the svg/xml already has colors
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            // --- CONTINUE BUTTON ---
+            // Continue button
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -287,9 +299,57 @@ fun AddActivityScreen2() {
     }
 }
 
-// ... Sisa komponen helper tetap sama ...
+// Custom shape for the receipt card
+class ReceiptWaveShape(
+    private val waveWidth: androidx.compose.ui.unit.Dp,
+    private val waveHeight: androidx.compose.ui.unit.Dp
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val waveWidthPx = with(density) { waveWidth.toPx() }
+        val waveHeightPx = with(density) { waveHeight.toPx() }
+
+        val path = Path().apply {
+            moveTo(0f, 0f)
+
+            // Top edge waves
+            var currentX = 0f
+            while (currentX < size.width) {
+                val nextX = currentX + waveWidthPx
+                quadraticBezierTo(
+                    currentX + waveWidthPx / 2, waveHeightPx,
+                    nextX, 0f
+                )
+                currentX = nextX
+            }
+
+            // Right edge
+            lineTo(size.width, size.height)
+
+            // Bottom edge waves (reverse direction)
+            currentX = size.width
+            while (currentX > 0) {
+                val nextX = currentX - waveWidthPx
+                quadraticBezierTo(
+                    currentX - waveWidthPx / 2, size.height - waveHeightPx,
+                    nextX, size.height
+                )
+                currentX = nextX
+            }
+
+            // Left edge
+            lineTo(0f, 0f)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
 @Composable
-fun FabCircleButton(size: androidx.compose.ui.unit.Dp, icon: androidx.compose.ui.graphics.vector.ImageVector?, content: @Composable (() -> Unit)? = null) {
+fun FabCircleButton(size: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .size(size)
@@ -299,11 +359,7 @@ fun FabCircleButton(size: androidx.compose.ui.unit.Dp, icon: androidx.compose.ui
             .clickable { },
         contentAlignment = Alignment.Center
     ) {
-        if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, tint = UIBlack, modifier = Modifier.size(20.dp))
-        } else {
-            content?.invoke()
-        }
+        content()
     }
 }
 
