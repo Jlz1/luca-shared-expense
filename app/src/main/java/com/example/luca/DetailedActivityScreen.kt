@@ -5,13 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,30 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddActivityScreen2() {
+fun DetailedActivityScreen() {
     Scaffold(
         containerColor = UIBackground,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "New Activity",
+                        text = "Activity Details",
                         style = AppFont.SemiBold,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 20.sp,
@@ -66,21 +58,28 @@ fun AddActivityScreen2() {
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
 
+        // Root box with yellow background to fill the gap
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(UIAccentYellow)
         ) {
-            // Scrollable main content
+            // Main content container
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    // Padding top creates the yellow gap effect
+                    .padding(top = 16.dp)
+                    // Rounded top corners for the content area
+                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                    .background(UIBackground)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Participants and Split toggle section
+                // Participants and split toggle section
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -108,7 +107,7 @@ fun AddActivityScreen2() {
                         }
                     }
 
-                    // Equal Split toggle
+                    // Equal split toggle
                     Column(
                         modifier = Modifier
                             .width(100.dp)
@@ -145,7 +144,7 @@ fun AddActivityScreen2() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Receipt Card section
+                // Receipt card section
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -153,7 +152,7 @@ fun AddActivityScreen2() {
                         .background(UIWhite)
                         .padding(20.dp)
                 ) {
-                    // Receipt Header
+                    // Receipt header
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -174,7 +173,7 @@ fun AddActivityScreen2() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Receipt Item
+                    // Receipt item
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -195,7 +194,6 @@ fun AddActivityScreen2() {
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 item { MiniAvatar() }
                                 item { MiniAvatar() }
@@ -218,7 +216,7 @@ fun AddActivityScreen2() {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Total Bill section
+                // Total bill card
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -252,7 +250,7 @@ fun AddActivityScreen2() {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(120.dp))
+                Spacer(modifier = Modifier.height(100.dp))
             }
 
             // Floating action buttons
@@ -271,135 +269,19 @@ fun AddActivityScreen2() {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_scan_button),
                         contentDescription = "Scan",
-                        tint = Color.Unspecified, // Use Unspecified if the svg/xml already has colors
+                        tint = Color.Unspecified,
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
-
-            // Continue button
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 34.dp)
-            ) {
-                Button(
-                    onClick = {},
-                    modifier = Modifier.size(width = 188.dp, height = 50.dp),
-                    shape = RoundedCornerShape(25.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = UIAccentYellow,
-                        contentColor = UIBlack
-                    )
-                ) {
-                    Text(text = "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
-                }
-            }
         }
-    }
-}
-
-// Custom shape for the receipt card
-class ReceiptWaveShape(
-    val waveWidth: androidx.compose.ui.unit.Dp,
-    val waveHeight: androidx.compose.ui.unit.Dp
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline {
-        val waveWidthPx = with(density) { waveWidth.toPx() }
-        val waveHeightPx = with(density) { waveHeight.toPx() }
-
-        val path = Path().apply {
-            moveTo(0f, 0f)
-
-            // Top edge waves
-            var currentX = 0f
-            while (currentX < size.width) {
-                val nextX = currentX + waveWidthPx
-                quadraticBezierTo(
-                    currentX + waveWidthPx / 2, waveHeightPx,
-                    nextX, 0f
-                )
-                currentX = nextX
-            }
-
-            // Right edge
-            lineTo(size.width, size.height)
-
-            // Bottom edge waves (reverse direction)
-            currentX = size.width
-            while (currentX > 0) {
-                val nextX = currentX - waveWidthPx
-                quadraticBezierTo(
-                    currentX - waveWidthPx / 2, size.height - waveHeightPx,
-                    nextX, size.height
-                )
-                currentX = nextX
-            }
-
-            // Left edge
-            lineTo(0f, 0f)
-            close()
-        }
-        return Outline.Generic(path)
-    }
-}
-
-@Composable
-fun FabCircleButton(size: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .shadow(8.dp, CircleShape)
-            .clip(CircleShape)
-            .background(UIWhite)
-            .clickable { },
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
-
-@Composable
-fun GreyAvatarItem(name: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(UIDarkGrey),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Person, null, tint = UIWhite, modifier = Modifier.size(24.dp))
-        }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(text = name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UIBlack)
-    }
-}
-
-@Composable
-fun MiniAvatar() {
-    Box(
-        modifier = Modifier
-            .size(20.dp)
-            .clip(CircleShape)
-            .background(UIDarkGrey),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(Icons.Default.Person, null, tint = UIWhite, modifier = Modifier.size(12.dp))
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun AddActivity2Preview() {
+fun DetailPreview() {
     LucaTheme {
-        AddActivityScreen2()
+        DetailedActivityScreen()
     }
 }
