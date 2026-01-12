@@ -3,20 +3,23 @@ package com.example.luca
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 //import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,20 +44,30 @@ fun DetailedEventScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 1. Scrollable Content (Container Utama)
+            // 1. Content Layout (Tidak scroll - hanya LazyColumn yang scroll)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()) // Scrollable vertical
                     .padding(bottom = 100.dp) // PENTING: Padding bawah agar item terakhir tidak tertutup Bottom Button
             ) {
-                // Placeholder Components
+                // Placeholder Components - Static (tidak scroll)
                 EventCard()
                 Spacer(modifier = Modifier.height(16.dp))
-                SearchBar()
-                Spacer(modifier = Modifier.height(24.dp))
+                SearchBarModify(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .height(50.dp),
+                    placeholder = "Search",
+                    onSearchQueryChange = { query ->
+                        // Handle search query change
+                        println("Search: $query")
+                    },
+                    readOnly = false
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 2. Activity List Section
+                // 2. Activity List Section - Hanya bagian ini yang scrollable
                 ActivitySection()
             }
 
@@ -99,14 +112,15 @@ fun ActivitySection() {
         ActivityData(Color(0xFFFF5722), "Dinner Jimbaran", "Paid by Steven K", "Rp.500.000")
     )
 
-    Column(
+    // Menggunakan LazyColumn untuk scrollable list yang efisien
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp), // Padding kiri-kanan agar card tidak nempel layar
+            .fillMaxHeight(), // Mengisi sisa tinggi yang tersedia
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 0.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp) // Jarak antar card vertikal
     ) {
-        // Loop manual (pengganti LazyColumn)
-        activities.forEach { item ->
+        items(activities) { item ->
             ActivityItemCard(
                 iconColor = item.color,
                 title = item.title,
