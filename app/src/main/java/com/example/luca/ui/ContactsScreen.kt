@@ -1,5 +1,6 @@
-package com.example.luca
+package com.example.luca.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
+import kotlin.collections.iterator
 
 // Model Data Sederhana untuk Kontak
 data class Contact(
@@ -32,7 +34,7 @@ data class Contact(
     val color: Color // Warna avatar dummy
 )
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ContactsScreen() {
     // 1. DUMMY DATA GENERATOR

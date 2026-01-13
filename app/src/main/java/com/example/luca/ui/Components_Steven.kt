@@ -1,4 +1,4 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

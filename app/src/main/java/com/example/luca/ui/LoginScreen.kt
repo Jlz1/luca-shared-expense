@@ -1,4 +1,4 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -26,8 +25,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
@@ -204,8 +205,8 @@ fun CustomInputForm(
     onValueChange: (String) -> Unit,
     placeholder: String,
     iconRes: Int,
-    iconSizeWidth: androidx.compose.ui.unit.Dp,
-    iconSizeHeight: androidx.compose.ui.unit.Dp,
+    iconSizeWidth: Dp,
+    iconSizeHeight: Dp,
     isPasswordField: Boolean = false,
     isPasswordVisible: Boolean = false,
     onVisibilityChange: () -> Unit = {},

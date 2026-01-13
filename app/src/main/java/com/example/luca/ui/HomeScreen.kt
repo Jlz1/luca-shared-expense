@@ -1,4 +1,4 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentRed
@@ -48,7 +49,6 @@ import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
-import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
