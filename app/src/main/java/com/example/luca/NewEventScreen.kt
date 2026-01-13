@@ -1,6 +1,6 @@
 package com.example.luca
 
-import androidx.compose.foundation.Image
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,9 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,7 +53,18 @@ fun NewEventScreen() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Search Bar Section
-                SearchBar()
+                SearchBarModify(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp,vertical = 12.dp)
+                        .height(50.dp),
+                    placeholder = "Search",
+                    onSearchQueryChange = { query ->
+                        // Handle search query change
+                        println("Search: $query")
+                    },
+                    readOnly = false
+                )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -147,7 +157,7 @@ fun EventCard() {
         // Event Info at Bottom
         Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
@@ -242,43 +252,6 @@ fun EventCard() {
     }
 }
 
-// Search Bar Component
-@Composable
-fun SearchBar(
-    onSearchClick: () -> Unit = {},
-    onSearchQueryChange: (String) -> Unit = {}
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(50.dp),
-        color = UIGrey,
-        shadowElevation = 2.dp,
-        onClick = onSearchClick
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = UIDarkGrey,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Search",
-                style = AppFont.Regular,
-                fontSize = 16.sp,
-                color = UIDarkGrey
-            )
-        }
-    }
-}
-
 // Empty State Message Component
 @Composable
 fun EmptyStateMessage() {
@@ -317,7 +290,7 @@ fun BottomActionAreaNew(
     onAddActivityClick: () -> Unit = {}
 ) {
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
     ) {
         // FAB with Hint (Bottom Right)
         Column(
