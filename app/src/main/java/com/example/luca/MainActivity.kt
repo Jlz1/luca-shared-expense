@@ -17,15 +17,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UITransparent
+import android.widget.Toast
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Hapus enableEdgeToEdge() jika menyebabkan masalah atau pastikan sudah di-import
         setContent {
-            LucaTheme {
-                DetailedEventScreen()
-            }
+            GreetingScreen(
+                onNavigateToLogin = {
+                    // Logika pindah ke LoginScreen manual
+                    Toast.makeText(this, "Pindah ke Manual Login", Toast.LENGTH_SHORT).show()
+                },
+                onNavigateToHome = {
+                    // Logika kalau sukses login
+                    Toast.makeText(this, "Masuk ke Home...", Toast.LENGTH_SHORT).show()
+                }
+            )
         }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
