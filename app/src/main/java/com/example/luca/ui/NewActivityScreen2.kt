@@ -1,4 +1,4 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,9 +28,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.R
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -305,8 +307,8 @@ fun AddActivityScreen2() {
 
 // Custom shape for the receipt card
 class ReceiptWaveShape(
-    val waveWidth: androidx.compose.ui.unit.Dp,
-    val waveHeight: androidx.compose.ui.unit.Dp
+    val waveWidth: Dp,
+    val waveHeight: Dp
 ) : Shape {
     override fun createOutline(
         size: Size,
@@ -353,7 +355,7 @@ class ReceiptWaveShape(
 }
 
 @Composable
-fun FabCircleButton(size: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {
+fun FabCircleButton(size: Dp, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .size(size)

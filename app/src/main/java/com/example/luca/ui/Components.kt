@@ -1,6 +1,7 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
@@ -165,7 +167,7 @@ fun HeaderSection(
                 contentAlignment = Alignment.Center,
             ) {
                 Box(modifier = Modifier.size(26.dp), contentAlignment = Alignment.Center) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    AnimatedVisibility(
                         visible = currentState.showRightLogo,
                         enter = scaleIn() + fadeIn(),
                         exit = scaleOut() + fadeOut()
