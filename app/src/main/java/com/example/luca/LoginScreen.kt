@@ -2,32 +2,17 @@ package com.example.luca
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,144 +48,152 @@ fun LoginScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 33.dp), // Global start padding sesuai x=33
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .padding(all = 30.dp),
         ) {
 
-            // --- 1. BACK ARROW ---
-            Spacer(modifier = Modifier.height(57.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = UIBlack,
-                modifier = Modifier
-                    .size(29.dp)
-                    .clickable { /* TODO: Back Action */ }
-            )
 
-            // --- 2. TEXT SECTION ---
-            Spacer(modifier = Modifier.height(128.dp))
-            Text(
-                text = "Welcome Back!",
-                style = AppFont.SemiBold,
-                fontSize = 32.sp,
-                color = UIBlack,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-            Text(
-                text = "Enter your email and password to log in.",
-                style = AppFont.Medium,
-                fontSize = 14.sp,
-                color = UIBlack.copy(alpha = 0.6f)
-            )
-
-            // --- 3. FORMS ---
-            // Email (y=323)
-            Spacer(modifier = Modifier.height(50.dp))
-            CustomInputForm(
-                text = email,
-                onValueChange = { email = it },
-                placeholder = "Email Address",
-                iconRes = R.drawable.ic_email_form,
-                iconSizeWidth = 15.dp,
-                iconSizeHeight = 10.dp
-            )
-
-            // Password (y=386) - calculated from eye icon
-            Spacer(modifier = Modifier.height(13.dp))
-            CustomInputForm(
-                text = password,
-                onValueChange = { password = it },
-                placeholder = "Password",
-                iconRes = R.drawable.ic_password_form,
-                iconSizeWidth = 15.dp,
-                iconSizeHeight = 10.dp,
-                isPasswordField = true,
-                isPasswordVisible = isPasswordVisible,
-                onVisibilityChange = { isPasswordVisible = !isPasswordVisible }
-            )
-
-            // --- 4. LOG IN BUTTON ---
-            // Password Box ends at y = 386 + 50 = 436
-            // Target Button y = 485
-            // Gap = 49.dp
-            Spacer(modifier = Modifier.height(49.dp))
-
-            Button(
-                onClick = { /* TODO: Handle Login */ },
-                modifier = Modifier
-                    .size(width = 308.dp, height = 50.dp), // Dimensi 308x50
-                shape = RoundedCornerShape(23.dp), // Radius 23
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = UIAccentYellow,
-                    contentColor = UIBlack
-                ),
-                contentPadding = PaddingValues(0.dp)
+            // BOX 1: HEADER (Back Icon)
+            Box(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Log in",
-                    style = AppFont.Medium,
-                    fontSize = 14.sp,
-                    color = UIBlack,
-                    textAlign = TextAlign.Center
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = UIBlack,
+                    modifier = Modifier
+                        .size(29.dp)
+                        .clickable { /* TODO: Back Action */ }
                 )
             }
 
-            // --- 5. SIGN UP LINK TEXT ---
-            // Button ends at y = 485 + 50 = 535
-            // Target Text y = 550
-            // Gap = 15.dp
-            Spacer(modifier = Modifier.height(15.dp))
 
-            // Menggunakan AnnotatedString untuk mewarnai sebagian teks
-            val signUpText = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = UIBlack, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
-                    append("Don’t have an account? ")
-                }
+            // BOX 2: CONTENT (Middle)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.Start
+                ) {
 
-                // Bagian "Sign Up." yang bisa diklik
-                pushStringAnnotation(tag = "SIGN_UP", annotation = "navigate_signup")
-                withStyle(style = SpanStyle(color = UIAccentYellow, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
-                    append("Sign Up.")
+                    // --- TEXT SECTION ---
+                    Text(
+                        text = "Welcome Back!",
+                        style = AppFont.SemiBold,
+                        fontSize = 32.sp,
+                        color = UIBlack,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Enter your email and password to log in.",
+                        style = AppFont.Medium,
+                        fontSize = 14.sp,
+                        color = UIBlack.copy(alpha = 0.6f)
+                    )
+
+                    // --- FORMS ---
+                    Spacer(modifier = Modifier.height(50.dp))
+                    CustomInputForm(
+                        text = email,
+                        onValueChange = { email = it },
+                        placeholder = "Email Address",
+                        iconRes = R.drawable.ic_email_form,
+                        iconSizeWidth = 15.dp,
+                        iconSizeHeight = 10.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(13.dp))
+                    CustomInputForm(
+                        text = password,
+                        onValueChange = { password = it },
+                        placeholder = "Password",
+                        iconRes = R.drawable.ic_password_form,
+                        iconSizeWidth = 15.dp,
+                        iconSizeHeight = 10.dp,
+                        isPasswordField = true,
+                        isPasswordVisible = isPasswordVisible,
+                        onVisibilityChange = { isPasswordVisible = !isPasswordVisible },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // --- LOG IN BUTTON ---
+                    Spacer(modifier = Modifier.height(49.dp))
+                    Button(
+                        onClick = { /* TODO: Handle Login */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(23.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = UIAccentYellow,
+                            contentColor = UIBlack
+                        ),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "Log in",
+                            style = AppFont.Medium,
+                            fontSize = 14.sp,
+                            color = UIBlack,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // --- SIGN UP LINK TEXT ---
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    val signUpText = buildAnnotatedString {
+                        withStyle(style = SpanStyle(color = UIBlack, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
+                            append("Don’t have an account? ")
+                        }
+                        pushStringAnnotation(tag = "SIGN_UP", annotation = "navigate_signup")
+                        withStyle(style = SpanStyle(color = UIAccentYellow, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
+                            append("Sign Up.")
+                        }
+                        pop()
+                    }
+
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ClickableText(
+                            text = signUpText,
+                            onClick = { offset ->
+                                signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
+                                    .firstOrNull()?.let {
+                                        println("Navigate to Sign Up")
+                                    }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
-                pop()
             }
 
-            // ClickableText deprecated di versi baru tapi masih standard digunakan untuk kasus ini
-            // Kalau mau pakai Text biasa + Modifier.clickable, satu baris jadi kena click semua
-            ClickableText(
-                text = signUpText,
-                onClick = { offset ->
-                    signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
-                        .firstOrNull()?.let {
-                            // TODO: Navigasi ke SignUpPage di sini
-                            println("Navigate to Sign Up")
-                        }
-                },
-                // Menyesuaikan posisi x=83 (33 padding start + 50 spacer visual atau alignment center)
-                // Karena kita pakai Column Align Start, text ini ada di kiri.
-                // Untuk membuatnya agak ke tengah (x=83), kita bisa bungkus Box atau tambah padding start lokal.
-                // x=83 - x=33 (global padding) = 50.dp padding tambahan.
-                modifier = Modifier.padding(start = 50.dp)
-            )
+            // BOX 3: FOOTER (Bottom)
 
-            // --- 6. FOOTER ---
-            // Sign Up text (y=550) + height (~20) = 570
-            // Target Footer y = 760
-            // Gap = 190.dp
-            Spacer(modifier = Modifier.height(190.dp))
-
-            Text(
-                text = "Privacy Policy   ·   Terms of Service",
-                style = AppFont.SemiBold,
-                fontSize = 12.sp,
-                color = UIBlack.copy(alpha = 0.6f),
-                // x=94 target. Global padding=33. Selisih=61.dp
-                modifier = Modifier.padding(start = 61.dp)
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Privacy Policy   ·   Terms of Service",
+                    style = AppFont.SemiBold,
+                    fontSize = 12.sp,
+                    color = UIBlack.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -215,11 +208,11 @@ fun CustomInputForm(
     iconSizeHeight: androidx.compose.ui.unit.Dp,
     isPasswordField: Boolean = false,
     isPasswordVisible: Boolean = false,
-    onVisibilityChange: () -> Unit = {}
+    onVisibilityChange: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .width(308.dp)
+        modifier = modifier
             .height(50.dp)
             .background(color = UIGrey, shape = RoundedCornerShape(23.dp)),
         contentAlignment = Alignment.CenterStart
@@ -258,7 +251,8 @@ fun CustomInputForm(
                     ),
                     singleLine = true,
                     visualTransformation = if (isPasswordField && !isPasswordVisible)
-                        PasswordVisualTransformation() else VisualTransformation.None
+                        PasswordVisualTransformation() else VisualTransformation.None,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             if (isPasswordField) {

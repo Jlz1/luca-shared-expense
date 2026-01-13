@@ -15,16 +15,10 @@ import com.example.luca.ui.theme.LucaTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Hapus enableEdgeToEdge() jika menyebabkan masalah atau pastikan sudah di-import
+        // Hapus enableEdgeToEdge()  jika menyebabkan masalah atau pastikan sudah di-import
         setContent {
             LucaTheme {
                 TemplateScreen()
-                FillProfileScreen()
-                FinalScreen()
-                FinalSignUpScreen()
-                GreetingScreen()
-                LoginScreen()
-                SignUpScreen()
             }
         }
     }
