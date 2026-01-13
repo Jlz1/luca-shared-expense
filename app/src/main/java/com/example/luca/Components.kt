@@ -282,6 +282,32 @@ fun FloatingNavbar(
     }
 }
 
+@Composable
+fun NavIconButton(
+    iconRes: Int,
+    desc: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(59.dp)
+            // InteractionSource null biar ga ada ripple effect pas klik (opsional)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = desc,
+            tint = UIBlack // Warna icon selalu hitam sesuai request
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputSection(
