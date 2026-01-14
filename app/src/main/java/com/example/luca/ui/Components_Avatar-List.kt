@@ -111,7 +111,7 @@ private fun AvatarItem(
             androidx.compose.material3.Text(
                 text = if (user.isCurrentUser) "You" else user.name,
                 color = Color.Black,
-                fontSize = 14.sp,
+                fontSize = calculateFontSize(avatarSize),
                 fontWeight = FontWeight.Normal,
                 fontFamily = FontFamily.Default,
                 textAlign = TextAlign.Center,
@@ -157,7 +157,7 @@ private fun AddAvatarButton(
             // PERBAIKAN DI SINI: Menggunakan androidx.compose.material3.Text secara eksplisit
             androidx.compose.material3.Text(
                 text = "",
-                fontSize = 14.sp,
+                fontSize = calculateFontSize(avatarSize),
                 maxLines = 1
             )
         }
@@ -165,6 +165,10 @@ private fun AddAvatarButton(
 }
 
 // --- HELPER ---
+private fun calculateFontSize(avatarSize: Dp): androidx.compose.ui.unit.TextUnit {
+    return (avatarSize.value * 0.25).sp
+}
+
 private fun getRandomAvatarColor(name: String): Color {
     val colors = listOf(
         Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFF45B7D1),
@@ -185,15 +189,17 @@ fun AvatarListPreview() {
         androidx.compose.material3.Text("Preview: With Add Button")
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Kalau mau pake copas saja dari sini
         AvatarList(
             users = listOf(
                 UserData("You", true, Color(0xFFFF8C42)),
                 UserData("Jeremy E"),
                 UserData("Steven K")
             ),
-            avatarSize = 70.dp,
+            avatarSize = 60.dp,
             showName = true,
             showAddButton = true
         )
+        // sampai sini teman teman
     }
 }
