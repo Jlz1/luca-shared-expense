@@ -29,19 +29,21 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
 
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.OAuthProvider
+
 @Composable
 fun GreetingScreen(
-    onNavigateToLogin: () -> Unit, // Callback ke Login Manual
-    onNavigateToHome: () -> Unit   // Callback kalau sukses Google
+    onNavigateToLogin: () -> Unit,
+    onNavigateToHome: () -> Unit
 ) {
-    // --- BAGIAN 1: LOGIC (Otak) ---
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
 
-    // 🔥 JANGAN LUPA: Paste Client ID kamu disini!
-    val webClientId = "1193816...googleusercontent.com"
+    val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
 
+    // --- LAUNCHER GOOGLE ---
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -55,7 +57,7 @@ fun GreetingScreen(
                     scope.launch {
                         val success = authRepo.signInWithGoogle(idToken)
                         if (success) {
-                            Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Login Google Berhasil!", Toast.LENGTH_SHORT).show()
                             onNavigateToHome()
                         } else {
                             Toast.makeText(context, "Gagal simpan ke Firebase", Toast.LENGTH_SHORT).show()
@@ -68,7 +70,6 @@ fun GreetingScreen(
         }
     }
 
-    // --- BAGIAN 2: UI (Tampilan Bagus Kamu) ---
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite
@@ -97,7 +98,6 @@ fun GreetingScreen(
 
                     Spacer(modifier = Modifier.height(50.dp))
 
-                    // Pastikan kamu punya gambar ini di res/drawable
                     // Image(
                     //    painter = painterResource(id = R.drawable.ic_luca_logo),
                     //    contentDescription = "Luca Logo",
@@ -108,7 +108,7 @@ fun GreetingScreen(
 
                     Text(
                         text = "Welcome to Luca!",
-                        style = AppFont.SemiBold, // Pastikan Font ini ada
+                        style = AppFont.SemiBold,
                         fontSize = 28.sp,
                         color = UIBlack,
                         textAlign = TextAlign.Center
@@ -126,10 +126,10 @@ fun GreetingScreen(
 
                     Spacer(modifier = Modifier.height(74.dp))
 
-                    // --- TOMBOL GOOGLE (SUDAH DISAMBUNG KABELNYA) ---
+                    // --- TOMBOL GOOGLE ---
                     SocialButton(
                         text = "Continue with Google",
-                        // iconRes = R.drawable.ic_google_logo, // Uncomment kalau icon ada
+                        // iconRes = R.drawable.ic_google_logo,
                         onClick = {
                             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                                 .requestIdToken(webClientId)
@@ -153,11 +153,33 @@ fun GreetingScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- TOMBOL X ---
                     SocialButton(
                         text = "Continue with X",
                         // iconRes = R.drawable.ic_x_logo,
-                        onClick = { Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show() },
+                        onClick = {
+                            val provider = OAuthProvider.newBuilder("twitter.com")
+
+                            val firebaseAuth = FirebaseAuth.getInstance()
+
+                            val activity = context as Activity
+
+                            firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
+                                .addOnSuccessListener { result ->
+                                    // Login Sukses!
+                                    val user = result.user
+                                    if (user != null) {
+                                        // Simpan ke Firestore (Pastikan fungsi ini ada di AuthRepository)
+                                        authRepo.saveUserAfterSocialLogin(user)
+
+                                        Toast.makeText(context, "Welcome ${user.displayName}!", Toast.LENGTH_SHORT).show()
+                                        onNavigateToHome()
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    // Login Gagal / Cancel
+                                    Toast.makeText(context, "X Login Failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -165,7 +187,7 @@ fun GreetingScreen(
 
                     // --- SIGN UP BUTTON ---
                     Button(
-                        onClick = { onNavigateToLogin() }, // Sementara arahkan ke Login juga
+                        onClick = { onNavigateToLogin() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -189,7 +211,7 @@ fun GreetingScreen(
 
                     // --- LOG IN BUTTON ---
                     OutlinedButton(
-                        onClick = { onNavigateToLogin() }, // Navigasi Manual Login
+                        onClick = { onNavigateToLogin() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -229,11 +251,11 @@ fun GreetingScreen(
     }
 }
 
-// --- REUSABLE COMPONENT (TETAP DIPAKAI) ---
+// --- REUSABLE COMPONENT ---
 @Composable
 fun SocialButton(
     text: String,
-    // iconRes: Int, // Uncomment kalau icon sudah ada
+    // iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -253,7 +275,6 @@ fun SocialButton(
         ) {
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Uncomment kalau icon sudah ada
             // Image(
             //     painter = painterResource(id = iconRes),
             //     contentDescription = null,
@@ -274,7 +295,6 @@ fun SocialButton(
     }
 }
 
-// Update Preview biar gak error karena butuh parameter
 @Preview
 @Composable
 fun GreetingScreenPreview() {
