@@ -28,21 +28,19 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
-// IMPORT PENTING BUAT X / TWITTER
+
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.OAuthProvider
 
 @Composable
 fun GreetingScreen(
-    onNavigateToLogin: () -> Unit, // Callback ke Login Manual
-    onNavigateToHome: () -> Unit   // Callback kalau sukses Google/X
+    onNavigateToLogin: () -> Unit,
+    onNavigateToHome: () -> Unit
 ) {
-    // --- BAGIAN 1: LOGIC (Otak) ---
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
 
-    // 🔥 Client ID Google Kamu (Sudah Benar)
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
 
     // --- LAUNCHER GOOGLE ---
@@ -72,7 +70,6 @@ fun GreetingScreen(
         }
     }
 
-    // --- BAGIAN 2: UI (Tampilan) ---
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite
@@ -156,21 +153,16 @@ fun GreetingScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- TOMBOL X (TWITTER) - SUDAH AKTIF 🔥 ---
                     SocialButton(
                         text = "Continue with X",
                         // iconRes = R.drawable.ic_x_logo,
                         onClick = {
-                            // 1. Setup Provider Twitter/X
                             val provider = OAuthProvider.newBuilder("twitter.com")
 
-                            // 2. Ambil Firebase Auth Instance
                             val firebaseAuth = FirebaseAuth.getInstance()
 
-                            // 3. Konversi Context ke Activity (Wajib buat buka Browser)
                             val activity = context as Activity
 
-                            // 4. Mulai Login
                             firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
                                 .addOnSuccessListener { result ->
                                     // Login Sukses!
@@ -259,11 +251,11 @@ fun GreetingScreen(
     }
 }
 
-// --- REUSABLE COMPONENT (TETAP DIPAKAI) ---
+// --- REUSABLE COMPONENT ---
 @Composable
 fun SocialButton(
     text: String,
-    // iconRes: Int, // Uncomment kalau icon sudah ada
+    // iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -283,7 +275,6 @@ fun SocialButton(
         ) {
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Uncomment kalau icon sudah ada
             // Image(
             //     painter = painterResource(id = iconRes),
             //     contentDescription = null,
