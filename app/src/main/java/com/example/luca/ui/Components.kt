@@ -1,5 +1,6 @@
 package com.example.luca.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -15,6 +16,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -53,13 +55,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
@@ -216,7 +221,7 @@ fun FloatingNavbar(
             .width(225.dp)
             .height(75.dp),
         shape = RoundedCornerShape(50.dp),
-        color = UiAccentYellow,
+        color = UIAccentYellow,
         shadowElevation = 8.dp
     ) {
         Box(
@@ -281,6 +286,32 @@ fun FloatingNavbar(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun NavIconButton(
+    iconRes: Int,
+    desc: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(59.dp)
+            // InteractionSource null biar ga ada ripple effect pas klik (opsional)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = desc,
+            tint = UIBlack // Warna icon selalu hitam sesuai request
+        )
     }
 }
 
@@ -392,6 +423,99 @@ fun PrimaryButton(
             fontSize = 20.sp
         )
     }
+}
+
+@Composable
+fun StackedAvatarRow(
+    spacing: Int = -10,
+    avatars: List<String>,
+    maxVisible: Int = 4,
+    itemSize: Dp = 40.dp // Tambahan: Ukuran standar untuk avatar & counter
+) {
+    // 1. Hitung Logic Sisa
+    val isOverflow = avatars.size > maxVisible
+
+    // Jika overflow, kurangi 1 slot untuk tempat counter (+N)
+    val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
+    val remainingCount = avatars.size - visibleCount
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy((spacing).dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 2. Render Foto (Looping sebanyak visibleCount)
+        for (i in 0 until visibleCount) {
+            // Kita bungkus AvatarItem biar bisa dikontrol zIndex-nya dari sini jika perlu
+            // Atau asumsikan AvatarItem sudah handle size
+            Box(
+                modifier = Modifier
+                    .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
+            ) {
+                AvatarIte(
+                    imageCode = avatars[i],
+                    size = itemSize,
+                    zIndex = (visibleCount - i).toFloat()
+                )
+            }
+        }
+
+        // 3. Render Counter Overflow (Jika ada sisa)
+        if (isOverflow) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .zIndex(0f) // Paling bawah tumpukannya
+                    .size(itemSize)
+                    .clip(CircleShape)
+                    .background(UIDarkGrey)
+                    // Optional: Kasih border putih biar misah sama foto sebelumnya
+                    .border(2.dp, Color.White, CircleShape)
+            ) {
+                Text(
+                    text = "+$remainingCount",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = AppFont.Bold
+                )
+            }
+        }
+    }
+}
+
+// Komponen Dummy untuk AvatarItem (Hanya sebagai contoh agar kode di atas tidak error)
+@Composable
+fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
+    val commonModifier = Modifier
+        .size(size)
+        .zIndex(zIndex)
+        .clip(CircleShape)
+        .border(2.dp, UIWhite, CircleShape)
+
+    if (imageCode == "debug") {
+        Box(modifier = commonModifier.background(Color.Gray))
+    } else {
+        // Ambil ID resource berdasarkan kode string/angka
+        val imageRes = getResourceId(imageCode)
+
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = commonModifier.background(UIWhite)
+        )
+    }
+}
+
+@SuppressLint("LocalContextResourcesRead")
+@Composable
+fun getResourceId(name: String): Int {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return context.resources.getIdentifier(
+        "avatar_$name", // Nama file tanpa ekstensi
+        "drawable",
+        context.packageName
+    )
 }
 
 @Preview
