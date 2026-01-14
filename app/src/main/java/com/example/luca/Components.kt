@@ -449,7 +449,7 @@ fun StackedAvatarRow(
                 modifier = Modifier
                     .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
             ) {
-                AvatarIte(
+                AvatarItem(
                     imageCode = avatars[i],
                     size = itemSize,
                     zIndex = (visibleCount - i).toFloat()
