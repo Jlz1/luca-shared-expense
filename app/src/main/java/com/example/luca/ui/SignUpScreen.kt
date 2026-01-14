@@ -50,7 +50,10 @@ import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
-fun SignUpScreen() {
+fun SignUpScreen(
+    onBackClick: () -> Unit = {},
+    onContinueClick: () -> Unit = {}
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -78,7 +81,7 @@ fun SignUpScreen() {
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
-                        .clickable { /* TODO: Back Action */ }
+                        .clickable { onBackClick() }
                 )
             }
 
@@ -159,7 +162,7 @@ fun SignUpScreen() {
                     Spacer(modifier = Modifier.height(57.dp))
 
                     Button(
-                        onClick = { /* TODO: Continue Action */ },
+                        onClick = onContinueClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

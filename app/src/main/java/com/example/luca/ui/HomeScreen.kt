@@ -50,7 +50,11 @@ import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onEventClick: () -> Unit = {},
+    onContactsClick: () -> Unit = {},
+    onAddEventClick: () -> Unit = {}
+) {
     Scaffold(
         // 1. Header Tetap di Atas
         topBar = {
@@ -59,7 +63,10 @@ fun HomeScreen() {
 
         // 2. Navbar Melayang ditaruh di slot FAB agar tidak memotong list
         floatingActionButton = {
-            FloatingNavbar()
+            FloatingNavbar(
+                onContactsClick = onContactsClick,
+                onAddClick = onAddEventClick
+            )
         },
         // Atur posisi Navbar ke tengah bawah
         floatingActionButtonPosition = FabPosition.Center,
@@ -105,7 +112,7 @@ fun HomeScreen() {
                             .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        EventCarousel()
+                        EventCarousel(onEventClick = onEventClick)
                     }
                     Spacer(modifier = Modifier.fillMaxWidth().height(112.dp))
                 }
@@ -116,7 +123,9 @@ fun HomeScreen() {
 
 @OptIn(ExperimentalFoundationApi::class) // Snapping masih experimental api di beberapa versi, aman dipake
 @Composable
-fun EventCarousel() {
+fun EventCarousel(
+    onEventClick: () -> Unit = {}
+) {
     // 1. Setup State buat scroll dan snap
     val listState = rememberLazyListState()
     val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
@@ -138,13 +147,13 @@ fun EventCarousel() {
     ) {
         // Contoh 5 Item dummy
         items(5) { index ->
-            TripCardItem(width = cardWidth, index = index)
+            TripCardItem(width = cardWidth, index = index, onClick = onEventClick)
         }
     }
 }
 
 @Composable
-fun TripCardItem(width: Dp, index: Int) {
+fun TripCardItem(width: Dp, index: Int, onClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .width(width)
@@ -159,7 +168,8 @@ fun TripCardItem(width: Dp, index: Int) {
             contentColor = UIWhite,
             disabledContainerColor = UIWhite,
             disabledContentColor = UIWhite
-        )
+        ),
+        onClick = onClick
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
             Column(

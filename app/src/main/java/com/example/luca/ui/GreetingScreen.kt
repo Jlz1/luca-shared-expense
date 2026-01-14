@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,17 +31,19 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
 
+
+
+// --- FUNGSI 1: LOGIC WRAPPER (Tempat Firebase Berada) ---
 @Composable
 fun GreetingScreen(
-    onNavigateToLogin: () -> Unit, // Callback ke Login Manual
-    onNavigateToHome: () -> Unit   // Callback kalau sukses Google
+    onNavigateToLogin: () -> Unit,
+    onNavigateToSignUp: () -> Unit = {},
+    onNavigateToHome: () -> Unit
 ) {
-    // --- BAGIAN 1: LOGIC (Otak) ---
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // AuthRepository dipanggil di sini, aman karena tidak dipanggil saat Preview
     val authRepo = remember { AuthRepository() }
-
-    // 🔥 JANGAN LUPA: Paste Client ID kamu disini!
     val webClientId = "1193816...googleusercontent.com"
 
     val googleLauncher = rememberLauncherForActivityResult(
@@ -68,7 +72,30 @@ fun GreetingScreen(
         }
     }
 
-    // --- BAGIAN 2: UI (Tampilan Bagus Kamu) ---
+    // Panggil UI Content dan teruskan action-nya
+    GreetingScreenContent(
+        onGoogleClick = {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId)
+                .requestEmail()
+                .build()
+            val client = GoogleSignIn.getClient(context, gso)
+            googleLauncher.launch(client.signInIntent)
+        },
+        onSignUpClick = onNavigateToSignUp,
+        onLoginClick = onNavigateToLogin
+    )
+}
+
+// --- FUNGSI 2: UI CONTENT (Hanya Tampilan, Gak Kenal Firebase) ---
+@Composable
+fun GreetingScreenContent(
+    onGoogleClick: () -> Unit,
+    onSignUpClick: () -> Unit,
+    onLoginClick: () -> Unit
+) {
+    val context = LocalContext.current
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite
@@ -79,7 +106,6 @@ fun GreetingScreen(
                 .padding(all = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Spacer(modifier = Modifier.height(40.dp))
 
             Box(
@@ -94,21 +120,11 @@ fun GreetingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-
                     Spacer(modifier = Modifier.height(50.dp))
-
-                    // Pastikan kamu punya gambar ini di res/drawable
-                    // Image(
-                    //    painter = painterResource(id = R.drawable.ic_luca_logo),
-                    //    contentDescription = "Luca Logo",
-                    //    modifier = Modifier.size(width = 60.dp, height = 59.dp)
-                    // )
-
-                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "Welcome to Luca!",
-                        style = AppFont.SemiBold, // Pastikan Font ini ada
+                        style = AppFont.SemiBold,
                         fontSize = 28.sp,
                         color = UIBlack,
                         textAlign = TextAlign.Center
@@ -126,46 +142,36 @@ fun GreetingScreen(
 
                     Spacer(modifier = Modifier.height(74.dp))
 
-                    // --- TOMBOL GOOGLE (SUDAH DISAMBUNG KABELNYA) ---
                     SocialButton(
                         text = "Continue with Google",
-                        // iconRes = R.drawable.ic_google_logo, // Uncomment kalau icon ada
-                        onClick = {
-                            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                .requestIdToken(webClientId)
-                                .requestEmail()
-                                .build()
-                            val client = GoogleSignIn.getClient(context, gso)
-                            googleLauncher.launch(client.signInIntent)
-                        },
+//                        iconRes = R.drawable.ic_google_logo,
+                        onClick = onGoogleClick,
                         modifier = Modifier.fillMaxWidth()
+
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- TOMBOL FACEBOOK ---
                     SocialButton(
                         text = "Continue with Facebook",
-                        // iconRes = R.drawable.ic_facebook_logo,
+//                        iconRes = R.drawable.ic_facebook_logo,
                         onClick = { Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show() },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- TOMBOL X ---
                     SocialButton(
                         text = "Continue with X",
-                        // iconRes = R.drawable.ic_x_logo,
+//                        iconRes = R.drawable.ic_x_logo,
                         onClick = { Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show() },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(107.dp))
 
-                    // --- SIGN UP BUTTON ---
                     Button(
-                        onClick = { onNavigateToLogin() }, // Sementara arahkan ke Login juga
+                        onClick = onSignUpClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -173,42 +179,32 @@ fun GreetingScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
                             contentColor = UIBlack
-                        ),
-                        contentPadding = PaddingValues(0.dp)
+                        )
                     ) {
                         Text(
                             text = "Sign Up",
                             style = AppFont.SemiBold,
-                            fontSize = 14.sp,
-                            color = UIBlack,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 14.sp
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // --- LOG IN BUTTON ---
                     OutlinedButton(
-                        onClick = { onNavigateToLogin() }, // Navigasi Manual Login
+                        onClick = onLoginClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(49.dp),
-                        border = BorderStroke(1.dp, UIAccentYellow),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        contentPadding = PaddingValues(0.dp)
+                        border = BorderStroke(1.dp, UIAccentYellow)
                     ) {
                         Text(
                             text = "Log in",
                             style = AppFont.SemiBold,
                             fontSize = 14.sp,
-                            color = UIBlack,
-                            fontWeight = FontWeight.SemiBold
+                            color = UIBlack
                         )
                     }
-
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
@@ -221,19 +217,16 @@ fun GreetingScreen(
                     text = "Privacy Policy   ·   Terms of Service",
                     style = AppFont.SemiBold,
                     fontSize = 12.sp,
-                    color = UIBlack.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
+                    color = UIBlack.copy(alpha = 0.6f)
                 )
             }
         }
     }
 }
 
-// --- REUSABLE COMPONENT (TETAP DIPAKAI) ---
 @Composable
 fun SocialButton(
     text: String,
-    // iconRes: Int, // Uncomment kalau icon sudah ada
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -242,43 +235,49 @@ fun SocialButton(
         modifier = modifier.height(50.dp),
         shape = RoundedCornerShape(49.dp),
         border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = UIWhite
-        ),
-        contentPadding = PaddingValues(0.dp)
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = UIWhite)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(14.dp))
-
-            // Uncomment kalau icon sudah ada
-            // Image(
-            //     painter = painterResource(id = iconRes),
-            //     contentDescription = null,
-            //     modifier = Modifier.size(25.dp)
-            // )
-
+//            Image(
+//                painter = painterResource(id = iconRes),
+//                contentDescription = null,
+//                modifier = Modifier.size(25.dp)
+//            )
             Text(
                 text = text,
                 style = AppFont.SemiBold,
                 fontSize = 14.sp,
                 color = UIBlack,
                 modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.SemiBold
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.width(39.dp))
         }
     }
 }
 
-// Update Preview biar gak error karena butuh parameter
-@Preview
+// --- PREVIEW (Manggil yang Content saja agar tidak Crash) ---
+@Preview(showBackground = true)
 @Composable
 fun GreetingScreenPreview() {
     LucaTheme {
-        GreetingScreen(onNavigateToLogin = {}, onNavigateToHome = {})
+        GreetingScreenContent(
+            onGoogleClick = {},
+            onSignUpClick = {},
+            onLoginClick = {}
+        )
+
+
+
+
+
+
+
+
+
     }
 }

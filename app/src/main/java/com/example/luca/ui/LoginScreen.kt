@@ -37,7 +37,11 @@ import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onBackClick: () -> Unit = {},
+    onLoginClick: () -> Unit,
+    onSignUpClick: () -> Unit
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -63,7 +67,7 @@ fun LoginScreen() {
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
-                        .clickable { /* TODO: Back Action */ }
+                        .clickable { onBackClick() }
                 )
             }
 
@@ -128,7 +132,7 @@ fun LoginScreen() {
                     // --- LOG IN BUTTON ---
                     Spacer(modifier = Modifier.height(49.dp))
                     Button(
-                        onClick = { /* TODO: Handle Login */ },
+                        onClick = onLoginClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -171,7 +175,7 @@ fun LoginScreen() {
                             onClick = { offset ->
                                 signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
                                     .firstOrNull()?.let {
-                                        println("Navigate to Sign Up")
+                                        onSignUpClick()
                                     }
                             }
                         )
@@ -278,6 +282,9 @@ fun CustomInputForm(
 @Composable
 fun LoginScreenPreview() {
     LucaTheme {
-        LoginScreen()
+        LoginScreen(
+            onLoginClick = { },
+            onSignUpClick = {}
+        )
     }
 }

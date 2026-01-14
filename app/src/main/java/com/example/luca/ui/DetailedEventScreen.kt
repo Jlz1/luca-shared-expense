@@ -29,10 +29,16 @@ val PricePink = Color(0xFFF53B57)
 val TextGray = Color(0xFF808080)
 
 @Composable
-fun DetailedEventScreen() {
+fun DetailedEventScreen(
+    onBackClick: () -> Unit = {},
+    onActivityClick: () -> Unit = {},
+    onAddActivityClick: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
-            HeaderSection()
+            HeaderSection(
+                onLeftIconClick = onBackClick
+            )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
@@ -65,7 +71,7 @@ fun DetailedEventScreen() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 2. Activity List Section - Hanya bagian ini yang scrollable
-                ActivitySection()
+                ActivitySection(onActivityClick = onActivityClick)
             }
 
             // 3. Bottom Action Area (Sticky at Bottom)
@@ -90,7 +96,8 @@ fun DetailedEventScreen() {
             BottomActionArea(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                onAddActivityClick = onAddActivityClick
             )
         }
     }
@@ -98,7 +105,7 @@ fun DetailedEventScreen() {
 
 //Activity Section
 @Composable
-fun ActivitySection() {
+fun ActivitySection(onActivityClick: () -> Unit = {}) {
     // Data dummy dipindah kesini agar rapi
     val activities = listOf(
         ActivityData(Color(0xFFFF9800), "Simple Breakfast", "Paid by You", "Rp.123.000"),
@@ -122,7 +129,8 @@ fun ActivitySection() {
                 iconColor = item.color,
                 title = item.title,
                 payer = item.payer,
-                price = item.price
+                price = item.price,
+                onClick = onActivityClick
             )
         }
     }
@@ -130,7 +138,13 @@ fun ActivitySection() {
 
 @Composable
 //Activity item
-fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: String) {
+fun ActivityItemCard(
+    iconColor: Color,
+    title: String,
+    payer: String,
+    price: String,
+    onClick: () -> Unit = {}
+) {
     // Menggunakan Surface untuk efek Card Putih + Shadow (Floating)
     Surface(
         modifier = Modifier
@@ -138,7 +152,8 @@ fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: Stri
             .height(80.dp), // Tinggi fixed agar rapi (opsional, bisa wrap_content)
         shape = RoundedCornerShape(24.dp), // Sangat bulat
         color = Color.White,
-        shadowElevation = 6.dp // Efek bayangan agar 'pop'
+        shadowElevation = 6.dp, // Efek bayangan agar 'pop'
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
@@ -185,7 +200,10 @@ fun ActivityItemCard(iconColor: Color, title: String, payer: String, price: Stri
 }
 
 @Composable
-fun BottomActionArea(modifier: Modifier = Modifier) {
+fun BottomActionArea(
+    modifier: Modifier = Modifier,
+    onAddActivityClick: () -> Unit = {}
+) {
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -220,7 +238,8 @@ fun BottomActionArea(modifier: Modifier = Modifier) {
                 .align(Alignment.CenterEnd), // Posisi kanan
             shape = CircleShape,
             color = UiAccentYellow,
-            shadowElevation = 6.dp
+            shadowElevation = 6.dp,
+            onClick = onAddActivityClick
         ) {
             Box(
                 contentAlignment = Alignment.Center,
