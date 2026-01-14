@@ -39,6 +39,8 @@ data class UserData(
     val avatarColor: Color? = null
 )
 
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
+
 // --- MAIN COMPONENT ---
 @Composable
 fun AvatarList(
@@ -189,7 +191,7 @@ fun AvatarListPreview() {
         androidx.compose.material3.Text("Preview: With Add Button")
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Kalau mau pake copas saja dari sini
+        // TODO:  Kalau mau pake copas saja dari sini
         AvatarList(
             users = listOf(
                 UserData("You", true, Color(0xFFFF8C42)),
@@ -200,6 +202,6 @@ fun AvatarListPreview() {
             showName = true,
             showAddButton = true
         )
-        // sampai sini teman teman
+        // TODO: sampai sini teman teman
     }
 }

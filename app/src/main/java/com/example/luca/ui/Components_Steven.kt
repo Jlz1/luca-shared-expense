@@ -39,7 +39,7 @@ import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIWhite
 
-
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBarModify(
@@ -145,6 +145,8 @@ fun ComponentsPreviewStv(){
         ) {
             // Contoh 2: Mode Editable tanpa database
             Text("2. Editable Mode (Tanpa Database):", fontWeight = FontWeight.Bold)
+
+            //TODO: COPAS AJA DARI SINI
             SearchBarModify(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -157,9 +159,11 @@ fun ComponentsPreviewStv(){
                 },
                 readOnly = false
             )
+            // TODO: SAMPAI SINI
 
             // Contoh 3: Mode Editable dengan database label
             Text("3. Editable Mode (Dengan Database):", fontWeight = FontWeight.Bold)
+            //TODO: Kalau pake database copas dari sini
             SearchBarModify(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +176,7 @@ fun ComponentsPreviewStv(){
                 readOnly = false,
                 databaseLabel = "Database: Products"
             )
-
+            //TODO: sampai sini
         }
     }
 }
