@@ -1,5 +1,7 @@
 package com.example.luca
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -54,7 +58,7 @@ fun StackedAvatarRo(
                     .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
             ) {
                 AvatarIte(
-                    imageUrl = avatars[i],
+                    imageCode = avatars[i],
                     size = itemSize,
                     zIndex = (visibleCount - i).toFloat()
                 )
@@ -86,41 +90,37 @@ fun StackedAvatarRo(
 
 // Komponen Dummy untuk AvatarItem (Hanya sebagai contoh agar kode di atas tidak error)
 @Composable
-fun AvatarIte(imageUrl: String, zIndex: Float, size: Dp) {
-    // 1. Buat modifier dasar yang sama untuk kedua kondisi.
-    // Ini penting agar ukuran, bentuk, border, dan urutan tumpukan (zIndex) selalu konsisten.
+fun AvatarIte(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
     val commonModifier = Modifier
-        .size(size) // Ukuran Lingkaran
-        .zIndex(zIndex) // <--- PENTING BUAT TUMPUKAN
-        // Clip harus dilakukan SEBELUM border agar border mengikuti bentuk lingkaran
+        .size(size)
+        .zIndex(zIndex)
         .clip(CircleShape)
-        .border(2.dp, UIWhite, CircleShape) // Border putih pemisah
+        .border(2.dp, UIWhite, CircleShape)
 
-    // 2. Logika pengecekan string
-    if (imageUrl == "debug") {
-        // --- KONDISI DEBUG ---
-        // Render Box polos dengan warna abu-abu
-        Box(
-            modifier = commonModifier
-                .background(UIGrey)
-        )
+    if (imageCode == "debug") {
+        Box(modifier = commonModifier.background(Color.Gray))
     } else {
-        // --- KONDISI NORMAL (URL Gambar) ---
-        // Gunakan AsyncImage dari Coil untuk memuat gambar.
-        // Kita bungkus dengan Box agar bisa memberi background warna merah (UIAccentRed)
-        // sebagai placeholder sementara gambar sedang dimuat.
-        Box(
-            modifier = commonModifier
-                .background(UIAccentRed) // Background sementara saat loading
-        ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "User Avatar",
-                contentScale = ContentScale.Crop, // Agar gambar mengisi lingkaran penuh dan tidak gepeng
-                modifier = Modifier.fillMaxSize() // Isi penuh parent Box-nya
-            )
-        }
+        // Ambil ID resource berdasarkan kode string/angka
+        val imageRes = getResourceId(imageCode)
+
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = commonModifier.background(UIWhite)
+        )
     }
+}
+
+@SuppressLint("LocalContextResourcesRead")
+@Composable
+fun getResourceId(name: String): Int {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return context.resources.getIdentifier(
+        "avatar_$name", // Nama file tanpa ekstensi
+        "drawable",
+        context.packageName
+    )
 }
 
 @Preview(showBackground = true)
@@ -129,7 +129,7 @@ fun StackedAvatarRoPreview() {
     LucaTheme {
         Box(modifier = Modifier.padding(20.dp).background(UIAccentYellow)) {
             StackedAvatarRo(
-                avatars = listOf("User 1", "User 2", "User 3", "User 4", "User 5", "User 6"),
+                avatars = listOf("debug", "debug", "debug", "debug", "debug"),
                 maxVisible = 4
             )
         }
