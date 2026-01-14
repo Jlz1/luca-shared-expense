@@ -187,7 +187,7 @@ fun TripCardItem(width: Dp, index: Int) {
                         Box(
                             modifier = Modifier.padding(10.dp)
                         ) {
-                            StackedAvatarRow(List(4, {"a"}))
+                            StackedAvatarRow(itemSize = 40.dp, avatars = listOf("debug", "debug", "debug", "debug", "debug"))
                         }
                     }
                 }
@@ -259,47 +259,6 @@ fun TempSearchBar() {
                 color = UIDarkGrey
             )
         }
-    }
-}
-
-@Composable
-fun StackedAvatarRow(
-    avatars: List<String>, // List URL gambar
-    maxVisible: Int = 4    // Maksimal bunderan yang muncul (termasuk counter)
-) {
-    // 1. Hitung Logic Sisa
-    // Kalau jumlah total > maxVisible, kita cuma tampilin (max - 1) foto, sisanya buat counter
-    val isOverflow = avatars.size > maxVisible
-    val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
-    val remainingCount = avatars.size - visibleCount
-
-    Row(
-        // 2. Bikin efek numpuk (Spacing Negatif)
-        horizontalArrangement = Arrangement.spacedBy((-10).dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Render Foto
-        for (i in 0 until visibleCount) {
-            AvatarItem(
-                imageUrl = avatars[i],
-                zIndex = (visibleCount - i).toFloat()
-            )
-        }
-    }
-}
-
-// Komponen Foto Bulat
-@Composable
-fun AvatarItem(imageUrl: String, zIndex: Float) {
-    Box(
-        modifier = Modifier
-            .size(30.dp) // Ukuran Lingkaran
-            .zIndex(zIndex) // <--- PENTING BUAT TUMPUKAN
-            .clip(CircleShape)
-            .border(2.dp, UIWhite, CircleShape) // Border putih pemisah
-            .background(UIAccentRed) // Placeholder bg
-    ) {
-
     }
 }
 
