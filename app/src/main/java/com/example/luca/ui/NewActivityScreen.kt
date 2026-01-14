@@ -1,4 +1,4 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.InputSection
+import com.example.luca.ParticipantItem
+import com.example.luca.PrimaryButton
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBackground

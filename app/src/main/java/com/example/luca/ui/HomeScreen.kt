@@ -1,8 +1,7 @@
-package com.example.luca
+package com.example.luca.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,11 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -40,15 +37,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
+import com.example.luca.FloatingNavbar
+import com.example.luca.HeaderSection
+import com.example.luca.R
+import com.example.luca.StackedAvatarRow
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentRed
 import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
-import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
