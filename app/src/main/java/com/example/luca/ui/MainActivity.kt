@@ -155,7 +155,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
-                0x00000000, // Warna background scrim (transparan aja)
+                0x00000000,
                 0x00000000
             )
         )

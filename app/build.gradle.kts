@@ -67,4 +67,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }

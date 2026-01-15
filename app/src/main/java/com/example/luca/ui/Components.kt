@@ -71,6 +71,7 @@ import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
+import com.example.luca.model.Event
 
 enum class HeaderState(
     val title: String,
@@ -514,6 +515,99 @@ fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
             contentScale = ContentScale.Crop,
             modifier = commonModifier.background(UIWhite)
         )
+    }
+}
+
+@Composable
+fun EventCard(
+    event: Event, // Menerima data asli
+    width: Dp,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.Card(
+        modifier = Modifier
+            .width(width)
+            .height(400.dp)
+            .shadow(elevation = 8.dp, shape = RoundedCornerShape(25.dp), clip = false)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(25.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = UIWhite
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // --- GAMBAR EVENT ---
+                Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(UIDarkGrey), // Placeholder warna abu
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        // Nanti ganti Image(painter = ...) saat sudah ada gambar real
+                        // Text Placeholder
+                        Text(
+                            text = "Image Placeholder",
+                            color = UIWhite,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+
+                        // Avatar Stack di pojok kanan gambar
+                        Box(modifier = Modifier.padding(10.dp)) {
+                            StackedAvatarRow(
+                                itemSize = 36.dp,
+                                avatars = event.participantAvatars
+                            )
+                        }
+                    }
+                }
+
+                // --- JUDUL ---
+                Text(
+                    text = event.title,
+                    color = UIBlack,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                    style = AppFont.SemiBold,
+                    fontSize = 20.sp,
+                    maxLines = 1
+                )
+
+                // --- LOKASI ---
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_location_marker), // Pastikan icon ada
+                        contentDescription = "Location",
+                        tint = UIAccentYellow
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = event.location,
+                        color = UIDarkGrey,
+                        style = AppFont.Medium,
+                        fontSize = 14.sp,
+                        maxLines = 1
+                    )
+                }
+
+                // --- TANGGAL ---
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Text(
+                        text = event.date,
+                        color = UIBlack,
+                        style = AppFont.Medium,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
     }
 }
 

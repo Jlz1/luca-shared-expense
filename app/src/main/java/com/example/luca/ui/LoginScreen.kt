@@ -1,9 +1,9 @@
 package com.example.luca.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -29,14 +30,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
+import com.example.luca.data.AuthRepository
+import com.example.luca.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
+fun LoginScreen(
+    onNavigateToHome: () -> Unit,
+    onNavigateToSignUp: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authRepo = remember { AuthRepository() }
+
 fun LoginScreen(
     onBackClick: () -> Unit = {},
     onLoginClick: () -> Unit,
@@ -45,6 +52,7 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -55,9 +63,6 @@ fun LoginScreen(
                 .fillMaxSize()
                 .padding(all = 30.dp),
         ) {
-
-
-            // BOX 1: HEADER (Back Icon)
             Box(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -67,12 +72,11 @@ fun LoginScreen(
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
+                        .clickable { onNavigateBack() }
                         .clickable { onBackClick() }
                 )
             }
 
-
-            // BOX 2: CONTENT (Middle)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -86,7 +90,6 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.Start
                 ) {
 
-                    // --- TEXT SECTION ---
                     Text(
                         text = "Welcome Back!",
                         style = AppFont.SemiBold,
@@ -103,8 +106,8 @@ fun LoginScreen(
                         color = UIBlack.copy(alpha = 0.6f)
                     )
 
-                    // --- FORMS ---
                     Spacer(modifier = Modifier.height(50.dp))
+
                     CustomInputForm(
                         text = email,
                         onValueChange = { email = it },
@@ -116,6 +119,7 @@ fun LoginScreen(
                     )
 
                     Spacer(modifier = Modifier.height(13.dp))
+
                     CustomInputForm(
                         text = password,
                         onValueChange = { password = it },
@@ -129,13 +133,31 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // --- LOG IN BUTTON ---
                     Spacer(modifier = Modifier.height(49.dp))
+
                     Button(
+                        onClick = {
+                            if (email.isNotEmpty() && password.isNotEmpty()) {
+                                isLoading = true
+                                scope.launch {
+                                    val success = authRepo.loginManual(email, password)
+                                    isLoading = false
+                                    if (success) {
+                                        Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
+                                        onNavigateToHome()
+                                    } else {
+                                        Toast.makeText(context, "Email atau Password Salah", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, "Isi semua kolom dulu!", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         onClick = onLoginClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
+                        enabled = !isLoading,
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
@@ -143,16 +165,19 @@ fun LoginScreen(
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(
-                            text = "Log in",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack,
-                            textAlign = TextAlign.Center
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(color = UIBlack, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text(
+                                text = "Log in",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIBlack,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
-                    // --- SIGN UP LINK TEXT ---
                     Spacer(modifier = Modifier.height(15.dp))
 
                     val signUpText = buildAnnotatedString {
@@ -176,6 +201,7 @@ fun LoginScreen(
                                 signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
                                     .firstOrNull()?.let {
                                         onSignUpClick()
+                                        onNavigateToSignUp()
                                     }
                             }
                         )
@@ -184,8 +210,6 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
-
-            // BOX 3: FOOTER (Bottom)
 
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -286,5 +310,6 @@ fun LoginScreenPreview() {
             onLoginClick = { },
             onSignUpClick = {}
         )
+        LoginScreen(onNavigateToHome = {}, onNavigateToSignUp = {}, onNavigateBack = {})
     }
 }
