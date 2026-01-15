@@ -1,7 +1,6 @@
 package com.example.luca.ui
 
 import com.example.luca.R
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -18,51 +17,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.*
 import com.example.luca.model.Event
 import com.example.luca.ui.theme.*
-import kotlinx.coroutines.launch
+import com.example.luca.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen() {
-    // 1. DATA EVENT
-    val allEvents = remember {
-        listOf(
-            Event("1", "Bali With The Boys", "Buleleng, Bali", "Aug 24, 2025", "", emptyList()),
-            Event("2", "Dinner at PIK", "Jakarta Utara", "Sep 10, 2025", "", emptyList()),
-            Event("3", "Hiking Gunung Gede", "Cianjur, Jawa Barat", "Oct 05, 2025", "", emptyList())
-        )
-    }
+fun HomeScreen(
+    // 1. Inject ViewModel agar terhubung ke Firebase
+    viewModel: HomeViewModel = viewModel(),
+    // 2. Callback navigasi (Nanti dipake di MainActivity)
+    onNavigateToDetail: (String) -> Unit = {}
+) {
+    // OBSERVE DATA (Mata-matai ViewModel)
+    // state 'allEvents' diperlukan untuk logic scroll otomatis
+    val allEvents by viewModel.events.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
-    // 2. STATE
-    var searchQuery by remember { mutableStateOf("") }
+    // Ambil list yang sudah difilter berdasarkan search
+    val filteredEvents = viewModel.getFilteredEvents()
 
-    // PENTING: State scroll didefinisikan di sini biar bisa dikontrol search bar
+    // State untuk List & Scroll
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
 
-    // 3. LOGIKA AUTO-SCROLL SAAT KETIK
-    LaunchedEffect(searchQuery) {
-        if (searchQuery.isNotEmpty()) {
-            // Cari index event pertama yang judulnya mengandung text search
+    // LOGIKA AUTO-SCROLL (Dipindah ke sini, memantau data asli)
+    LaunchedEffect(searchQuery, allEvents) {
+        if (searchQuery.isNotEmpty() && allEvents.isNotEmpty()) {
             val index = allEvents.indexOfFirst {
                 it.title.contains(searchQuery, ignoreCase = true)
             }
-
             if (index != -1) {
-                // KETEMU: Scroll ke kartu tersebut
                 listState.animateScrollToItem(index)
             }
         }
@@ -93,7 +87,10 @@ fun HomeScreen() {
                 ) {
                     BetterSearchBar(
                         query = searchQuery,
-                        onQueryChange = { searchQuery = it }
+                        onQueryChange = {
+                            // Panggil fungsi di ViewModel
+                            viewModel.onSearchQueryChanged(it)
+                        }
                     )
                 }
 
@@ -105,7 +102,8 @@ fun HomeScreen() {
                         .background(UIBackground)
                 ) {
 
-                    if (allEvents.isEmpty()) {
+                    if (filteredEvents.isEmpty()) {
+                        // Tampilkan Empty State jika data kosong/belum loading
                         EmptyStateView()
                     } else {
                         Box(
@@ -114,9 +112,14 @@ fun HomeScreen() {
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Kirim listState ke Carousel
-                            EventCarousel(events = allEvents, listState = listState)
+                            // Kirim data yang sudah difilter ke Carousel
+                            EventCarousel(
+                                events = filteredEvents,
+                                listState = listState,
+                                onEventClick = onNavigateToDetail
+                            )
                         }
+                        // Spacer untuk memberi ruang pada FAB
                         Spacer(modifier = Modifier.height(112.dp))
                     }
                 }
@@ -125,18 +128,17 @@ fun HomeScreen() {
     }
 }
 
-// --- COMPONENT: SEARCH BAR YANG DIPERBAIKI (Teks gak kepotong) ---
+// --- COMPONENT: SEARCH BAR ---
 @Composable
 fun BetterSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    // Menggunakan BasicTextField agar lebih mudah diatur ukurannya
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
         textStyle = TextStyle(
-            color = UIBlack, // Pastikan warna teks HITAM
+            color = UIBlack,
             fontSize = 16.sp,
             fontFamily = AppFont.Regular.fontFamily
         ),
@@ -148,10 +150,9 @@ fun BetterSearchBar(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(20.dp))
                     .background(UIWhite)
-                    .padding(horizontal = 16.dp), // Padding kiri kanan dalam kotak
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // ICON SEARCH
                 Icon(
                     painter = painterResource(id = R.drawable.ic_search_logo),
                     contentDescription = "Search",
@@ -161,9 +162,7 @@ fun BetterSearchBar(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // AREA TEKS
                 Box(modifier = Modifier.weight(1f)) {
-                    // Placeholder (Muncul kalau kosong)
                     if (query.isEmpty()) {
                         Text(
                             text = "Search",
@@ -172,7 +171,6 @@ fun BetterSearchBar(
                             fontSize = 16.sp
                         )
                     }
-                    // Tempat ngetik
                     innerTextField()
                 }
             }
@@ -180,12 +178,13 @@ fun BetterSearchBar(
     )
 }
 
-// --- COMPONENT: CAROUSEL DENGAN STATE DARI LUAR ---
+// --- COMPONENT: CAROUSEL ---
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EventCarousel(
     events: List<Event>,
-    listState: LazyListState // Menerima state dari atas
+    listState: LazyListState,
+    onEventClick: (String) -> Unit
 ) {
     val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
     val configuration = LocalConfiguration.current
@@ -196,24 +195,25 @@ fun EventCarousel(
     val sidePadding = (screenWidth - cardWidth) / 2
 
     LazyRow(
-        state = listState, // Pakai state yang dikirim
+        state = listState,
         flingBehavior = snapBehavior,
         contentPadding = PaddingValues(horizontal = sidePadding),
         horizontalArrangement = Arrangement.spacedBy(cardSpacing),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Pakai itemsIndexed jika butuh index, tapi items biasa juga oke
         itemsIndexed(events) { index, event ->
+            // Pastikan kamu punya komponen EventCard di Components.kt
+            // Jika belum ada, pastikan importnya benar atau copy komponen EventCard ke sini
             EventCard(
                 event = event,
                 width = cardWidth,
-                onClick = { /* TODO: Navigate to Detail */ }
+                onClick = { onEventClick(event.id) } // Kirim ID saat diklik
             )
         }
     }
 }
 
-// --- EmptyStateView (Tetap sama) ---
+// --- COMPONENT: EMPTY STATE ---
 @Composable
 fun EmptyStateView() {
     Column(
@@ -231,7 +231,7 @@ fun EmptyStateView() {
         Spacer(modifier = Modifier.height(24.dp))
         Surface(
             modifier = Modifier.size(64.dp), shape = CircleShape, color = UIAccentYellow, shadowElevation = 4.dp,
-            onClick = { }
+            onClick = { /* TODO: Navigate to Add Event */ }
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(painterResource(id = R.drawable.ic_plus_button), "Add", tint = UIBlack, modifier = Modifier.size(32.dp))
@@ -244,6 +244,7 @@ fun EmptyStateView() {
 @Composable
 fun HomeScreenPreview() {
     LucaTheme {
+        // Preview dengan ViewModel kosong/default
         HomeScreen()
     }
 }
