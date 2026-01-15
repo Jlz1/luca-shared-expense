@@ -1,6 +1,12 @@
 package com.example.luca.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,203 +19,304 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.luca.InputSection
 import com.example.luca.ParticipantItem
 import com.example.luca.PrimaryButton
 import com.example.luca.R
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIBackground
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIDarkGrey
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
+import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.AddEventViewModel
 
-data class Participant(val id: Int, val name: String)
+// ==========================================
+// 1. STATEFUL COMPOSABLE (Logic & Data)
+// ==========================================
+@Composable
+fun AddScreen(
+    viewModel: AddEventViewModel = viewModel(),
+    onNavigateBack: () -> Unit = {}
+) {
+    // Collect Data dari ViewModel
+    val title by viewModel.title.collectAsState()
+    val location by viewModel.location.collectAsState()
+    val date by viewModel.date.collectAsState()
+    val selectedImageUri by viewModel.selectedImageUri.collectAsState()
+    val participants by viewModel.participants.collectAsState() // List Teman
+    val isLoading by viewModel.isLoading.collectAsState()
+    val isSuccess by viewModel.isSuccess.collectAsState()
 
+    // Navigasi Balik jika Sukses Simpan
+    LaunchedEffect(isSuccess) {
+        if (isSuccess) {
+            viewModel.resetState()
+            onNavigateBack()
+        }
+    }
+
+    // Launcher Galeri
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> viewModel.onImageSelected(uri) }
+    )
+
+    AddScreenContent(
+        title = title,
+        location = location,
+        date = date,
+        selectedImageUri = selectedImageUri,
+        participants = participants,
+        isLoading = isLoading,
+        onTitleChange = viewModel::onTitleChange,
+        onLocationChange = viewModel::onLocationChange,
+        onDateChange = viewModel::onDateChange,
+        onAddParticipant = viewModel::addParticipant, // Fungsi tambah teman
+        onChangePhotoClick = {
+            photoPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
+        onContinueClick = { viewModel.saveEvent() },
+        onBackClick = onNavigateBack
+    )
+}
+
+// ==========================================
+// 2. STATELESS COMPOSABLE (Tampilan UI Saja)
+// ==========================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddScreen() {
-    // State
-    var titleInput by remember { mutableStateOf("") }
-    var locationInput by remember { mutableStateOf("") }
-    var dateInput by remember { mutableStateOf("") }
-
-    val participants = remember { mutableStateListOf<Participant>() }
+fun AddScreenContent(
+    title: String,
+    location: String,
+    date: String,
+    selectedImageUri: Uri?,
+    participants: List<String>,
+    isLoading: Boolean,
+    onTitleChange: (String) -> Unit,
+    onLocationChange: (String) -> Unit,
+    onDateChange: (String) -> Unit,
+    onAddParticipant: (String) -> Unit,
+    onChangePhotoClick: () -> Unit,
+    onContinueClick: () -> Unit,
+    onBackClick: () -> Unit
+) {
+    // State Lokal untuk Dialog Popup
+    var showDialog by remember { mutableStateOf(false) }
+    var newParticipantName by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = UIBackground,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "New Event",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.Bold,
-                        color = UIBlack
-                    )
-                },
+                title = { Text("New Event", style = AppFont.SemiBold, fontWeight = FontWeight.Bold, color = UIBlack) },
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle Back */ }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = UIBlack)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIBackground
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = UIBackground)
             )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        }
     ) { innerPadding ->
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-
-            // --- 1. Hero Image Placeholder ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = UIGrey,
-                    shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = "Placeholder Logo",
-                            modifier = Modifier.size(64.dp)
+        // --- DIALOG POPUP TAMBAH PARTISIPAN ---
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                containerColor = UIWhite,
+                title = { Text("Add Participant", style = AppFont.Bold, color = UIBlack) },
+                text = {
+                    OutlinedTextField(
+                        value = newParticipantName,
+                        onValueChange = { newParticipantName = it },
+                        label = { Text("Name") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = UIBlack,
+                            unfocusedTextColor = UIBlack,
+                            cursorColor = UIAccentYellow,
+                            focusedBorderColor = UIAccentYellow
                         )
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (newParticipantName.isNotBlank()) {
+                            onAddParticipant(newParticipantName)
+                            newParticipantName = ""
+                            showDialog = false
+                        }
+                    }) {
+                        Text("Add", color = UIAccentYellow, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("Cancel", color = UIDarkGrey)
+                    }
+                }
+            )
+        }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
 
+            // KONTEN UTAMA (Scrollable)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+
+                // --- 1. HERO IMAGE (COVER) ---
+                Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                    if (selectedImageUri != null) {
+                        AsyncImage(
+                            model = selectedImageUri,
+                            contentDescription = "Selected Cover",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = UIGrey,
+                            shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                    contentDescription = "Placeholder Logo",
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Tap 'Add Photo' to add cover", color = UIDarkGrey, style = AppFont.Regular)
+                            }
+                        }
+                    }
+
+                    // Tombol Ganti Foto
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 20.dp, bottom = 20.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = UIWhite,
+                        shadowElevation = 4.dp,
+                        onClick = onChangePhotoClick
+                    ) {
                         Text(
-                            text = "Tap to add cover photo",
-                            color = UIDarkGrey,
-                            style = AppFont.Regular
+                            text = if (selectedImageUri == null) "Add Photo" else "Change Photo",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            fontSize = 12.sp,
+                            style = AppFont.SemiBold,
+                            color = UIBlack
                         )
                     }
                 }
 
-                // Tombol Change Photo
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 20.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = UIWhite,
-                    shadowElevation = 4.dp
-                ) {
-                    Text(
-                        text = "Change Photo",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        fontSize = 12.sp,
-                        style = AppFont.SemiBold,
-                        color = UIBlack
+                // --- 2. INPUT FORM ---
+                Column(modifier = Modifier.padding(20.dp)) {
+
+                    InputSection(
+                        label = "Title", value = title, placeholder = "New Event",
+                        testTag = "input_title", onValueChange = onTitleChange
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    InputSection(
+                        label = "Location", value = location, placeholder = "Event Location",
+                        testTag = "input_location", onValueChange = onLocationChange
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    InputSection(
+                        label = "Date", value = date, placeholder = "Event Date",
+                        testTag = "input_date", onValueChange = onDateChange
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- 3. PARTICIPANTS LIST ---
+                    Text(
+                        text = "Participants",
+                        style = AppFont.SemiBold,
+                        fontSize = 16.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(end = 16.dp)
+                    ) {
+                        // User Sendiri
+                        item { ParticipantItem(name = "You", isYou = true) }
+
+                        // List Teman yang Ditambah
+                        items(participants) { name ->
+                            ParticipantItem(name = name)
+                        }
+
+                        // Tombol Tambah (+)
+                        item {
+                            Box(modifier = Modifier.clickable { showDialog = true }) {
+                                ParticipantItem(name = "", isAddButton = true)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // --- 4. CONTINUE BUTTON ---
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        PrimaryButton(
+                            text = if (isLoading) "Saving..." else "Continue",
+                            onClick = { if (!isLoading) onContinueClick() }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
 
-            // --- 2. Form & Inputs ---
-            Column(modifier = Modifier.padding(20.dp)) {
-
-                InputSection(
-                    label = "Title",
-                    value = titleInput,
-                    placeholder = "New Event",
-                    testTag = "input_title",
-                    onValueChange = { titleInput = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                InputSection(
-                    label = "Location",
-                    value = locationInput,
-                    placeholder = "Event Location (Optional)",
-                    testTag = "input_location",
-                    onValueChange = { locationInput = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                InputSection(
-                    label = "Date",
-                    value = dateInput,
-                    placeholder = "Event Date (Optional)",
-                    testTag = "input_date",
-                    onValueChange = { dateInput = it }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // --- Participants ---
-                Text(
-                    text = "Participants",
-                    style = AppFont.SemiBold,
-                    fontSize = 16.sp,
-                    color = UIBlack,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(end = 16.dp)
-                ) {
-                    item { ParticipantItem(name = "You", isYou = true) }
-                    items(participants) { person -> ParticipantItem(name = person.name) }
-                    item { ParticipantItem(name = "", isAddButton = true) }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // --- Button Continue ---
-                // REVISI: Modifier.fillMaxWidth() dihapus dari PrimaryButton
-                // Box tetap ada untuk memastikan button berada di tengah (Center)
+            // --- LOADING OVERLAY ---
+            if (isLoading) {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f))
+                        .clickable(enabled = false) {},
                     contentAlignment = Alignment.Center
                 ) {
-                    PrimaryButton(
-                        text = "Continue",
-                        onClick = { /* Handle Continue Action */ }
-                        // Kita TIDAK menambahkan modifier fillMaxWidth di sini
-                        // sehingga ukurannya kembali ke default 220.dp (pendek)
-                    )
+                    CircularProgressIndicator(color = UIAccentYellow)
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
 }
 
-@Preview(
-    showBackground = true,
-    apiLevel = 36
-)
+@Preview(showBackground = true)
 @Composable
 fun AddScreenPreview() {
     LucaTheme {
-        AddScreen()
+        AddScreenContent(
+            title = "", location = "", date = "",
+            selectedImageUri = null, participants = listOf("Budi", "Siti"),
+            isLoading = false,
+            onTitleChange = {}, onLocationChange = {}, onDateChange = {},
+            onAddParticipant = {}, onChangePhotoClick = {}, onContinueClick = {}, onBackClick = {}
+        )
     }
 }
