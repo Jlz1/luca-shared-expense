@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,11 +27,19 @@ import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
+import kotlinx.coroutines.delay
 
 @Composable
 fun FinalScreen(
-    name: String = "Benita"
+    name: String = "Benita",
+    onNavigateToHome: () -> Unit = {}
 ) {
+    // Delay 1.5 detik lalu navigasi ke Home
+    LaunchedEffect(Unit) {
+        delay(1500L)
+        onNavigateToHome()
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite

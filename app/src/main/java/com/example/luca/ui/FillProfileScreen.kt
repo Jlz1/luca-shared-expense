@@ -29,7 +29,10 @@ import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 
 @Composable
-fun FillProfileScreen() {
+fun FillProfileScreen(
+    onBackClick: () -> Unit = {},
+    onCreateAccountClick: () -> Unit = {}
+) {
     var username by remember { mutableStateOf("") }
 
     Surface(
@@ -47,12 +50,12 @@ fun FillProfileScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
-                        .clickable { /* TODO: Back Action */ }
+                        .clickable { onBackClick() }
                 )
             }
 
@@ -138,7 +141,7 @@ fun FillProfileScreen() {
                     Spacer(modifier = Modifier.height(29.dp))
 
                     Button(
-                        onClick = { /* TODO: Create Account Action */ },
+                        onClick = onCreateAccountClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

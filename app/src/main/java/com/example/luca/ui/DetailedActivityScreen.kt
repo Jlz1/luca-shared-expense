@@ -21,40 +21,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.R
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailedActivityScreen() {
+fun DetailedActivityScreen(
+    onBackClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
+) {
     // State agar switch bisa berubah warna saat diklik
     var isSplitEqual by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Activity Details",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        color = UIBlack
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIWhite
-                )
+            HeaderSection(
+                currentState = HeaderState.DETAILS,
+                onLeftIconClick = onBackClick
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -264,7 +250,7 @@ fun DetailedActivityScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                FabCircleButton(size = 45.dp) {
+                FabCircleButton(size = 45.dp, onClick = onEditClick) {
                     Icon(Icons.Default.Edit, null, tint = UIBlack)
                 }
 

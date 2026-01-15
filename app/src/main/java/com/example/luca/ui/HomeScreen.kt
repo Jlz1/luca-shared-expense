@@ -62,7 +62,25 @@ fun HomeScreen(
         }
     }
 
+fun HomeScreen(
+    onEventClick: () -> Unit = {},
+    onContactsClick: () -> Unit = {},
+    onAddEventClick: () -> Unit = {}
+) {
     Scaffold(
+        // 1. Header Tetap di Atas
+        topBar = {
+            HeaderSection() // Fungsi Header UiDark kamu
+        },
+
+        // 2. Navbar Melayang ditaruh di slot FAB agar tidak memotong list
+        floatingActionButton = {
+            FloatingNavbar(
+                onContactsClick = onContactsClick,
+                onAddClick = onAddEventClick
+            )
+        },
+        // Atur posisi Navbar ke tengah bawah
         topBar = { HeaderSection() },
         floatingActionButton = { FloatingNavbar() },
         floatingActionButtonPosition = FabPosition.Center,
@@ -121,6 +139,14 @@ fun HomeScreen(
                         }
                         // Spacer untuk memberi ruang pada FAB
                         Spacer(modifier = Modifier.height(112.dp))
+                ){
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EventCarousel(onEventClick = onEventClick)
                     }
                 }
             }
@@ -130,6 +156,11 @@ fun HomeScreen(
 
 // --- COMPONENT: SEARCH BAR ---
 @Composable
+fun EventCarousel(
+    onEventClick: () -> Unit = {}
+) {
+    // 1. Setup State buat scroll dan snap
+    val listState = rememberLazyListState()
 fun BetterSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
@@ -209,12 +240,105 @@ fun EventCarousel(
                 width = cardWidth,
                 onClick = { onEventClick(event.id) } // Kirim ID saat diklik
             )
+        // Contoh 5 Item dummy
+        items(5) { index ->
+            TripCardItem(width = cardWidth, index = index, onClick = onEventClick)
         }
     }
 }
 
 // --- COMPONENT: EMPTY STATE ---
 @Composable
+fun TripCardItem(width: Dp, index: Int, onClick: () -> Unit = {}) {
+    Card(
+        modifier = Modifier
+            .width(width)
+            .height(400.dp)
+            .shadow(elevation = 8.dp,
+                shape = RoundedCornerShape(25.dp),
+                clip = false
+            ),
+        shape = RoundedCornerShape(25.dp),
+        colors = CardColors(
+            containerColor = UIWhite,
+            contentColor = UIWhite,
+            disabledContainerColor = UIWhite,
+            disabledContentColor = UIWhite
+        ),
+        onClick = onClick
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(UIDarkGrey),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Text(text = "nanti ini isinya foto",
+                            modifier = Modifier.fillMaxWidth().height(140.dp),
+                            textAlign = TextAlign.Center)
+
+                        Box(
+                            modifier = Modifier.padding(10.dp)
+                        ) {
+                            StackedAvatarRow(itemSize = 40.dp, avatars = listOf("debug", "debug", "debug", "debug", "debug"))
+                        }
+                    }
+                }
+
+                Text(text = "Bali With The Boys",
+                    color = UIBlack,
+                    modifier = Modifier
+                        .padding(top = 12.dp, bottom = 4.dp),
+                    style = AppFont.SemiBold,
+                    fontSize = 20.sp)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(painter = painterResource(R.drawable.ic_location_marker),
+                        contentDescription = "Location Icon",
+                        tint = UIAccentYellow)
+
+                    Spacer(modifier = Modifier.fillMaxHeight().width(5.dp))
+
+                    Text(text = "Buleleng, Bali, Indonesia",
+                        color = UIDarkGrey,
+                        style = AppFont.Medium,
+                        fontSize = 16.sp)
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Text(text = "August 24, 2025",
+                        color = UIBlack,
+                        style = AppFont.Medium,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.End)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TempSearchBar() {
+    Box(
 fun EmptyStateView() {
     Column(
         modifier = Modifier

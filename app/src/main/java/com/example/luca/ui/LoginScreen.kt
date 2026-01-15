@@ -44,6 +44,11 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
 
+fun LoginScreen(
+    onBackClick: () -> Unit = {},
+    onLoginClick: () -> Unit,
+    onSignUpClick: () -> Unit
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -62,12 +67,13 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
                         .clickable { onNavigateBack() }
+                        .clickable { onBackClick() }
                 )
             }
 
@@ -147,6 +153,7 @@ fun LoginScreen(
                                 Toast.makeText(context, "Isi semua kolom dulu!", Toast.LENGTH_SHORT).show()
                             }
                         },
+                        onClick = onLoginClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -193,6 +200,7 @@ fun LoginScreen(
                             onClick = { offset ->
                                 signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
                                     .firstOrNull()?.let {
+                                        onSignUpClick()
                                         onNavigateToSignUp()
                                     }
                             }
@@ -298,6 +306,10 @@ fun CustomInputForm(
 @Composable
 fun LoginScreenPreview() {
     LucaTheme {
+        LoginScreen(
+            onLoginClick = { },
+            onSignUpClick = {}
+        )
         LoginScreen(onNavigateToHome = {}, onNavigateToSignUp = {}, onNavigateBack = {})
     }
 }

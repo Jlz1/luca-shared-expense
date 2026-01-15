@@ -9,19 +9,149 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.luca.ui.theme.LucaTheme
 import android.widget.Toast
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Hapus enableEdgeToEdge() jika menyebabkan masalah atau pastikan sudah di-import
         setContent {
-            GreetingScreen(
-                onNavigateToLogin = {
-                    Toast.makeText(this, "Pindah ke Manual Login", Toast.LENGTH_SHORT).show()
-                },
-                onNavigateToHome = {
-                    Toast.makeText(this, "Masuk ke Home...", Toast.LENGTH_SHORT).show()
+            val navController = rememberNavController()
+
+            NavHost(navController = navController, startDestination = "greeting") {
+                composable("greeting") {
+                    GreetingScreen(
+                        onNavigateToLogin = {
+                            // Pindah ke LoginScreen
+                            navController.navigate("login")
+                        },
+                        onNavigateToSignUp = {
+                            // Pindah ke SignUpScreen
+                            navController.navigate("sign_up")
+                        },
+                        onNavigateToHome = {
+                            // Logika kalau sukses login
+                            Toast.makeText(this@MainActivity, "Masuk ke Home...", Toast.LENGTH_SHORT).show()
+                        }
+                    )
                 }
-            )
+                composable("login") {
+                    LoginScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onLoginClick = {
+                            // Pindah ke FinalLoginScreen setelah login
+                            navController.navigate("final_login")
+                        },
+                        onSignUpClick = {
+                            navController.navigate("sign_up")
+                        }
+                    )
+                }
+                composable("sign_up") {
+                    SignUpScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onContinueClick = {
+                            navController.navigate("fill_profile")
+                        }
+                    )
+                }
+                composable("fill_profile") {
+                    FillProfileScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onCreateAccountClick = {
+                            // Pindah ke FinalSignUp atau Home setelah create account
+                            navController.navigate("final_signup")
+                        }
+                    )
+                }
+                composable("final_login") {
+                    FinalScreen(
+                        onNavigateToHome = {
+                            navController.navigate("home") {
+                                popUpTo("greeting") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("final_signup") {
+                    FinalSignUpScreen(
+                        onNavigateToHome = {
+                            navController.navigate("home") {
+                                popUpTo("greeting") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("home") {
+                    HomeScreen(
+                        onEventClick = {
+                            navController.navigate("detailed_event")
+                        },
+                        onContactsClick = {
+                            navController.navigate("contacts")
+                        },
+                        onAddEventClick = {
+                            navController.navigate("add_event")
+                        }
+                    )
+                }
+                composable("detailed_event") {
+                    DetailedEventScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onActivityClick = {
+                            navController.navigate("detailed_activity")
+                        },
+                        onAddActivityClick = {
+                            navController.navigate("new_activity")
+                        }
+                    )
+                }
+                composable("detailed_activity") {
+                    DetailedActivityScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("edit_activity") }
+                    )
+                }
+                composable("new_activity") {
+                    AddActivityScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onContinueClick = { navController.navigate("new_activity_2") }
+                    )
+                }
+                composable("new_activity_2") {
+                    AddActivityScreen2(
+                        onBackClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("edit_activity") }
+                    )
+                }
+                composable("edit_activity") {
+                    NewActivityEditScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable("contacts") {
+                    ContactsScreen(
+                        onHomeClick = { navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }}
+                    )
+                }
+                composable("add_event") {
+                    AddScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onContinueClick = { navController.navigate("new_event") }
+                    )
+                }
+                composable("new_event") {
+                    NewEventScreen(
+                        onCloseClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("add_event") },
+                        onAddActivityClick = { navController.navigate("new_activity") }
+                    )
+                }
+            }
         }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(

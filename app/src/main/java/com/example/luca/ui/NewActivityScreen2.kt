@@ -32,40 +32,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.R
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddActivityScreen2() {
+fun AddActivityScreen2(
+    onBackClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
+) {
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "New Activity",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        color = UIBlack
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIWhite
-                )
+            HeaderSection(
+                currentState = HeaderState.NEW_ACTIVITY,
+                onLeftIconClick = onBackClick
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -269,7 +255,7 @@ fun AddActivityScreen2() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                FabCircleButton(size = 45.dp) {
+                FabCircleButton(size = 45.dp, onClick = onEditClick) {
                     Icon(Icons.Default.Edit, null, tint = UIBlack)
                 }
 
@@ -355,14 +341,14 @@ class ReceiptWaveShape(
 }
 
 @Composable
-fun FabCircleButton(size: Dp, content: @Composable () -> Unit) {
+fun FabCircleButton(size: Dp, onClick: () -> Unit = {}, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .size(size)
             .shadow(8.dp, CircleShape)
             .clip(CircleShape)
             .background(UIWhite)
-            .clickable { },
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         content()

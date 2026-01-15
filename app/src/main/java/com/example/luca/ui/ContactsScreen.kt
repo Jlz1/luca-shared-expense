@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.FloatingNavbar
 import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlin.collections.iterator
@@ -38,7 +39,9 @@ data class Contact(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ContactsScreen() {
+fun ContactsScreen(
+    onHomeClick: () -> Unit = {}
+) {
     // 1. DUMMY DATA GENERATOR
     // Ubah list ini jadi emptyList() untuk mengetes tampilan kosong (Empty State)
     val contacts = remember { generateDummyContacts() }
@@ -68,7 +71,9 @@ fun ContactsScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                FloatingNavbar() // Reuse dari Components.kt
+                FloatingNavbar(
+                    onHomeClick = onHomeClick
+                )
             }
         },
         containerColor = UIBackground,

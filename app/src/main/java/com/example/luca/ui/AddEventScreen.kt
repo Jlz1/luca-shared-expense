@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.luca.InputSection
@@ -93,6 +95,16 @@ fun AddScreen(
 // ==========================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun AddScreen(
+    onBackClick: () -> Unit = {},
+    onContinueClick: () -> Unit = {}
+) {
+    // State
+    var titleInput by remember { mutableStateOf("") }
+    var locationInput by remember { mutableStateOf("") }
+    var dateInput by remember { mutableStateOf("") }
+
+    val participants = remember { mutableStateListOf<Participant>() }
 fun AddScreenContent(
     title: String,
     location: String,
@@ -123,6 +135,9 @@ fun AddScreenContent(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = UIBackground)
+            HeaderSection(
+                currentState = HeaderState.NEW_EVENT,
+                onLeftIconClick = onBackClick
             )
         }
     ) { innerPadding ->
@@ -280,6 +295,22 @@ fun AddScreenContent(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
+                // --- Button Continue ---
+                // REVISI: Modifier.fillMaxWidth() dihapus dari PrimaryButton
+                // Box tetap ada untuk memastikan button berada di tengah (Center)
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PrimaryButton(
+                        text = "Continue",
+                        onClick = onContinueClick
+                        // Kita TIDAK menambahkan modifier fillMaxWidth di sini
+                        // sehingga ukurannya kembali ke default 220.dp (pendek)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
                     // --- 4. CONTINUE BUTTON ---
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         PrimaryButton(
