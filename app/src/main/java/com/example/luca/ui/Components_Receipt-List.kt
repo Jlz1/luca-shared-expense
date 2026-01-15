@@ -45,6 +45,7 @@ data class ReceiptItem(
     val price: Long,
     val members: List<Color> = emptyList()
 )
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
 
 /**
  * Single receipt row composable
@@ -195,7 +196,7 @@ fun ReceiptListPreview() {
                     modifier = Modifier.padding(16.dp),
                     style = AppFont.Bold
                 )
-                // ini kalau default copas aja teman teman dari sini
+                //TODO: ini kalau default copas aja teman teman dari sini
                 ReceiptList(
                     items = listOf(
                         ReceiptItem(
@@ -221,7 +222,7 @@ fun ReceiptListPreview() {
                     ),
                     modifier = Modifier.padding(vertical = 16.dp)
 
-                    // sampai ini
+                    // TODO: sampai ini
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -232,8 +233,8 @@ fun ReceiptListPreview() {
                     modifier = Modifier.padding(16.dp),
                     style = AppFont.Bold
                 )
-                // Ini kalau kalian mau menggunakan custom size receiptnya
-                //copas dari sini
+                // TODO:"Ini kalau kalian mau menggunakan custom size receiptnya
+                //TODO: copas dari sini
                 ReceiptList(
                     items = listOf(
                         ReceiptItem(
@@ -289,7 +290,7 @@ fun ReceiptListPreview() {
                     horizontalPadding = 5.dp,
                     verticalPadding = 5.dp
                 )
-                // sampai sini
+                // TODO:sampai sini
             }
         }
     }
