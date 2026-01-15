@@ -1,6 +1,7 @@
 package com.example.luca.ui
 
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -29,7 +30,11 @@ import com.example.luca.R
 import com.example.luca.ui.theme.*
 
 @Composable
-fun NewEventScreen() {
+fun NewEventScreen(
+    onCloseClick: () -> Unit = {},
+    onEditClick: () -> Unit = {},
+    onAddActivityClick: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
             HeaderSection()
@@ -49,7 +54,10 @@ fun NewEventScreen() {
                     .padding(bottom = 100.dp) // Space for bottom buttons
             ) {
                 // Event Card Section
-                EventCard()
+                EventCard(
+                    onCloseClick = onCloseClick,
+                    onEditClick = onEditClick
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -74,14 +82,19 @@ fun NewEventScreen() {
             }
 
             // Bottom Action Area (Fixed at bottom)
-            BottomActionAreaNew()
+            BottomActionAreaNew(
+                onAddActivityClick = onAddActivityClick
+            )
         }
     }
 }
 
 // Event Card Component
 @Composable
-fun EventCard() {
+fun EventCard(
+    onCloseClick: () -> Unit = {},
+    onEditClick: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -102,18 +115,14 @@ fun EventCard() {
 
         // Exit Button (Top Left - Separated)
         IconButton(
-            onClick = { /* Handle exit */ },
+            onClick = onCloseClick,
             modifier = Modifier
-                .align(Alignment.TopStart)
                 .padding(12.dp)
-                .size(31.dp)
-                .background(UIWhite, CircleShape)
+                .size(40.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Exit",
-                tint = UIBlack,
-                modifier = Modifier.size(20.dp)
+            Image(
+                painter = painterResource(id = R.drawable.ic_close_event),
+                contentDescription = "Close Event",
             )
         }
 
@@ -122,37 +131,42 @@ fun EventCard() {
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(25.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Edit Button
-            IconButton(
-                onClick = { /* Handle edit */ },
+            Box(
                 modifier = Modifier
-                    .size(31.dp)
-                    .background(UIWhite, CircleShape)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    tint = UIBlack,
-                    modifier = Modifier.size(20.dp)
-                )
+                IconButton(
+                    onClick = onEditClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_edit_event),
+                        contentDescription = "Edit Event",
+                    )
+                }
+
             }
 
-            // Delete Button
-            IconButton(
-                onClick = { /* Handle delete */ },
+            Box(
                 modifier = Modifier
-                    .size(31.dp)
-                    .background(UIWhite, CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = UIAccentRed,
-                    modifier = Modifier.size(20.dp)
-                )
+            ){
+                // Delete Button
+                IconButton(
+                    onClick = { /* Handle delete */ },
+                    modifier = Modifier
+                        .size(40.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_delete_event),
+                        contentDescription = "Delete Event",
+                    )
+                }
             }
+
+
         }
 
         // Event Info at Bottom

@@ -50,7 +50,7 @@ fun FillProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
                     modifier = Modifier

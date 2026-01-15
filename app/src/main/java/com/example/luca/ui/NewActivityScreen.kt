@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.InputSection
 import com.example.luca.ParticipantItem
 import com.example.luca.PrimaryButton
@@ -35,7 +37,10 @@ import com.example.luca.ui.theme.UIWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddActivityScreen() {
+fun AddActivityScreen(
+    onBackClick: () -> Unit = {},
+    onContinueClick: () -> Unit = {}
+) {
     var titleInput by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Select a Category") }
     var selectedPayer by remember { mutableStateOf("Payer") }
@@ -43,28 +48,9 @@ fun AddActivityScreen() {
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "New Activity",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        color = UIBlack
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIWhite
-                )
+            HeaderSection(
+                currentState = HeaderState.NEW_ACTIVITY,
+                onLeftIconClick = onBackClick
             )
         },
         bottomBar = {
@@ -79,7 +65,7 @@ fun AddActivityScreen() {
                 // --- PENGGUNAAN KOMPONEN BARU DI SINI ---
                 PrimaryButton(
                     text = "Continue",
-                    onClick = { /* Handle Continue */ }
+                    onClick = onContinueClick
                 )
             }
         },

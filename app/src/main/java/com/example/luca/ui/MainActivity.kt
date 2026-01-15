@@ -109,16 +109,47 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 composable("detailed_activity") {
-                    DetailedActivityScreen()
+                    DetailedActivityScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("edit_activity") }
+                    )
                 }
                 composable("new_activity") {
-                    AddActivityScreen()
+                    AddActivityScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onContinueClick = { navController.navigate("new_activity_2") }
+                    )
+                }
+                composable("new_activity_2") {
+                    AddActivityScreen2(
+                        onBackClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("edit_activity") }
+                    )
+                }
+                composable("edit_activity") {
+                    NewActivityEditScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
                 composable("contacts") {
-                    ContactsScreen()
+                    ContactsScreen(
+                        onHomeClick = { navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }}
+                    )
                 }
                 composable("add_event") {
-                    AddScreen()
+                    AddScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onContinueClick = { navController.navigate("new_event") }
+                    )
+                }
+                composable("new_event") {
+                    NewEventScreen(
+                        onCloseClick = { navController.popBackStack() },
+                        onEditClick = { navController.navigate("add_event") },
+                        onAddActivityClick = { navController.navigate("new_activity") }
+                    )
                 }
             }
         }

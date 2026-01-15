@@ -81,6 +81,7 @@ enum class HeaderState(
     NEW_EVENT("New Event", true, false), // State 2: Back + No Logo
     NEW_ACTIVITY("New Activity", true, false),
     DETAILS("Activity Details", true, false),
+    EDIT_ACTIVITY("Edit Activity", true, false),
     SUMMARY("Summary", true, false)
 }
 
@@ -148,7 +149,7 @@ fun HeaderSection(
                     text = titleText,
                     // style = AppFont.SemiBold, // Un-comment kalo font udah ada
                     color = UIBlack,
-                    fontWeight = FontWeight.Bold,
+                    style = AppFont.Bold,
                     fontSize = 22.sp,
                     modifier = Modifier
                         // --- AREA DEBUG ---

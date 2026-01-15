@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.InputSection
 import com.example.luca.ParticipantItem
 import com.example.luca.PrimaryButton
@@ -34,7 +36,10 @@ data class Participant(val id: Int, val name: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddScreen() {
+fun AddScreen(
+    onBackClick: () -> Unit = {},
+    onContinueClick: () -> Unit = {}
+) {
     // State
     var titleInput by remember { mutableStateOf("") }
     var locationInput by remember { mutableStateOf("") }
@@ -45,27 +50,9 @@ fun AddScreen() {
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "New Event",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.Bold,
-                        color = UIBlack
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { /* Handle Back */ }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIBackground
-                )
+            HeaderSection(
+                currentState = HeaderState.NEW_EVENT,
+                onLeftIconClick = onBackClick
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -191,7 +178,7 @@ fun AddScreen() {
                 ) {
                     PrimaryButton(
                         text = "Continue",
-                        onClick = { /* Handle Continue Action */ }
+                        onClick = onContinueClick
                         // Kita TIDAK menambahkan modifier fillMaxWidth di sini
                         // sehingga ukurannya kembali ke default 220.dp (pendek)
                     )

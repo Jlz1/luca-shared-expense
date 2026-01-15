@@ -1,5 +1,6 @@
 package com.example.luca.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,11 +34,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
+import com.example.luca.R
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewActivityEditScreen() {
+fun NewActivityEditScreen(
+    onBackClick: () -> Unit = {}
+) {
     var activityTitle by remember { mutableStateOf("Dinner at Floating Resto") }
     var isEqualSplit by remember { mutableStateOf(false) }
 
@@ -49,28 +56,9 @@ fun NewActivityEditScreen() {
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "New Activity",
-                        style = AppFont.SemiBold,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        color = UIBlack
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = UIWhite
-                )
+            HeaderSection(
+                currentState = HeaderState.EDIT_ACTIVITY,
+                onLeftIconClick = onBackClick
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -252,20 +240,15 @@ fun NewActivityEditScreen() {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(59.dp)
-                        .shadow(8.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(UIAccentYellow)
-                        .clickable { },
+                        .size(59.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Save",
-                        tint = UIBlack,
-                        modifier = Modifier.size(32.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_check_edit_activity),
+                        contentDescription = "Check Edit Activity",
                     )
                 }
+
             }
         }
     }
