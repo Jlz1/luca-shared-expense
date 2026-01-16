@@ -34,6 +34,7 @@ import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
 
+// --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
@@ -44,16 +45,59 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
 
-fun LoginScreen(
-    onBackClick: () -> Unit = {},
-    onLoginClick: () -> Unit,
-    onSignUpClick: () -> Unit
-) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
+    // Handle Login Click
+    val handleLoginClick: () -> Unit = {
+        if (email.isNotEmpty() && password.isNotEmpty()) {
+            isLoading = true
+            scope.launch {
+                val success = authRepo.loginManual(email, password)
+                isLoading = false
+                if (success) {
+                    Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
+                    onNavigateToHome()
+                } else {
+                    Toast.makeText(context, "Email atau Password Salah", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            Toast.makeText(context, "Isi semua kolom dulu!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Pass state and callbacks to UI Content
+    LoginScreenContent(
+        email = email,
+        onEmailChange = { email = it },
+        password = password,
+        onPasswordChange = { password = it },
+        isPasswordVisible = isPasswordVisible,
+        onPasswordVisibilityChange = { isPasswordVisible = !isPasswordVisible },
+        isLoading = isLoading,
+        onBackClick = onNavigateBack,
+        onLoginClick = handleLoginClick,
+        onSignUpClick = onNavigateToSignUp
+    )
+}
+
+// --- STATELESS COMPOSABLE (Pure UI) ---
+@Composable
+fun LoginScreenContent(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    isPasswordVisible: Boolean,
+    onPasswordVisibilityChange: () -> Unit,
+    isLoading: Boolean,
+    onBackClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    onSignUpClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite
@@ -72,7 +116,6 @@ fun LoginScreen(
                     tint = UIBlack,
                     modifier = Modifier
                         .size(29.dp)
-                        .clickable { onNavigateBack() }
                         .clickable { onBackClick() }
                 )
             }
@@ -110,7 +153,7 @@ fun LoginScreen(
 
                     CustomInputForm(
                         text = email,
-                        onValueChange = { email = it },
+                        onValueChange = onEmailChange,
                         placeholder = "Email Address",
                         iconRes = R.drawable.ic_email_form,
                         iconSizeWidth = 15.dp,
@@ -122,37 +165,20 @@ fun LoginScreen(
 
                     CustomInputForm(
                         text = password,
-                        onValueChange = { password = it },
+                        onValueChange = onPasswordChange,
                         placeholder = "Password",
                         iconRes = R.drawable.ic_password_form,
                         iconSizeWidth = 15.dp,
                         iconSizeHeight = 10.dp,
                         isPasswordField = true,
                         isPasswordVisible = isPasswordVisible,
-                        onVisibilityChange = { isPasswordVisible = !isPasswordVisible },
+                        onVisibilityChange = onPasswordVisibilityChange,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(49.dp))
 
                     Button(
-                        onClick = {
-                            if (email.isNotEmpty() && password.isNotEmpty()) {
-                                isLoading = true
-                                scope.launch {
-                                    val success = authRepo.loginManual(email, password)
-                                    isLoading = false
-                                    if (success) {
-                                        Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
-                                        onNavigateToHome()
-                                    } else {
-                                        Toast.makeText(context, "Email atau Password Salah", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "Isi semua kolom dulu!", Toast.LENGTH_SHORT).show()
-                            }
-                        },
                         onClick = onLoginClick,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -182,7 +208,7 @@ fun LoginScreen(
 
                     val signUpText = buildAnnotatedString {
                         withStyle(style = SpanStyle(color = UIBlack, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
-                            append("Don’t have an account? ")
+                            append("Don't have an account? ")
                         }
                         pushStringAnnotation(tag = "SIGN_UP", annotation = "navigate_signup")
                         withStyle(style = SpanStyle(color = UIAccentYellow, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
@@ -201,7 +227,6 @@ fun LoginScreen(
                                 signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
                                     .firstOrNull()?.let {
                                         onSignUpClick()
-                                        onNavigateToSignUp()
                                     }
                             }
                         )
@@ -306,10 +331,17 @@ fun CustomInputForm(
 @Composable
 fun LoginScreenPreview() {
     LucaTheme {
-        LoginScreen(
-            onLoginClick = { },
+        LoginScreenContent(
+            email = "",
+            onEmailChange = {},
+            password = "",
+            onPasswordChange = {},
+            isPasswordVisible = false,
+            onPasswordVisibilityChange = {},
+            isLoading = false,
+            onBackClick = {},
+            onLoginClick = {},
             onSignUpClick = {}
         )
-        LoginScreen(onNavigateToHome = {}, onNavigateToSignUp = {}, onNavigateBack = {})
     }
 }

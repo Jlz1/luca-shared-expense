@@ -27,10 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.HeaderSection
-import com.example.luca.HeaderState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.luca.HeaderSection
+import com.example.luca.HeaderState
 import com.example.luca.InputSection
 import com.example.luca.ParticipantItem
 import com.example.luca.PrimaryButton
@@ -39,23 +39,24 @@ import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.AddEventViewModel
 
 // ==========================================
-// 1. STATEFUL COMPOSABLE (Logic & Data)
+// 1. STATEFUL COMPOSABLE (HASIL GABUNGAN)
+// Ini tempat bertemunya Logic Si B dan Navigasi Si A
 // ==========================================
 @Composable
 fun AddScreen(
     viewModel: AddEventViewModel = viewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit
 ) {
-    // Collect Data dari ViewModel
+    // --- DATA DARI SI B (ViewModel) ---
     val title by viewModel.title.collectAsState()
     val location by viewModel.location.collectAsState()
     val date by viewModel.date.collectAsState()
     val selectedImageUri by viewModel.selectedImageUri.collectAsState()
-    val participants by viewModel.participants.collectAsState() // List Teman
+    val participants by viewModel.participants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
 
-    // Navigasi Balik jika Sukses Simpan
+    // Logic Navigasi balik kalau sukses simpan
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
             viewModel.resetState()
@@ -63,12 +64,13 @@ fun AddScreen(
         }
     }
 
-    // Launcher Galeri
+    // Logic Buka Galeri
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> viewModel.onImageSelected(uri) }
     )
 
+    // Panggil Tampilan (UI Si A) dengan Data (Logic Si B)
     AddScreenContent(
         title = title,
         location = location,
@@ -79,7 +81,7 @@ fun AddScreen(
         onTitleChange = viewModel::onTitleChange,
         onLocationChange = viewModel::onLocationChange,
         onDateChange = viewModel::onDateChange,
-        onAddParticipant = viewModel::addParticipant, // Fungsi tambah teman
+        onAddParticipant = viewModel::addParticipant,
         onChangePhotoClick = {
             photoPickerLauncher.launch(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -91,20 +93,9 @@ fun AddScreen(
 }
 
 // ==========================================
-// 2. STATELESS COMPOSABLE (Tampilan UI Saja)
+// 2. STATELESS COMPOSABLE (TAMPILAN MURNI SI A)
 // ==========================================
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddScreen(
-    onBackClick: () -> Unit = {},
-    onContinueClick: () -> Unit = {}
-) {
-    // State
-    var titleInput by remember { mutableStateOf("") }
-    var locationInput by remember { mutableStateOf("") }
-    var dateInput by remember { mutableStateOf("") }
-
-    val participants = remember { mutableStateListOf<Participant>() }
 fun AddScreenContent(
     title: String,
     location: String,
@@ -120,21 +111,14 @@ fun AddScreenContent(
     onContinueClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    // State Lokal untuk Dialog Popup
+    // State lokal untuk Dialog Popup (Ini murni UI interaction, jadi tetap di sini)
     var showDialog by remember { mutableStateOf(false) }
     var newParticipantName by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = UIBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("New Event", style = AppFont.SemiBold, fontWeight = FontWeight.Bold, color = UIBlack) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = UIBlack)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = UIBackground)
+            // Menggunakan HeaderSection desain Si A
             HeaderSection(
                 currentState = HeaderState.NEW_EVENT,
                 onLeftIconClick = onBackClick
@@ -142,7 +126,7 @@ fun AddScreenContent(
         }
     ) { innerPadding ->
 
-        // --- DIALOG POPUP TAMBAH PARTISIPAN ---
+        // --- DIALOG POPUP (UI Si A) ---
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -183,14 +167,14 @@ fun AddScreenContent(
 
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
 
-            // KONTEN UTAMA (Scrollable)
+            // KONTEN UTAMA
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
 
-                // --- 1. HERO IMAGE (COVER) ---
+                // --- HERO IMAGE ---
                 Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
                     if (selectedImageUri != null) {
                         AsyncImage(
@@ -243,7 +227,7 @@ fun AddScreenContent(
                     }
                 }
 
-                // --- 2. INPUT FORM ---
+                // --- INPUT FORM ---
                 Column(modifier = Modifier.padding(20.dp)) {
 
                     InputSection(
@@ -264,7 +248,7 @@ fun AddScreenContent(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // --- 3. PARTICIPANTS LIST ---
+                    // --- PARTICIPANTS LIST ---
                     Text(
                         text = "Participants",
                         style = AppFont.SemiBold,
@@ -277,15 +261,12 @@ fun AddScreenContent(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(end = 16.dp)
                     ) {
-                        // User Sendiri
                         item { ParticipantItem(name = "You", isYou = true) }
 
-                        // List Teman yang Ditambah
                         items(participants) { name ->
                             ParticipantItem(name = name)
                         }
 
-                        // Tombol Tambah (+)
                         item {
                             Box(modifier = Modifier.clickable { showDialog = true }) {
                                 ParticipantItem(name = "", isAddButton = true)
@@ -295,23 +276,7 @@ fun AddScreenContent(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                // --- Button Continue ---
-                // REVISI: Modifier.fillMaxWidth() dihapus dari PrimaryButton
-                // Box tetap ada untuk memastikan button berada di tengah (Center)
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PrimaryButton(
-                        text = "Continue",
-                        onClick = onContinueClick
-                        // Kita TIDAK menambahkan modifier fillMaxWidth di sini
-                        // sehingga ukurannya kembali ke default 220.dp (pendek)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-                    // --- 4. CONTINUE BUTTON ---
+                    // --- BUTTON CONTINUE ---
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         PrimaryButton(
                             text = if (isLoading) "Saving..." else "Continue",
@@ -338,6 +303,7 @@ fun AddScreenContent(
     }
 }
 
+// Preview khusus tampilan (Pakai dummy data)
 @Preview(showBackground = true)
 @Composable
 fun AddScreenPreview() {
