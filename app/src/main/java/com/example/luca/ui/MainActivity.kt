@@ -1,69 +1,57 @@
 package com.example.luca.ui
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.luca.ui.theme.LucaTheme
-import android.widget.Toast
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.luca.ui.theme.LucaTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Hapus enableEdgeToEdge() jika menyebabkan masalah atau pastikan sudah di-import
+
+        // Hapus enableEdgeToEdge() di sini jika bikin tampilan ketutup status bar
+        // atau biarkan kalau sudah di-handle di Scaffold
+
         setContent {
             val navController = rememberNavController()
 
             NavHost(navController = navController, startDestination = "greeting") {
+
+                // --- ONBOARDING & AUTH ---
                 composable("greeting") {
                     GreetingScreen(
-                        onNavigateToLogin = {
-                            // Pindah ke LoginScreen
-                            navController.navigate("login")
-                        },
-                        onNavigateToSignUp = {
-                            // Pindah ke SignUpScreen
-                            navController.navigate("sign_up")
-                        },
+                        onNavigateToLogin = { navController.navigate("login") },
+                        onNavigateToSignUp = { navController.navigate("sign_up") },
                         onNavigateToHome = {
-                            // Logika kalau sukses login
                             Toast.makeText(this@MainActivity, "Masuk ke Home...", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
                 composable("login") {
                     LoginScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onLoginClick = {
-                            // Pindah ke FinalLoginScreen setelah login
-                            navController.navigate("final_login")
-                        },
-                        onSignUpClick = {
-                            navController.navigate("sign_up")
-                        }
+                        onNavigateToHome = { navController.navigate("final_login") },
+                        onNavigateToSignUp = { navController.navigate("sign_up") },
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
                 composable("sign_up") {
                     SignUpScreen(
                         onBackClick = { navController.popBackStack() },
-                        onContinueClick = {
-                            navController.navigate("fill_profile")
-                        }
+                        onContinueClick = { navController.navigate("fill_profile") }
                     )
                 }
                 composable("fill_profile") {
                     FillProfileScreen(
                         onBackClick = { navController.popBackStack() },
-                        onCreateAccountClick = {
-                            // Pindah ke FinalSignUp atau Home setelah create account
-                            navController.navigate("final_signup")
-                        }
+                        onCreateAccountClick = { navController.navigate("final_signup") }
                     )
                 }
                 composable("final_login") {
@@ -84,66 +72,72 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
+
+                // --- MAIN APP ---
                 composable("home") {
                     HomeScreen(
-                        onEventClick = {
-                            navController.navigate("detailed_event")
-                        },
-                        onContactsClick = {
-                            navController.navigate("contacts")
-                        },
-                        onAddEventClick = {
-                            navController.navigate("add_event")
-                        }
+                        onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
+                        onContactsClick = { navController.navigate("contacts") },
+                        onAddEventClick = { navController.navigate("add_event") }
                     )
                 }
+
+                // --- UPDATE: DETAILED EVENT (Pakai versi baru) ---
                 composable("detailed_event") {
                     DetailedEventScreen(
+                        // Nanti kalau sudah canggih, oper ID di sini: eventId = ...
                         onBackClick = { navController.popBackStack() },
-                        onActivityClick = {
-                            navController.navigate("detailed_activity")
-                        },
-                        onAddActivityClick = {
-                            navController.navigate("new_activity")
-                        }
+                        onNavigateToAddActivity = { navController.navigate("new_activity") }
                     )
                 }
+
                 composable("detailed_activity") {
                     DetailedActivityScreen(
                         onBackClick = { navController.popBackStack() },
                         onEditClick = { navController.navigate("edit_activity") }
                     )
                 }
+
                 composable("new_activity") {
                     AddActivityScreen(
                         onBackClick = { navController.popBackStack() },
                         onContinueClick = { navController.navigate("new_activity_2") }
                     )
                 }
+
                 composable("new_activity_2") {
                     AddActivityScreen2(
                         onBackClick = { navController.popBackStack() },
                         onEditClick = { navController.navigate("edit_activity") }
                     )
                 }
+
                 composable("edit_activity") {
                     NewActivityEditScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
+
                 composable("contacts") {
                     ContactsScreen(
-                        onHomeClick = { navController.navigate("home") {
-                            popUpTo("home") { inclusive = true }
-                        }}
+                        onHomeClick = {
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
                     )
                 }
+
+                // --- UPDATE: ADD EVENT (Pakai versi baru) ---
                 composable("add_event") {
+                    // Cukup handle navigasi Back aja.
+                    // Logic "Continue/Save" sudah diurus ViewModel di dalam AddScreen.
                     AddScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onContinueClick = { navController.navigate("new_event") }
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
+
+                // (Opsional) Screen lama kalau masih dipakai buat testing UI
                 composable("new_event") {
                     NewEventScreen(
                         onCloseClick = { navController.popBackStack() },
@@ -153,6 +147,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
                 0x00000000,
