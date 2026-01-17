@@ -29,28 +29,20 @@ import com.example.luca.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import kotlinx.coroutines.launch
-
-
-
-// --- FUNGSI 1: LOGIC WRAPPER (Tempat Firebase Berada) ---
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.OAuthProvider
+import kotlinx.coroutines.launch
 
+// --- FUNGSI 1: LOGIC WRAPPER (Tempat Firebase Berada) ---
 @Composable
 fun GreetingScreen(
     onNavigateToLogin: () -> Unit,
-    onNavigateToSignUp: () -> Unit = {},
-    onNavigateToHome: () -> Unit
-    onNavigateToLogin: () -> Unit,
+    onNavigateToSignUp: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // AuthRepository dipanggil di sini, aman karena tidak dipanggil saat Preview
     val authRepo = remember { AuthRepository() }
-    val webClientId = "1193816...googleusercontent.com"
-
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
 
     // --- LAUNCHER GOOGLE ---
@@ -80,16 +72,46 @@ fun GreetingScreen(
         }
     }
 
-    // Panggil UI Content dan teruskan action-nya
+    // Handle Google Sign-In
+    val onGoogleClick: () -> Unit = {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .build()
+        val client = GoogleSignIn.getClient(context, gso)
+        googleLauncher.launch(client.signInIntent)
+    }
+
+    // Handle Facebook Sign-In
+    val onFacebookClick: () -> Unit = {
+        Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show()
+    }
+
+    // Handle X (Twitter) Sign-In
+    val onXClick: () -> Unit = {
+        val provider = OAuthProvider.newBuilder("twitter.com")
+        val firebaseAuth = FirebaseAuth.getInstance()
+        val activity = context as Activity
+
+        firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
+            .addOnSuccessListener { result ->
+                val user = result.user
+                if (user != null) {
+                    authRepo.saveUserAfterSocialLogin(user)
+                    Toast.makeText(context, "Welcome ${user.displayName}!", Toast.LENGTH_SHORT).show()
+                    onNavigateToHome()
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "X Login Failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // Pass state and callbacks to UI Content
     GreetingScreenContent(
-        onGoogleClick = {
-            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(webClientId)
-                .requestEmail()
-                .build()
-            val client = GoogleSignIn.getClient(context, gso)
-            googleLauncher.launch(client.signInIntent)
-        },
+        onGoogleClick = onGoogleClick,
+        onFacebookClick = onFacebookClick,
+        onXClick = onXClick,
         onSignUpClick = onNavigateToSignUp,
         onLoginClick = onNavigateToLogin
     )
@@ -99,11 +121,11 @@ fun GreetingScreen(
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
+    onFacebookClick: () -> Unit,
+    onXClick: () -> Unit,
     onSignUpClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = UIWhite
@@ -163,17 +185,7 @@ fun GreetingScreenContent(
                         text = "Continue with Google",
 //                        iconRes = R.drawable.ic_google_logo,
                         onClick = onGoogleClick,
-                        // iconRes = R.drawable.ic_google_logo,
-                        onClick = {
-                            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                .requestIdToken(webClientId)
-                                .requestEmail()
-                                .build()
-                            val client = GoogleSignIn.getClient(context, gso)
-                            googleLauncher.launch(client.signInIntent)
-                        },
                         modifier = Modifier.fillMaxWidth()
-
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -181,7 +193,7 @@ fun GreetingScreenContent(
                     SocialButton(
                         text = "Continue with Facebook",
 //                        iconRes = R.drawable.ic_facebook_logo,
-                        onClick = { Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show() },
+                        onClick = onFacebookClick,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -190,32 +202,7 @@ fun GreetingScreenContent(
                     SocialButton(
                         text = "Continue with X",
 //                        iconRes = R.drawable.ic_x_logo,
-                        onClick = { Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show() },
-                        // iconRes = R.drawable.ic_x_logo,
-                        onClick = {
-                            val provider = OAuthProvider.newBuilder("twitter.com")
-
-                            val firebaseAuth = FirebaseAuth.getInstance()
-
-                            val activity = context as Activity
-
-                            firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
-                                .addOnSuccessListener { result ->
-                                    // Login Sukses!
-                                    val user = result.user
-                                    if (user != null) {
-                                        // Simpan ke Firestore (Pastikan fungsi ini ada di AuthRepository)
-                                        authRepo.saveUserAfterSocialLogin(user)
-
-                                        Toast.makeText(context, "Welcome ${user.displayName}!", Toast.LENGTH_SHORT).show()
-                                        onNavigateToHome()
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    // Login Gagal / Cancel
-                                    Toast.makeText(context, "X Login Failed: ${e.message}", Toast.LENGTH_LONG).show()
-                                }
-                        },
+                        onClick = onXClick,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -223,7 +210,6 @@ fun GreetingScreenContent(
 
                     Button(
                         onClick = onSignUpClick,
-                        onClick = { onNavigateToLogin() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -244,7 +230,6 @@ fun GreetingScreenContent(
 
                     OutlinedButton(
                         onClick = onLoginClick,
-                        onClick = { onNavigateToLogin() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -303,12 +288,6 @@ fun SocialButton(
 //                modifier = Modifier.size(25.dp)
 //            )
 
-            // Image(
-            //     painter = painterResource(id = iconRes),
-            //     contentDescription = null,
-            //     modifier = Modifier.size(25.dp)
-            // )
-
             Text(
                 text = text,
                 style = AppFont.SemiBold,
@@ -324,23 +303,16 @@ fun SocialButton(
 
 // --- PREVIEW (Manggil yang Content saja agar tidak Crash) ---
 @Preview(showBackground = true)
-@Preview
 @Composable
 fun GreetingScreenPreview() {
     LucaTheme {
         GreetingScreenContent(
             onGoogleClick = {},
+            onFacebookClick = {},
+            onXClick = {},
             onSignUpClick = {},
             onLoginClick = {}
         )
-
-
-
-
-
-
-
-
 
     }
 }
