@@ -26,8 +26,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.luca.HeaderSection
-import com.example.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.DetailedEventViewModel
 import com.example.luca.viewmodel.UIActivityState

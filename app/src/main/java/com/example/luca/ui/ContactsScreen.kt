@@ -22,9 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.FloatingNavbar
-import com.example.luca.HeaderSection
-import com.example.luca.HeaderState
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlin.collections.iterator

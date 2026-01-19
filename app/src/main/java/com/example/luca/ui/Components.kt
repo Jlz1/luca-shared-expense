@@ -1,7 +1,8 @@
-package com.example.luca
+package com.example.luca.ui
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -21,23 +22,46 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -47,6 +71,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,16 +79,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
@@ -72,7 +103,10 @@ import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 import com.example.luca.model.Event
+import java.text.NumberFormat
+import java.util.Locale
 
+// Header State Definition
 enum class HeaderState(
     val title: String,
     val showLeftIconAsBack: Boolean, // False = Hamburger, True = Arrow Back
@@ -86,6 +120,7 @@ enum class HeaderState(
     SUMMARY("Summary", true, false)
 }
 
+// Header Section
 @Composable
 fun HeaderSection(
     // Parameter utama: State saat ini
@@ -172,7 +207,7 @@ fun HeaderSection(
                 contentAlignment = Alignment.Center,
             ) {
                 Box(modifier = Modifier.size(26.dp), contentAlignment = Alignment.Center) {
-                    androidx.compose.animation.AnimatedVisibility(
+                    this@Row.AnimatedVisibility(
                         visible = currentState.showRightLogo,
                         enter = scaleIn() + fadeIn(),
                         exit = scaleOut() + fadeOut()
@@ -190,6 +225,7 @@ fun HeaderSection(
     }
 }
 
+// Floating Navigation Bar
 @Composable
 fun FloatingNavbar(
     // Callback buat ngasih tau page mana yang dipilih (0: Left, 1: Center, 2: Right)
@@ -300,6 +336,7 @@ fun FloatingNavbar(
     }
 }
 
+// Helper For Navbar Button
 @Composable
 fun NavIconButton(
     iconRes: Int,
@@ -326,6 +363,7 @@ fun NavIconButton(
     }
 }
 
+// Input Section
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputSection(
@@ -370,6 +408,7 @@ fun InputSection(
     }
 }
 
+// Add Participant Item
 @Composable
 fun ParticipantItem(
     name: String,
@@ -412,6 +451,7 @@ fun ParticipantItem(
     }
 }
 
+// Simple Button Template
 @Composable
 fun PrimaryButton(
     text: String,
@@ -436,6 +476,7 @@ fun PrimaryButton(
     }
 }
 
+// Stacked Avatar Preview
 @Composable
 fun StackedAvatarRow(
     spacing: Int = -10,
@@ -518,20 +559,21 @@ fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
     }
 }
 
+// Event Card Layout
 @Composable
 fun EventCard(
     event: Event, // Menerima data asli
     width: Dp,
     onClick: () -> Unit
 ) {
-    androidx.compose.material3.Card(
+    Card(
         modifier = Modifier
             .width(width)
             .height(400.dp)
             .shadow(elevation = 8.dp, shape = RoundedCornerShape(25.dp), clip = false)
             .clickable { onClick() },
         shape = RoundedCornerShape(25.dp),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
+        colors = CardDefaults.cardColors(
             containerColor = UIWhite
         )
     ) {
@@ -611,15 +653,868 @@ fun EventCard(
     }
 }
 
+// Helper untuk mendapatkan ID drawable avatar berdasarkan nama
 @SuppressLint("LocalContextResourcesRead")
 @Composable
 fun getResourceId(name: String): Int {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     return context.resources.getIdentifier(
         "avatar_$name", // Nama file tanpa ekstensi
         "drawable",
         context.packageName
     )
+}
+
+// Add Contact Overlay
+@Composable
+fun UserProfileOverlay() {
+    // State untuk text field
+    var name by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+
+    // Card Utama (Container Putih)
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = UIWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp) // Margin luar
+        // .height(IntrinsicSize.Min) // Opsional jika ingin fit content
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .padding(all = 20.dp) // Padding dalam card
+        ) {
+
+            // --- BAGIAN ATAS (Header: Icon X, Foto, Icon Centang) ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                // Tombol Silang (Kiri)
+                IconButton(
+                    onClick = { /* TODO: Nanti ditaro sini logic buat Close/Cancel */ },
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        modifier = Modifier.size(32.dp),
+                        tint = UIBlack
+                    )
+                }
+
+                // Foto Placeholder (Tengah)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(135.dp)
+                        .clip(CircleShape)
+                        .background(UIGrey)
+                        .align(Alignment.Center)
+                        .clickable { /* TODO: Nanti ditaro sini logic buat ambil foto */ }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Upload Photo",
+                        tint = UIDarkGrey,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                // Tombol Centang (Kanan)
+                IconButton(
+                    onClick = { /* TODO: Nanti ditaro sini logic buat Save/Submit */ },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Save",
+                        modifier = Modifier.size(32.dp),
+                        tint = Color.Black
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- BAGIAN TENGAH (Input Fields) ---
+
+            // Input Name
+            CustomRoundedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "Name",
+                backgroundColor = UIGrey
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Input Phone
+            CustomRoundedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it },
+                placeholder = "Phone Number (Optional)",
+                backgroundColor = UIGrey
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- BAGIAN BAWAH (Bank Accounts + Plus Button) ---
+
+            Text(
+                text = "Bank Accounts",
+                fontSize = 18.sp,
+                style = AppFont.Bold,
+                color = UIBlack
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Tombol Plus (+)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(UIAccentYellow) // Warna kuning/oranye
+                    .clickable { /* TODO: Nanti ditaro sini logic buat nambah akun bank */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Bank Account",
+                    tint = Color.Black,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+    }
+}
+
+// Komponen Helper supaya Text Field nya rounded banget dan clean (tanpa garis bawah)
+@Composable
+fun CustomRoundedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    backgroundColor: Color
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(text = placeholder, color = Color.Gray) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp), // Padding kiri kanan biar ga nempel pinggir
+        shape = RoundedCornerShape(50), // Bikin rounded banget
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = backgroundColor,
+            unfocusedContainerColor = backgroundColor,
+            disabledContainerColor = backgroundColor,
+            focusedIndicatorColor = Color.Transparent, // Hilangkan garis bawah saat aktif
+            unfocusedIndicatorColor = Color.Transparent, // Hilangkan garis bawah saat mati
+        ),
+        singleLine = true
+    )
+}
+
+// User Data Class
+data class UserData(
+    val name: String,
+    val isCurrentUser: Boolean = false,
+    val avatarColor: Color? = null
+)
+
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
+
+// Avatar List
+@Composable
+fun AvatarList(
+    users: List<UserData> = emptyList(),
+    avatarSize: Dp = 80.dp,
+    showName: Boolean = true,
+    showAddButton: Boolean = false,
+    onAddClick: () -> Unit = {},
+    onAvatarClick: (UserData) -> Unit = {}
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+        contentPadding = PaddingValues(horizontal = 4.dp)
+    ) {
+        // 1. Render List User
+        items(users) { user ->
+            AvatarItem(
+                user = user,
+                avatarSize = avatarSize,
+                showName = showName,
+                onClick = { onAvatarClick(user) }
+            )
+        }
+
+        // 2. Render Tombol Add
+        if (showAddButton) {
+            item {
+                AddAvatarButton(
+                    avatarSize = avatarSize,
+                    showName = showName,
+                    onClick = onAddClick
+                )
+            }
+        }
+    }
+}
+
+// Avatar Item Helper Function
+@Composable
+private fun AvatarItem(
+    user: UserData,
+    avatarSize: Dp,
+    showName: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(avatarSize)
+            .clickable { onClick() }
+    ) {
+        // Lingkaran Avatar
+        Box(
+            modifier = Modifier
+                .size(avatarSize)
+                .clip(CircleShape)
+                .background(user.avatarColor ?: getRandomAvatarColor(user.name)),
+            contentAlignment = Alignment.Center
+        ) {
+            // Optional: Initials inside avatar
+        }
+
+        // Nama User
+        if (showName) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // PERBAIKAN DI SINI: Menggunakan androidx.compose.material3.Text secara eksplisit
+            androidx.compose.material3.Text(
+                text = if (user.isCurrentUser) "You" else user.name,
+                color = Color.Black,
+                fontSize = calculateFontSize(avatarSize),
+                fontWeight = FontWeight.Normal,
+                fontFamily = FontFamily.Default,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// Add Avatar Button
+@Composable
+private fun AddAvatarButton(
+    avatarSize: Dp,
+    showName: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(avatarSize)
+            .clickable { onClick() }
+    ) {
+        // Lingkaran Tombol Add
+        Box(
+            modifier = Modifier
+                .size(avatarSize)
+                .clip(CircleShape)
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add User",
+                tint = Color.DarkGray,
+                modifier = Modifier.size(avatarSize * 0.4f)
+            )
+        }
+
+        // Spacer Text
+        if (showName) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // PERBAIKAN DI SINI: Menggunakan androidx.compose.material3.Text secara eksplisit
+            androidx.compose.material3.Text(
+                text = "",
+                fontSize = calculateFontSize(avatarSize),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// More Helper Functions
+private fun calculateFontSize(avatarSize: Dp): androidx.compose.ui.unit.TextUnit {
+    return (avatarSize.value * 0.25).sp
+}
+
+private fun getRandomAvatarColor(name: String): Color {
+    val colors = listOf(
+        Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFF45B7D1),
+        Color(0xFFFFA07A), Color(0xFF98D8C8), Color(0xFFF7B731),
+        Color(0xFFEE5A6F), Color(0xFF786FA6), Color(0xFFEA8685),
+        Color(0xFF63CDDA)
+    )
+    val index = kotlin.math.abs(name.hashCode()) % colors.size
+    return colors[index]
+}
+
+// Bank Account Data Class
+data class BankAccount(
+    val bankName: String,
+    val accountNumber: String,
+    val bankColor: Color = Color(0xFF0066CC) // Default bank color
+)
+
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
+
+// Contact Card Layout
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContactCard(
+    modifier: Modifier = Modifier,
+    contactName: String,
+    phoneNumber: String,
+    avatarColor: Color = Color(0xFF5FBDAC), // Default teal color dari gambar
+    events: List<String> = emptyList(),
+    bankAccounts: List<BankAccount> = emptyList(),
+    maxHeight: androidx.compose.ui.unit.Dp? = null, // Ukuran maksimal tinggi card
+    horizontalPadding: androidx.compose.ui.unit.Dp = 16.dp, // Padding horizontal card
+    verticalPadding: androidx.compose.ui.unit.Dp = 16.dp, // Padding vertikal card
+    innerPadding: androidx.compose.ui.unit.Dp = 24.dp, // Padding dalam card
+    avatarSize: androidx.compose.ui.unit.Dp = 100.dp, // Ukuran avatar
+    cornerRadius: androidx.compose.ui.unit.Dp = 24.dp, // Radius sudut card
+    onEditClicked: () -> Unit = {},
+    onDeleteClicked: () -> Unit = {}
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .let { if (maxHeight != null) it.heightIn(max = maxHeight) else it }
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        shape = RoundedCornerShape(cornerRadius),
+        colors = CardDefaults.cardColors(containerColor = UIWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(innerPadding)
+        ) {
+            // Header Section: Avatar + Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Avatar (Circular placeholder)
+                Box(
+                    modifier = Modifier
+                        .size(avatarSize)
+                        .clip(CircleShape)
+                        .background(avatarColor)
+                )
+
+                // Action Buttons (Edit & Delete)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Edit Button
+                    IconButton(
+                        onClick = onEditClicked,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(UIAccentYellow, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Contact",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Delete Button
+                    IconButton(
+                        onClick = onDeleteClicked,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(UIAccentYellow, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Contact",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Information Section
+            Text(
+                text = contactName,
+                style = AppFont.Bold,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = phoneNumber,
+                style = AppFont.Medium,
+                fontSize = 18.sp,
+                color = UIDarkGrey
+            )
+
+            // Events Section
+            if (events.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                val eventsText = formatEventsText(events)
+                Text(
+                    text = "Events: $eventsText",
+                    fontSize = 16.sp,
+                    style = AppFont.Medium,
+                    color = Color.Black,
+                    lineHeight = 24.sp
+                )
+            }
+
+            // Bank Accounts Section
+            if (bankAccounts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                bankAccounts.forEach { bankAccount ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BankAccountRow(bankAccount = bankAccount)
+                }
+            }
+        }
+    }
+}
+
+// Helper Function for Bank Account Row
+@Composable
+private fun BankAccountRow(bankAccount: BankAccount) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Bank Icon/Logo Placeholder
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(bankAccount.bankColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = bankAccount.bankName.take(3).uppercase(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = UIWhite
+            )
+        }
+
+        // Account Number
+        Text(
+            text = bankAccount.accountNumber,
+            style = AppFont.Medium,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black
+        )
+    }
+}
+
+// Helper Function for Events Text
+/**
+ * Formats the events list according to the requirements:
+ * - Display max 3 events
+ * - If more than 3, show first 3 and append ", X+ more"
+ */
+private fun formatEventsText(events: List<String>): String {
+    return when {
+        events.isEmpty() -> ""
+        events.size <= 3 -> events.joinToString(", ")
+        else -> {
+            val displayedEvents = events.take(3).joinToString(", ")
+            val remainingCount = events.size - 3
+            "$displayedEvents, $remainingCount+ more"
+        }
+    }
+}
+
+/**
+ * Data class to represent a receipt item
+ * @param quantity The quantity of the item
+ * @param itemName The name of the item
+ * @param price The price of the item
+ * @param members List of colors representing members (empty list means no members to display)
+ */
+data class ReceiptItem(
+    val quantity: Int,
+    val itemName: String,
+    val price: Long,
+    val members: List<Color> = emptyList()
+)
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
+
+/**
+ * Single receipt row composable
+ * Displays quantity, item name, price, and members (if any)
+ */
+@Composable
+fun ReceiptRow(
+    item: ReceiptItem,
+    avatarSize: Dp = 36.dp,
+    horizontalPadding: Dp = 16.dp,
+    verticalPadding: Dp = 12.dp
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+    ) {
+        // Top Row: Quantity x Item Name | Price
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "${item.quantity}x ${item.itemName}",
+                style = AppFont.Bold,
+                fontSize = 16.sp,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = formatRupiah(item.price),
+                style = AppFont.Bold,
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+        }
+
+        // Bottom Row: Member Avatars (only show if members list is not empty)
+        if (item.members.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy((-8).dp)
+            ) {
+                item.members.forEach { memberColor ->
+                    Surface(
+                        modifier = Modifier
+                            .size(avatarSize)
+                            .padding(4.dp),
+                        shape = CircleShape,
+                        color = memberColor
+                    ) {}
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Main receipt list composable
+ * Displays a list of receipt items with horizontal dividers
+ *
+ * @param items List of receipt items to display
+ * @param modifier Modifier for the LazyColumn
+ * @param avatarSize Size of member avatar circles
+ * @param horizontalPadding Horizontal padding for each item row
+ * @param verticalPadding Vertical padding for each item row
+ * @param maxHeight Optional max height for the list (scrollable if exceeded)
+ * @param dividerPadding Horizontal padding for dividers
+ * @param dividerThickness Thickness of divider lines
+ * @param fontSize Font size for item name and price
+ * @param spacerHeight Height of spacer between item name and avatars
+ */
+@Composable
+fun ReceiptList(
+    items: List<ReceiptItem>,
+    modifier: Modifier = Modifier,
+    avatarSize: Dp = 36.dp,
+    horizontalPadding: Dp = 16.dp,
+    verticalPadding: Dp = 12.dp,
+    maxHeight: Dp? = null,
+    dividerPadding: Dp = 16.dp,
+    dividerThickness: Dp = 1.dp,
+    fontSize: Int = 16,
+    spacerHeight: Dp = 8.dp
+) {
+    val listModifier = if (maxHeight != null) {
+        modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .height(maxHeight)
+    } else {
+        modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    }
+
+    LazyColumn(modifier = listModifier) {
+        items(items, key = { it.itemName }) { item ->
+            ReceiptRow(
+                item = item,
+                avatarSize = avatarSize,
+                horizontalPadding = horizontalPadding,
+                verticalPadding = verticalPadding
+            )
+
+            // Add divider after each item except the last
+            if (items.indexOf(item) < items.size - 1) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dividerPadding),
+                    color = UIGrey,
+                    thickness = dividerThickness
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Format price to Indonesian Rupiah format
+ */
+fun formatRupiah(price: Long): String {
+    val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
+    return formatter.format(price)
+}
+
+// Sidebar Layout
+@Composable
+fun SidebarContent(
+    onCloseClick: () -> Unit = {} // Placeholder untuk aksi tutup sidebar
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 24.dp, vertical = 24.dp) // Padding keseluruhan
+    ) {
+
+        // --- HEADER (Logo, Nama App, Tombol Back) ---
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 40.dp) // Jarak header ke menu item pertama
+        ) {
+            // Placeholder Logo (Lingkaran Kuning)
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_luca_logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Nama App
+            Text(
+                text = "Luca",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.weight(1f)) // Dorong panah ke kanan
+
+            // Tombol Back (Panah Kiri)
+            IconButton(onClick = onCloseClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Close Sidebar",
+                    tint = Color.Black,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        // --- MENU ITEMS ---
+        // List menu
+        SidebarMenuItem(icon = Icons.Outlined.Home, text = "Dashboard") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.Outlined.Person, text = "Account") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") { /* Placeholder Click */ }
+
+        // --- SPACER PENDORONG ---
+        // Ini kuncinya: Spacer ini akan memakan semua ruang kosong yang tersisa
+        Spacer(modifier = Modifier.weight(1f))
+
+        // --- DIVIDER & FOOTER ---
+        HorizontalDivider(
+            color = Color.LightGray,
+            thickness = 1.dp,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // Menu Footer (Help & Support)
+        SidebarMenuItem(
+            icon = Icons.Outlined.HelpOutline,
+            text = "Help & Support"
+        ) { /* Placeholder Click */ }
+    }
+}
+
+// Komponen Helper untuk Item Menu supaya kodenya rapi
+@Composable
+fun SidebarMenuItem(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp) // Jarak antar item
+            .clickable(onClick = onClick)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = Color.Black, // Icon outline hitam sesuai gambar
+            modifier = Modifier.size(26.dp)
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = text,
+            fontSize = 18.sp,
+            color = UIBlack, // Hitam agak soft dikit biar elegan
+            style = AppFont.Medium
+        )
+    }
+}
+
+// Adaptive Search Bar
+// TODO: Tata cara penggunaan cukup cek preview langsung aja udah ada contoh
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBarModify(
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search",
+    initialQuery: String = "", // Ganti dari searchQuery
+    onSearchQueryChange: (String) -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    readOnly: Boolean = true,
+    enabled: Boolean = true,
+    databaseLabel: String? = null
+) {
+    // STATE INTERNAL - Otomatis handle input
+    var internalSearchQuery by remember { mutableStateOf(initialQuery) }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50.dp),
+        color = UIWhite,
+        shadowElevation = 2.dp,
+        onClick = if (readOnly) { onSearchClick } else { {} }
+    ) {
+        // Database label disimpan internal saja, tidak ditampilkan di UI
+        // Bisa digunakan untuk logging atau logic lainnya
+        if (databaseLabel != null) {
+            // Log atau logic internal bisa ditambahkan di sini
+            // println("Searching in: $databaseLabel")
+        }
+
+        if (readOnly) {
+            // Mode Read-Only: Hanya tampilan, tidak bisa diisi
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = UIDarkGrey,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = placeholder,
+                    style = AppFont.Regular,
+                    fontSize = 16.sp,
+                    color = UIDarkGrey
+                )
+            }
+        } else {
+            // Mode Editable: Bisa diisi text dengan STATE INTERNAL
+            TextField(
+                value = internalSearchQuery,
+                onValueChange = { newQuery ->
+                    internalSearchQuery = newQuery // Update state internal
+                    onSearchQueryChange(newQuery) // Kirim ke callback
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        style = AppFont.Regular,
+                        fontSize = 16.sp,
+                        color = UIDarkGrey
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = UIDarkGrey,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                enabled = enabled,
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                textStyle = AppFont.Regular.copy(fontSize = 16.sp)
+            )
+        }
+    }
 }
 
 @Preview
@@ -629,6 +1524,250 @@ fun ComponentsPreview(){
         // Preview dummy
         Column(modifier = Modifier.background(UIWhite).padding(16.dp)) {
             PrimaryButton(text = "Test Button", onClick = {})
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF888888)
+@Composable
+fun PreviewOverlay() {
+    // Ceritanya background gelap biar keliatan kaya overlay
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        UserProfileOverlay()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AvatarListPreview() {
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Preview dengan androidx.compose.material3.Text juga
+        androidx.compose.material3.Text("Preview: With Add Button")
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // TODO:  Kalau mau pake copas saja dari sini
+        AvatarList(
+            users = listOf(
+                UserData("You", true, Color(0xFFFF8C42)),
+                UserData("Jeremy E"),
+                UserData("Steven K")
+            ),
+            avatarSize = 60.dp,
+            showName = true,
+            showAddButton = true
+        )
+        // TODO: sampai sini teman teman
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF0EDEA)
+@Composable
+fun ContactCardPreview() {
+    LucaTheme {
+        // TODO: Apabila ingin menggunakan cukup copy paste ini aja
+        ContactCard(
+            contactName = "Aldi Faustinus",
+            phoneNumber = "+62 834 2464 3255",
+            avatarColor = Color(0xFF5FBDAC),
+            maxHeight = 600.dp,
+            horizontalPadding = 5.dp,
+            verticalPadding = 5.dp,
+            events = listOf(
+                "Bali with the boys",
+                "Fancy dinner in PIK",
+                "Roaming Jogja",
+                "Beach Party",
+                "Mountain Hiking"
+            ),
+            bankAccounts = listOf(
+                BankAccount(
+                    bankName = "BCA",
+                    accountNumber = "5436774334",
+                    bankColor = Color(0xFF0066CC)
+                ),
+                BankAccount(
+                    bankName = "BRI",
+                    accountNumber = "0023421568394593",
+                    bankColor = Color(0xFF003D82)
+                )
+            ),
+            onEditClicked = { /* Handle edit */ },
+            onDeleteClicked = { /* Handle delete */ }
+        )
+        // TODO: sampai sini
+    }
+}
+
+@Preview
+@Composable
+fun ReceiptListPreview() {
+    LucaTheme {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(UIWhite)
+        ) {
+            Column {
+
+                Text(
+                    text = "Default Receipt List",
+                    modifier = Modifier.padding(16.dp),
+                    style = AppFont.Bold
+                )
+                //TODO: ini kalau default copas aja teman teman dari sini
+                ReceiptList(
+                    items = listOf(
+                        ReceiptItem(
+                            quantity = 1,
+                            itemName = "Gurame Bakar Kecap",
+                            price = 120000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFF26A69A),
+                                Color(0xFFFFA726)
+                            )
+                        ),
+                        ReceiptItem(
+                            quantity = 3,
+                            itemName = "Nasi Putih",
+                            price = 30000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFF26A69A),
+                                Color(0xFFFFA726)
+                            )
+                        )
+                    ),
+                    modifier = Modifier.padding(vertical = 16.dp)
+
+                    // TODO: sampai ini
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Example 2: Custom size with maxHeight
+                Text(
+                    text = "Custom Size with MaxHeight (200dp)",
+                    modifier = Modifier.padding(16.dp),
+                    style = AppFont.Bold
+                )
+                // TODO:"Ini kalau kalian mau menggunakan custom size receiptnya
+                //TODO: copas dari sini
+                ReceiptList(
+                    items = listOf(
+                        ReceiptItem(
+                            quantity = 1,
+                            itemName = "Gurame Bakar Kecap",
+                            price = 120000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFF26A69A),
+                                Color(0xFFFFA726)
+                            )
+                        ),
+                        ReceiptItem(
+                            quantity = 3,
+                            itemName = "Nasi Putih",
+                            price = 30000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFF26A69A),
+                                Color(0xFFFFA726)
+                            )
+                        ),
+                        ReceiptItem(
+                            quantity = 2,
+                            itemName = "Tumis Kangkung",
+                            price = 50000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFF26A69A)
+                            )
+                        ),
+                        ReceiptItem(
+                            quantity = 1,
+                            itemName = "Chocolate Milkshake",
+                            price = 27000,
+                            members = listOf(Color(0xFF26A69A))
+                        ),
+                        ReceiptItem(
+                            quantity = 2,
+                            itemName = "Es Teh Manis",
+                            price = 32000,
+                            members = listOf(
+                                Color(0xFFC44536),
+                                Color(0xFFFFA726)
+                            )
+                        )
+                    ),
+
+                    //costum size receiptnya
+                    modifier = Modifier.padding(vertical = 60.dp, horizontal = 60.dp),
+                    maxHeight = 200.dp,
+                    avatarSize = 32.dp,
+                    horizontalPadding = 5.dp,
+                    verticalPadding = 5.dp
+                )
+                // TODO:sampai sini
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 320, heightDp = 800)
+@Composable
+fun PreviewSidebar() {
+    SidebarContent()
+}
+
+@Preview
+@Composable
+fun ComponentsPreviewStv(){
+    LucaTheme {
+        Column(
+            modifier = Modifier
+                .background(UIWhite)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Contoh 2: Mode Editable tanpa database
+            Text("2. Editable Mode (Tanpa Database):", fontWeight = FontWeight.Bold)
+
+            //TODO: COPAS AJA DARI SINI
+            SearchBarModify(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp,vertical = 12.dp)
+                    .height(50.dp),
+                placeholder = "Search",
+                onSearchQueryChange = { query ->
+                    // Handle search query change
+                    println("Search: $query")
+                },
+                readOnly = false
+            )
+            // TODO: SAMPAI SINI
+
+            // Contoh 3: Mode Editable dengan database label
+            Text("3. Editable Mode (Dengan Database):", fontWeight = FontWeight.Bold)
+            //TODO: Kalau pake database copas dari sini
+            SearchBarModify(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp,vertical = 12.dp)
+                    .height(50.dp),
+                placeholder = "Search products...",
+                onSearchQueryChange = { query ->
+                    println("Searching in database: $query")
+                },
+                readOnly = false,
+                databaseLabel = "Database: Products"
+            )
+            //TODO: sampai sini
         }
     }
 }
