@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBackground
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
@@ -38,109 +39,128 @@ fun AddActivityScreen(
     var selectedCategory by remember { mutableStateOf("Select a Category") }
     var selectedPayer by remember { mutableStateOf("Payer") }
 
-    Scaffold(
-        containerColor = UIBackground,
-        topBar = {
-            HeaderSection(
-                currentState = HeaderState.NEW_ACTIVITY,
-                onLeftIconClick = onBackClick
-            )
-        },
-        bottomBar = {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow)
+            .statusBarsPadding()
+    ) {
+
+        // 2. HEADER
+        HeaderSection(
+            currentState = HeaderState.NEW_ACTIVITY,
+            onLeftIconClick = onBackClick
+        )
+
+        // 3. KONTEN AREA (PUTIH & ROUNDED)
+        Box(
+            modifier = Modifier
+                .weight(1f) // Mengisi sisa ruang ke bawah
+                .fillMaxWidth()
+                .background(UIBackground)
+        ) {
+
+            // A. SCROLLABLE CONTENT (FORM)
             Column(
                 modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                InputSection(
+                    label = "Title",
+                    value = titleInput,
+                    placeholder = "New Activity",
+                    testTag = "input_activity_title",
+                    onValueChange = { titleInput = it }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Participants",
+                    style = AppFont.SemiBold,
+                    fontSize = 16.sp,
+                    color = UIBlack,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    item { ParticipantItem(name = "You", isYou = true) }
+                    item { ParticipantItem(name = "", isAddButton = true) }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                DropdownTriggerSection(
+                    label = "Category",
+                    displayText = selectedCategory,
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(UIGrey),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Category Icon",
+                                tint = UIBlack
+                            )
+                        }
+                    },
+                    onClick = { }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                DropdownTriggerSection(
+                    label = "Paid by",
+                    displayText = selectedPayer,
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier.size(40.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Payer Icon",
+                                tint = UIDarkGrey,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    },
+                    onClick = { }
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Spacer PENTING di akhir:
+                // Supaya input paling bawah tidak tertutup tombol "Continue"
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+
+            // B. STICKY BOTTOM BUTTON
+            // Pengganti 'bottomBar' di Scaffold
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter) // Tempel di bawah
                     .fillMaxWidth()
-                    .background(UIBackground)
+                    .background(UIBackground) // Background putih agar menutupi teks yang di-scroll di belakangnya
                     .padding(20.dp)
-                    .imePadding(),
+                    .imePadding(), // Agar tombol naik otomatis saat keyboard muncul
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- PENGGUNAAN KOMPONEN BARU DI SINI ---
                 PrimaryButton(
                     text = "Continue",
                     onClick = onContinueClick
                 )
             }
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            InputSection(
-                label = "Title",
-                value = titleInput,
-                placeholder = "New Activity",
-                testTag = "input_activity_title",
-                onValueChange = { titleInput = it }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Participants",
-                style = AppFont.SemiBold,
-                fontSize = 16.sp,
-                color = UIBlack,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                item { ParticipantItem(name = "You", isYou = true) }
-                item { ParticipantItem(name = "", isAddButton = true) }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            DropdownTriggerSection(
-                label = "Category",
-                displayText = selectedCategory,
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(UIGrey),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Category Icon",
-                            tint = UIBlack
-                        )
-                    }
-                },
-                onClick = { }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            DropdownTriggerSection(
-                label = "Paid by",
-                displayText = selectedPayer,
-                leadingIcon = {
-                    Box(
-                        modifier = Modifier.size(40.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Payer Icon",
-                            tint = UIDarkGrey,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                },
-                onClick = { }
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

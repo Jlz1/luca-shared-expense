@@ -30,23 +30,21 @@ import com.example.luca.model.Event
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.HomeViewModel
 
-// --- STATEFUL COMPOSABLE (Contains Business Logic) ---
+// --- STATEFUL COMPOSABLE (Logic) ---
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
     onNavigateToDetail: (String) -> Unit = {},
-    onContactsClick: () -> Unit = {},
+    onContactsClick: () -> Unit = {}, // Parameter ini sisa, tapi gapapa dibiarin
     onAddEventClick: () -> Unit = {}
 ) {
-    // Observe data from ViewModel
     val allEvents by viewModel.events.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredEvents = viewModel.getFilteredEvents()
 
-    // State for List & Scroll
     val listState = rememberLazyListState()
 
-    // Auto-scroll logic when searching
+    // Auto-scroll logic
     LaunchedEffect(searchQuery, allEvents) {
         if (searchQuery.isNotEmpty() && allEvents.isNotEmpty()) {
             val index = allEvents.indexOfFirst {
@@ -58,19 +56,17 @@ fun HomeScreen(
         }
     }
 
-    // Pass state and callbacks to UI Content
     HomeScreenContent(
         searchQuery = searchQuery,
         onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
         filteredEvents = filteredEvents,
         listState = listState,
         onEventClick = onNavigateToDetail,
-        onContactsClick = onContactsClick,
         onAddEventClick = onAddEventClick
     )
 }
 
-// --- STATELESS COMPOSABLE (Pure UI) ---
+// --- STATELESS COMPOSABLE (UI Only) ---
 @Composable
 fun HomeScreenContent(
     searchQuery: String,
@@ -78,68 +74,64 @@ fun HomeScreenContent(
     filteredEvents: List<Event>,
     listState: LazyListState,
     onEventClick: (String) -> Unit,
-    onContactsClick: () -> Unit,
     onAddEventClick: () -> Unit
 ) {
-    Scaffold(
-        topBar = { HeaderSection() },
-        floatingActionButton = {
-            FloatingNavbar(
-                onContactsClick = onContactsClick,
-                onAddClick = onAddEventClick
-            )
-        },
-        floatingActionButtonPosition = FabPosition.Center,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    // 1. HAPUS SCAFFOLD. Ganti langsung dengan Container utama.
+    // Kita pakai Column full screen dengan background kuning.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow)
+            // Tambahkan status bar padding jika perlu, atau biarkan MainActivity yang handle
+            .statusBarsPadding()
+    ) {
+
+        // 2. HEADER SECTION (Dulunya di topBar Scaffold, sekarang ditaruh manual disini)
+        // Pastikan komponen HeaderSection() kamu ada dan bisa diakses
+        HeaderSection()
+
+        // 3. SEARCH BAR AREA
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(UIAccentYellow)
-                .padding(innerPadding)
+                .height(90.dp) // Sesuaikan tinggi area search
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 25.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Search Bar Area
+            BetterSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange
+            )
+        }
+
+        // 4. WHITE CONTENT AREA (Carousel / Empty State)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                .background(UIBackground)
+        ) {
+            if (filteredEvents.isEmpty()) {
+                // Empty state butuh tombol add, jadi kita passing fungsinya
+                EmptyStateView(onAddEventClick = onAddEventClick)
+            } else {
                 Box(
                     modifier = Modifier
-                        .height(90.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 25.dp),
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    BetterSearchBar(
-                        query = searchQuery,
-                        onQueryChange = onSearchQueryChange
+                    EventCarousel(
+                        events = filteredEvents,
+                        listState = listState,
+                        onEventClick = onEventClick
                     )
                 }
-
-                // Content Area
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                        .background(UIBackground)
-                ) {
-                    if (filteredEvents.isEmpty()) {
-                        EmptyStateView(onAddEventClick = onAddEventClick)
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            EventCarousel(
-                                events = filteredEvents,
-                                listState = listState,
-                                onEventClick = onEventClick
-                            )
-                        }
-                    }
-                    // Spacer for FAB
-                    Spacer(modifier = Modifier.height(112.dp))
-                }
             }
+
+            // Spacer di bawah agar konten paling bawah tidak ketutup Navbar MainActivity
+            // Navbar tingginya sekitar 80dp-100dp, jadi kita kasih spacer aman.
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
@@ -265,7 +257,7 @@ fun EmptyStateView(
                     painter = painterResource(id = R.drawable.ic_plus_button),
                     contentDescription = "Add",
                     tint = UIBlack,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -283,7 +275,6 @@ fun HomeScreenPreview() {
             filteredEvents = emptyList(),
             listState = rememberLazyListState(),
             onEventClick = {},
-            onContactsClick = {},
             onAddEventClick = {}
         )
     }

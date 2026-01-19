@@ -40,52 +40,47 @@ fun FinalSignUpScreen(
         onNavigateToHome()
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = UIWhite
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(UIWhite), contentAlignment = Alignment.Center) {
 
-            // --- LAYER 1: BACKGROUND IMAGE ---
-            Image(
-                painter = painterResource(id = R.drawable.bg_accent_final_page),
-                contentDescription = "Background Pattern",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+        // --- LAYER 1: BACKGROUND IMAGE ---
+        Image(
+            painter = painterResource(id = R.drawable.bg_accent_final_page),
+            contentDescription = "Background Pattern",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // --- LAYER 2: KONTEN ---
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Welcome to the Crew!",
+                style = AppFont.Bold,
+                fontSize = 28.sp,
+                color = UIBlack
             )
 
-            // --- LAYER 2: KONTEN ---
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Welcome to the Crew!",
-                    style = AppFont.Bold,
-                    fontSize = 28.sp,
-                    color = UIBlack
-                )
+            Spacer(modifier = Modifier.height(20.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_background),
+                contentDescription = "Profile Picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(212.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray)
+            )
 
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_background),
-                    contentDescription = "Profile Picture",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(212.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
-                )
+            Spacer(modifier = Modifier.height(23.dp))
 
-                Spacer(modifier = Modifier.height(23.dp))
-
-                Text(
-                    text = name,
-                    style = AppFont.SemiBold,
-                    fontSize = 28.sp,
-                    color = UIBlack
-                )
-            }
+            Text(
+                text = name,
+                style = AppFont.SemiBold,
+                fontSize = 28.sp,
+                color = UIBlack
+            )
         }
     }
 }

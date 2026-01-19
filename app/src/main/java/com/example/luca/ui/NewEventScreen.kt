@@ -31,16 +31,13 @@ fun NewEventScreen(
     onEditClick: () -> Unit = {},
     onAddActivityClick: () -> Unit = {}
 ) {
-    Scaffold(
-        topBar = {
-            HeaderSection()
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier.fillMaxSize().background(UIWhite)
+    ) {
+        HeaderSection()
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
         ) {
             // Main scrollable content
             Column(

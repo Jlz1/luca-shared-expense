@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
 import com.example.luca.ui.theme.*
-
-@OptIn(ExperimentalMaterial3Api::class)
+// Pastikan import komponen-komponen ini ada
+// import com.example.luca.ui.components.* @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailedActivityScreen(
     onBackClick: () -> Unit = {},
@@ -32,29 +32,33 @@ fun DetailedActivityScreen(
     // State agar switch bisa berubah warna saat diklik
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = UIBackground,
-        topBar = {
-            HeaderSection(
-                currentState = HeaderState.DETAILS,
-                onLeftIconClick = onBackClick
-            )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    // 1. HAPUS SCAFFOLD. Ganti dengan Container Column utama.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow) // Background utama kuning sesuai desain
+            .statusBarsPadding() // Agar header tidak ketutup status bar
+    ) {
 
-        // Root box with yellow background to fill the gap
+        // 2. HEADER (Manual Placement)
+        // HeaderSection sekarang menjadi elemen pertama di layout
+        HeaderSection(
+            currentState = HeaderState.DETAILS,
+            onLeftIconClick = onBackClick
+        )
+
+        // 3. CONTENT AREA
+        // Box ini mengisi sisa layar di bawah header
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(UIAccentYellow)
+            // Hapus padding innerPadding karena scaffold sudah hilang
         ) {
-            // Main content container
+            // Main content container (Scrollable list)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // Padding top creates the yellow gap effect
+                    // Padding top creates the yellow gap effect below header
                     .padding(top = 16.dp)
                     // Rounded top corners for the content area
                     .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
@@ -239,7 +243,7 @@ fun DetailedActivityScreen(
                 Spacer(modifier = Modifier.height(100.dp))
             }
 
-            // Floating action buttons
+            // Floating action buttons (Tetap di sini sebagai overlay konten)
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

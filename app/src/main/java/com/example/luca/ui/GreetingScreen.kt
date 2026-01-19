@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -126,138 +127,134 @@ fun GreetingScreenContent(
     onSignUpClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = UIWhite
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(all = 30.dp)
+            .background(UIWhite),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(all = 30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .weight(1f)
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top
-                ) {
-                    Spacer(modifier = Modifier.height(50.dp))
+                Spacer(modifier = Modifier.height(50.dp))
 
-                    // Image(
-                    //    painter = painterResource(id = R.drawable.ic_luca_logo),
-                    //    contentDescription = "Luca Logo",
-                    //    modifier = Modifier.size(width = 60.dp, height = 59.dp)
-                    // )
+                // Image(
+                //    painter = painterResource(id = R.drawable.ic_luca_logo),
+                //    contentDescription = "Luca Logo",
+                //    modifier = Modifier.size(width = 60.dp, height = 59.dp)
+                // )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
-                        text = "Welcome to Luca!",
-                        style = AppFont.SemiBold,
-                        fontSize = 28.sp,
-                        color = UIBlack,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Splitting bills made easy.",
-                        style = AppFont.Medium,
-                        fontSize = 16.sp,
-                        color = UIDarkGrey,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(74.dp))
-
-                    // --- TOMBOL GOOGLE ---
-                    SocialButton(
-                        text = "Continue with Google",
-//                        iconRes = R.drawable.ic_google_logo,
-                        onClick = onGoogleClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    SocialButton(
-                        text = "Continue with Facebook",
-//                        iconRes = R.drawable.ic_facebook_logo,
-                        onClick = onFacebookClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    SocialButton(
-                        text = "Continue with X",
-//                        iconRes = R.drawable.ic_x_logo,
-                        onClick = onXClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(107.dp))
-
-                    Button(
-                        onClick = onSignUpClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(49.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = UIAccentYellow,
-                            contentColor = UIBlack
-                        )
-                    ) {
-                        Text(
-                            text = "Sign Up",
-                            style = AppFont.SemiBold,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedButton(
-                        onClick = onLoginClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(49.dp),
-                        border = BorderStroke(1.dp, UIAccentYellow)
-                    ) {
-                        Text(
-                            text = "Log in",
-                            style = AppFont.SemiBold,
-                            fontSize = 14.sp,
-                            color = UIBlack
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            }
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
                 Text(
-                    text = "Privacy Policy   ·   Terms of Service",
+                    text = "Welcome to Luca!",
                     style = AppFont.SemiBold,
-                    fontSize = 12.sp,
-                    color = UIBlack.copy(alpha = 0.6f)
+                    fontSize = 28.sp,
+                    color = UIBlack,
+                    textAlign = TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Splitting bills made easy.",
+                    style = AppFont.Medium,
+                    fontSize = 16.sp,
+                    color = UIDarkGrey,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(74.dp))
+
+                // --- TOMBOL GOOGLE ---
+                SocialButton(
+                    text = "Continue with Google",
+//                        iconRes = R.drawable.ic_google_logo,
+                    onClick = onGoogleClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SocialButton(
+                    text = "Continue with Facebook",
+//                        iconRes = R.drawable.ic_facebook_logo,
+                    onClick = onFacebookClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SocialButton(
+                    text = "Continue with X",
+//                        iconRes = R.drawable.ic_x_logo,
+                    onClick = onXClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(107.dp))
+
+                Button(
+                    onClick = onSignUpClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(49.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = UIAccentYellow,
+                        contentColor = UIBlack
+                    )
+                ) {
+                    Text(
+                        text = "Sign Up",
+                        style = AppFont.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = onLoginClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(49.dp),
+                    border = BorderStroke(1.dp, UIAccentYellow)
+                ) {
+                    Text(
+                        text = "Log in",
+                        style = AppFont.SemiBold,
+                        fontSize = 14.sp,
+                        color = UIBlack
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Privacy Policy   ·   Terms of Service",
+                style = AppFont.SemiBold,
+                fontSize = 12.sp,
+                color = UIBlack.copy(alpha = 0.6f)
+            )
         }
     }
 }

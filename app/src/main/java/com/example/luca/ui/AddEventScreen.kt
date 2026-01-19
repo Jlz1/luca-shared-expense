@@ -108,16 +108,13 @@ fun AddScreenContent(
     var showDialog by remember { mutableStateOf(false) }
     var newParticipantName by remember { mutableStateOf("") }
 
-    Scaffold(
-        containerColor = UIBackground,
-        topBar = {
-            // Menggunakan HeaderSection desain Si A
-            HeaderSection(
-                currentState = HeaderState.NEW_EVENT,
-                onLeftIconClick = onBackClick
-            )
-        }
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        HeaderSection(
+            currentState = HeaderState.NEW_EVENT,
+            onLeftIconClick = onBackClick
+        )
 
         // --- DIALOG POPUP (UI Si A) ---
         if (showDialog) {
@@ -158,7 +155,7 @@ fun AddScreenContent(
             )
         }
 
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Box(modifier = Modifier.fillMaxSize()) {
 
             // KONTEN UTAMA
             Column(

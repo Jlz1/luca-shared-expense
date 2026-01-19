@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
@@ -70,7 +71,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -225,30 +225,30 @@ fun HeaderSection(
     }
 }
 
-// Floating Navigation Bar
 @Composable
 fun FloatingNavbar(
-    // Callback buat ngasih tau page mana yang dipilih (0: Left, 1: Center, 2: Right)
-    onItemSelected: (Int) -> Unit = {},
+    // 1. INI PARAMETER BARUNYA (State dari luar)
+    // 0 = Kiri (Scan), 1 = Tengah (Home), 2 = Kanan (Contacts)
+    selectedIndex: Int = 1,
+
+    // 2. Callback buat lapor ke Parent kalo user klik tombol
+    onItemSelected: (Int) -> Unit,
+
+    // 3. Callback spesifik
     onContactsClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onHomeClick: () -> Unit = {}
 ) {
-    // State untuk melacak posisi aktif (Default 1 = Tengah/Home)
-    var selectedIndex by remember { mutableIntStateOf(1) }
-
-    // Logic Animasi: Menentukan posisi X lingkaran putih berdasarkan index
-    // Perhitungan manual berdasarkan width 225.dp dan item 59.dp dengan SpaceEvenly
-    // Gap antar item kira-kira 12.dp -> (225 - (59*3)) / 4
+    // Logic Animasi: Sekarang gerak berdasarkan parameter 'selectedIndex'
     val indicatorOffset by animateDpAsState(
         targetValue = when (selectedIndex) {
-            0 -> 12.dp  // Posisi Kiri
-            1 -> 83.dp  // Posisi Tengah (12 + 59 + 12)
-            2 -> 154.dp // Posisi Kanan (83 + 59 + 12)
+            0 -> 12.dp
+            1 -> 83.dp
+            2 -> 154.dp
             else -> 83.dp
         },
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy, // Biar ada mental-mentul dikit
+            dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "IndicatorAnimation"
@@ -256,28 +256,28 @@ fun FloatingNavbar(
 
     Surface(
         modifier = Modifier
-            .offset(y = (-23).dp)
+            .offset(y = (-23).dp) // Offset ke atas biar nangkring
             .width(225.dp)
             .height(75.dp),
         shape = RoundedCornerShape(50.dp),
-        color = UIAccentYellow,
+        color = Color(0xFFFFC107), // UIAccentYellow
         shadowElevation = 8.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.CenterStart // Start alignment penting buat offset bekerja
+            contentAlignment = Alignment.CenterStart
         ) {
 
-            // --- LAYER 1: Indikator Putih Bergerak ---
+            // LAYER 1: Indikator Putih Bergerak
             Box(
                 modifier = Modifier
-                    .offset(x = indicatorOffset) // Ini yang bikin dia geser
+                    .offset(x = indicatorOffset) // Posisi ikut parameter
                     .size(59.dp)
                     .shadow(elevation = 4.dp, shape = RoundedCornerShape(30.dp))
-                    .background(color = UIWhite, shape = RoundedCornerShape(30.dp))
+                    .background(color = Color.White, shape = RoundedCornerShape(30.dp))
             )
 
-            // --- LAYER 2: Icon Buttons (Foreground) ---
+            // LAYER 2: Icon Buttons
             Row(
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -285,20 +285,19 @@ fun FloatingNavbar(
             ) {
                 // --- Button 1: Scan ---
                 NavIconButton(
-                    iconRes = R.drawable.ic_scan_button,
+                    iconRes = R.drawable.ic_scan_button, // Ganti resource iconmu
                     desc = "Scan",
+                    // Cek apakah tab ini yang dipilih berdasarkan parameter
                     isSelected = selectedIndex == 0,
                     onClick = {
-                        selectedIndex = 0
-                        onItemSelected(0)
+                        onItemSelected(0) // Lapor parent: "User mau ke tab 0"
                     }
                 )
 
                 // --- Button 2: Center (Home / Plus Logic) ---
-                // Logic: Kalau selectedIndex == 1 (lagi di Home), iconnya Plus.
-                // Kalau lagi di page lain (0 atau 2), iconnya jadi Home (buat balik).
+                // Kalau parameter == 1 (lagi di Home), icon jadi Plus
                 val centerIconRes = if (selectedIndex == 1) {
-                    R.drawable.ic_plus_button // Pastikan icon ini ada (ganti icon plus)
+                    R.drawable.ic_plus_button
                 } else {
                     R.drawable.ic_home_button
                 }
@@ -309,11 +308,10 @@ fun FloatingNavbar(
                     isSelected = selectedIndex == 1,
                     onClick = {
                         if (selectedIndex == 1) {
-                            // Kalau sudah di home, klik plus = add event
+                            // Kalau udah di home, klik lagi -> Add Event
                             onAddClick()
                         } else {
-                            // Kalau di page lain, klik = balik ke home
-                            selectedIndex = 1
+                            // Kalau dari tab lain, klik ini -> Balik Home
                             onItemSelected(1)
                             onHomeClick()
                         }
@@ -326,8 +324,7 @@ fun FloatingNavbar(
                     desc = "Contacts",
                     isSelected = selectedIndex == 2,
                     onClick = {
-                        selectedIndex = 2
-                        onItemSelected(2)
+                        onItemSelected(2) // Lapor parent: "User mau ke tab 2"
                         onContactsClick()
                     }
                 )
@@ -897,7 +894,7 @@ private fun AvatarItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // PERBAIKAN DI SINI: Menggunakan androidx.compose.material3.Text secara eksplisit
-            androidx.compose.material3.Text(
+            Text(
                 text = if (user.isCurrentUser) "You" else user.name,
                 color = Color.Black,
                 fontSize = calculateFontSize(avatarSize),
@@ -945,7 +942,7 @@ private fun AddAvatarButton(
             Spacer(modifier = Modifier.height(8.dp))
 
             // PERBAIKAN DI SINI: Menggunakan androidx.compose.material3.Text secara eksplisit
-            androidx.compose.material3.Text(
+            Text(
                 text = "",
                 fontSize = calculateFontSize(avatarSize),
                 maxLines = 1
@@ -989,12 +986,12 @@ fun ContactCard(
     avatarColor: Color = Color(0xFF5FBDAC), // Default teal color dari gambar
     events: List<String> = emptyList(),
     bankAccounts: List<BankAccount> = emptyList(),
-    maxHeight: androidx.compose.ui.unit.Dp? = null, // Ukuran maksimal tinggi card
-    horizontalPadding: androidx.compose.ui.unit.Dp = 16.dp, // Padding horizontal card
-    verticalPadding: androidx.compose.ui.unit.Dp = 16.dp, // Padding vertikal card
-    innerPadding: androidx.compose.ui.unit.Dp = 24.dp, // Padding dalam card
-    avatarSize: androidx.compose.ui.unit.Dp = 100.dp, // Ukuran avatar
-    cornerRadius: androidx.compose.ui.unit.Dp = 24.dp, // Radius sudut card
+    maxHeight: Dp? = null, // Ukuran maksimal tinggi card
+    horizontalPadding: Dp = 16.dp, // Padding horizontal card
+    verticalPadding: Dp = 16.dp, // Padding vertikal card
+    innerPadding: Dp = 24.dp, // Padding dalam card
+    avatarSize: Dp = 100.dp, // Ukuran avatar
+    cornerRadius: Dp = 24.dp, // Radius sudut card
     onEditClicked: () -> Unit = {},
     onDeleteClicked: () -> Unit = {}
 ) {
@@ -1385,7 +1382,7 @@ fun SidebarContent(
 
         // Menu Footer (Help & Support)
         SidebarMenuItem(
-            icon = Icons.Outlined.HelpOutline,
+            icon = Icons.AutoMirrored.Outlined.HelpOutline,
             text = "Help & Support"
         ) { /* Placeholder Click */ }
     }
@@ -1450,6 +1447,7 @@ fun SearchBarModify(
         // Database label disimpan internal saja, tidak ditampilkan di UI
         // Bisa digunakan untuk logging atau logic lainnya
         if (databaseLabel != null) {
+            // TODO: nanti logic taro sini
             // Log atau logic internal bisa ditambahkan di sini
             // println("Searching in: $databaseLabel")
         }
@@ -1545,7 +1543,7 @@ fun PreviewOverlay() {
 fun AvatarListPreview() {
     Column(modifier = Modifier.padding(16.dp)) {
         // Preview dengan androidx.compose.material3.Text juga
-        androidx.compose.material3.Text("Preview: With Add Button")
+        Text("Preview: With Add Button")
         Spacer(modifier = Modifier.height(10.dp))
 
         // TODO:  Kalau mau pake copas saja dari sini

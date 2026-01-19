@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlin.collections.iterator
+// Pastikan HeaderSection diimport
+// import com.example.luca.ui.components.HeaderSection
 
 // Model Data Sederhana untuk Kontak
 data class Contact(
@@ -37,7 +39,7 @@ data class Contact(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ContactsScreen(
-    onHomeClick: () -> Unit = {}
+    onHomeClick: () -> Unit = {} // Parameter sisa, biarkan saja agar kompatibel
 ) {
     // 1. DUMMY DATA GENERATOR
     // Ubah list ini jadi emptyList() untuk mengetes tampilan kosong (Empty State)
@@ -61,26 +63,24 @@ fun ContactsScreen(
     // List Huruf untuk Sidebar (# + A-Z)
     val alphabet = remember { listOf('#') + ('A'..'Z').toList() }
 
-    Scaffold(
-        topBar = { HeaderSection() }, // Reuse dari Components.kt
-        bottomBar = {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                FloatingNavbar(
-                    onHomeClick = onHomeClick
-                )
-            }
-        },
-        containerColor = UIBackground,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
-
-        Box(modifier = Modifier
+    // --- STRUKTUR UTAMA TANPA SCAFFOLD ---
+    // Gunakan Box sebagai container utama, background ambil dari theme
+    Box(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
+            .background(UIBackground)
+            // Tambahkan padding status bar agar konten tidak nabrak notifikasi bar HP
+            .statusBarsPadding()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
+
+            // 1. HEADER (Logo & Avatar) - Manual Placement
+            // Pastikan fungsi HeaderSection() tersedia di projectmu
+            HeaderSection()
+
+            // 2. KONTEN HALAMAN (Title, Search, List)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -91,7 +91,7 @@ fun ContactsScreen(
                 // --- TITLE ---
                 Text(
                     text = "Contacts",
-                    style = AppFont.SemiBold,
+                    style = AppFont.SemiBold, // Pastikan font style ini ada di Theme
                     fontSize = 20.sp,
                     color = UIBlack
                 )
@@ -138,7 +138,7 @@ fun ContactsScreen(
                     Surface(
                         modifier = Modifier
                             .size(50.dp)
-                            .clickable { /* Handle Add Contact */ },
+                            .clickable { /* Handle Add Contact logic here */ },
                         shape = CircleShape,
                         color = UIAccentYellow,
                         shadowElevation = 2.dp
@@ -170,8 +170,8 @@ fun ContactsScreen(
                     // TAMPILAN LIST KONTAK
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 100.dp) // Padding bawah supaya tidak ketutup Navbar
+                        modifier = Modifier.weight(1f), // Ambil sisa ruang layar
+                        contentPadding = PaddingValues(bottom = 100.dp) // PENTING: Padding bawah supaya list item paling bawah tidak ketutup Navbar
                     ) {
                         groupedContacts.forEach { (initial, contactsForInitial) ->
                             // Header Huruf (Sticky)
@@ -200,37 +200,38 @@ fun ContactsScreen(
                     }
                 }
             }
+        }
 
-            // --- ALPHABET SIDEBAR (Kanan) ---
-            if (contacts.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp, top = 100.dp, bottom = 100.dp)
-                        .width(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    alphabet.forEach { letter ->
-                        Text(
-                            text = letter.toString(),
-                            style = AppFont.Regular,
-                            fontSize = 10.sp,
-                            color = UIDarkGrey,
-                            modifier = Modifier
-                                .padding(vertical = 2.dp)
-                                .clickable {
-                                    // LOGIKA SCROLL KE HURUF
-                                    coroutineScope.launch {
-                                        // Cari index header huruf tersebut di list
-                                        val index = getScrollIndex(groupedContacts, letter)
-                                        if (index != -1) {
-                                            listState.animateScrollToItem(index)
-                                        }
+        // --- ALPHABET SIDEBAR (Floating di Kanan) ---
+        // Ditaruh di luar Column utama agar posisinya absolute/floating
+        if (contacts.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp, top = 150.dp, bottom = 120.dp) // Sesuaikan padding biar pas di tengah vertikal
+                    .width(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                alphabet.forEach { letter ->
+                    Text(
+                        text = letter.toString(),
+                        style = AppFont.Regular,
+                        fontSize = 10.sp,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                            .padding(vertical = 2.dp)
+                            .clickable {
+                                // LOGIKA SCROLL KE HURUF
+                                coroutineScope.launch {
+                                    // Cari index header huruf tersebut di list
+                                    val index = getScrollIndex(groupedContacts, letter)
+                                    if (index != -1) {
+                                        listState.animateScrollToItem(index)
                                     }
                                 }
-                        )
-                    }
+                            }
+                    )
                 }
             }
         }
@@ -289,12 +290,16 @@ fun ContactRowItem(contact: Contact) {
 // 1. Fungsi untuk mencari posisi index scroll berdasarkan huruf header
 fun getScrollIndex(groupedContacts: Map<Char, List<Contact>>, targetChar: Char): Int {
     var currentIndex = 0
-    for ((key, list) in groupedContacts) {
+    // Urutkan key agar pencarian index akurat
+    val sortedKeys = groupedContacts.keys.sorted()
+
+    for (key in sortedKeys) {
         if (key == targetChar) {
             return currentIndex
         }
+        val listSize = groupedContacts[key]?.size ?: 0
         // Tambahkan jumlah item + 1 (untuk headernya sendiri)
-        currentIndex += list.size + 1
+        currentIndex += listSize + 1
     }
     return -1 // Tidak ketemu
 }
@@ -327,7 +332,7 @@ fun generateDummyContacts(): List<Contact> {
     )
 }
 
-@Preview(showBackground = true, apiLevel = 36)
+@Preview(showBackground = true)
 @Composable
 fun ContactsScreenPreview() {
     LucaTheme {

@@ -48,21 +48,21 @@ fun NewActivityEditScreen(
     var globalDiscPercent by remember { mutableStateOf("0") }
     var globalDiscAmount by remember { mutableStateOf("Rp0") }
 
-    Scaffold(
-        containerColor = UIBackground,
-        topBar = {
-            HeaderSection(
-                currentState = HeaderState.EDIT_ACTIVITY,
-                onLeftIconClick = onBackClick
-            )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIBackground) // Background Kuning
+            .statusBarsPadding() // Hindari tabrakan dengan status bar
+    ) {
 
+        // 2. HEADER
+        HeaderSection(
+            currentState = HeaderState.EDIT_ACTIVITY, // Pastikan Enum ini ada di code kamu
+            onLeftIconClick = onBackClick
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
         ) {
             // Scrollable Content
             Column(

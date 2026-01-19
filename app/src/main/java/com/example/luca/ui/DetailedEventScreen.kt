@@ -55,48 +55,70 @@ fun DetailedEventScreen(
     val activitiesState by viewModel.uiActivities.collectAsState()
     val isEmpty = activitiesState.isEmpty()
 
-    Scaffold(
-        topBar = {
-            Surface(shadowElevation = 0.dp, color = UIWhite) {
-                HeaderSection(onLeftIconClick = onBackClick)
-            }
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    // 3. STRUKTUR UTAMA (No Scaffold)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow) // Background Kuning Global
+            .statusBarsPadding() // Agar tidak ketutup status bar
+    ) {
+
+        // 4. HEADER (Manual Placement)
+        // Surface opsional, tapi HeaderSection biasanya sudah punya background transparan/kuning
+        HeaderSection(onLeftIconClick = onBackClick)
+
+        // 5. CONTENT CONTAINER (White Area)
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .weight(1f) // Mengisi sisa ruang ke bawah
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) // Melengkung atas
                 .background(UIBackground)
         ) {
+            // SCROLLABLE CONTENT
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 100.dp)
+                // Tidak perlu padding bottom besar di sini, spacer nanti yang ngurus
             ) {
-                // Event Card
-                FigmaEventCard(event = eventState)
-                Spacer(modifier = Modifier.height(16.dp))
+                // Tambahkan padding horizontal untuk konten di dalam
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // Search Bar
-                FigmaSearchBar()
-                Spacer(modifier = Modifier.height(16.dp))
+                    // Event Card
+                    FigmaEventCard(event = eventState)
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Activity List Section
-                ActivitySection(
-                    activities = activitiesState,
-                    isEmpty = isEmpty,
-                    onNavigateToAddActivity = onNavigateToAddActivity
-                )
+                    // Search Bar
+                    FigmaSearchBar()
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Activity List Section
+                    // Pastikan ActivitySection handle scrolling atau gunakan LazyColumn di dalamnya
+                    ActivitySection(
+                        activities = activitiesState,
+                        isEmpty = isEmpty,
+                        onNavigateToAddActivity = onNavigateToAddActivity
+                    )
+
+                    // Spacer agar konten paling bawah tidak ketutup tombol floating
+                    Spacer(modifier = Modifier.height(120.dp))
+                }
             }
 
-            // Bottom Gradient Overlay
+            // --- FLOATING ELEMENTS (Overlay) ---
+
+            // Bottom Gradient Overlay (Pemanis biar tombol gak kaku)
             if (!isEmpty) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(100.dp)
+                        .height(120.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(Color.Transparent, UIBackground)
@@ -105,7 +127,8 @@ fun DetailedEventScreen(
                 )
             }
 
-            // Bottom Action Area
+            // Bottom Action Area (Tombol Add / Total Bill)
+            // Ditaruh di sini agar melayang di atas list
             BottomActionArea(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

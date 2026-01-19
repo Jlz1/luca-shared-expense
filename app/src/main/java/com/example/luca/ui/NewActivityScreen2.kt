@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,245 +44,256 @@ fun AddActivityScreen2(
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = UIBackground,
-        topBar = {
-            HeaderSection(
-                currentState = HeaderState.NEW_ACTIVITY,
-                onLeftIconClick = onBackClick
-            )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow)
+            .statusBarsPadding()
+    ) {
 
+        // 2. HEADER
+        HeaderSection(
+            currentState = HeaderState.NEW_ACTIVITY,
+            onLeftIconClick = onBackClick
+        )
+
+        // 3. KONTEN AREA (PUTIH & ROUNDED)
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .weight(1f) // Mengisi sisa ruang ke bawah
+                .fillMaxWidth()
+                .background(UIBackground)
         ) {
-            // Scrollable main content
-            Column(
+
+            // A. SCROLLABLE CONTENT (FORM)
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Participants and Split toggle section
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Participants list
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(UIWhite)
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            item { GreyAvatarItem("You") }
-                            item { GreyAvatarItem("Jeremy E") }
-                            item { GreyAvatarItem("Abel M") }
-                        }
-                    }
-
-                    // Equal Split toggle
-                    Column(
-                        modifier = Modifier
-                            .width(100.dp)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(UIWhite),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Equal Split",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = UIBlack
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        // --- SWITCH YANG SUDAH DIPERBAIKI ---
-                        Switch(
-                            checked = isSplitEqual, // Menggunakan variable state
-                            onCheckedChange = { isSplitEqual = it }, // Update state saat diklik
-                            modifier = Modifier
-                                .scale(1.2f)
-                                .height(30.dp),
-                            colors = SwitchDefaults.colors(
-                                uncheckedThumbColor = UIWhite,
-                                uncheckedTrackColor = UIGrey,
-                                checkedTrackColor = UIAccentYellow, // Warna saat ON
-                                uncheckedBorderColor = Color.Transparent,
-                                checkedBorderColor = Color.Transparent
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Receipt Card section
+                // Scrollable main content
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(ReceiptWaveShape(waveWidth = 45.dp, waveHeight = 25.dp))
-                        .background(UIWhite)
-                        .padding(20.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
                 ) {
-                    // Receipt Header
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Dinner at Floating Resto",
-                            style = AppFont.SemiBold,
-                            fontSize = 16.sp,
-                            color = UIBlack
-                        )
-                        Text(
-                            text = "Paid by Abel M",
-                            style = AppFont.Regular,
-                            fontSize = 12.sp,
-                            color = UIDarkGrey
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Receipt Item
+                    // Participants and Split toggle section
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "1x",
-                            color = UIDarkGrey,
-                            fontSize = 14.sp,
-                            modifier = Modifier.width(28.dp)
-                        )
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Gurame Bakar Kecap",
-                                color = UIBlack,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                item { MiniAvatar() }
-                                item { MiniAvatar() }
-                                item { MiniAvatar() }
+                        // Participants list
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(UIWhite)
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                item { GreyAvatarItem("You") }
+                                item { GreyAvatarItem("Jeremy E") }
+                                item { GreyAvatarItem("Abel M") }
                             }
                         }
 
-                        Text(
-                            text = "Rp120.000",
-                            color = UIBlack,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        // Equal Split toggle
+                        Column(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(UIWhite),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Equal Split",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = UIBlack
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // --- SWITCH YANG SUDAH DIPERBAIKI ---
+                            Switch(
+                                checked = isSplitEqual, // Menggunakan variable state
+                                onCheckedChange = { isSplitEqual = it }, // Update state saat diklik
+                                modifier = Modifier
+                                    .scale(1.2f)
+                                    .height(30.dp),
+                                colors = SwitchDefaults.colors(
+                                    uncheckedThumbColor = UIWhite,
+                                    uncheckedTrackColor = UIGrey,
+                                    checkedTrackColor = UIAccentYellow, // Warna saat ON
+                                    uncheckedBorderColor = Color.Transparent,
+                                    checkedBorderColor = Color.Transparent
+                                )
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(thickness = 2.dp, color = UIGrey)
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // Receipt Card section
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(ReceiptWaveShape(waveWidth = 45.dp, waveHeight = 25.dp))
+                            .background(UIWhite)
+                            .padding(20.dp)
+                    ) {
+                        // Receipt Header
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Dinner at Floating Resto",
+                                style = AppFont.SemiBold,
+                                fontSize = 16.sp,
+                                color = UIBlack
+                            )
+                            Text(
+                                text = "Paid by Abel M",
+                                style = AppFont.Regular,
+                                fontSize = 12.sp,
+                                color = UIDarkGrey
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Receipt Item
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "1x",
+                                color = UIDarkGrey,
+                                fontSize = 14.sp,
+                                modifier = Modifier.width(28.dp)
+                            )
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Gurame Bakar Kecap",
+                                    color = UIBlack,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    item { MiniAvatar() }
+                                    item { MiniAvatar() }
+                                    item { MiniAvatar() }
+                                }
+                            }
+
+                            Text(
+                                text = "Rp120.000",
+                                color = UIBlack,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(thickness = 2.dp, color = UIGrey)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Total Bill section
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(UIWhite)
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
+                            Text(text = "Rp120.000", fontSize = 12.sp, color = UIDarkGrey)
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Tax (10%)", fontSize = 12.sp, color = UIDarkGrey)
+                            Text(text = "Rp12.000", fontSize = 12.sp, color = UIDarkGrey)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "Total Bill", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+                            Text(text = "Rp132.000", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(120.dp))
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Total Bill section
+                // Floating action buttons
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(UIWhite)
-                        .padding(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 34.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
-                        Text(text = "Rp120.000", fontSize = 12.sp, color = UIDarkGrey)
+                    FabCircleButton(size = 45.dp, onClick = onEditClick) {
+                        Icon(Icons.Default.Edit, null, tint = UIBlack)
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Tax (10%)", fontSize = 12.sp, color = UIDarkGrey)
-                        Text(text = "Rp12.000", fontSize = 12.sp, color = UIDarkGrey)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "Total Bill", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
-                        Text(text = "Rp132.000", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+
+                    FabCircleButton(size = 56.dp) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_scan_button),
+                            contentDescription = "Scan",
+                            tint = Color.Unspecified, // Use Unspecified if the svg/xml already has colors
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(120.dp))
-            }
-
-            // Floating action buttons
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 34.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                FabCircleButton(size = 45.dp, onClick = onEditClick) {
-                    Icon(Icons.Default.Edit, null, tint = UIBlack)
-                }
-
-                FabCircleButton(size = 56.dp) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_scan_button),
-                        contentDescription = "Scan",
-                        tint = Color.Unspecified, // Use Unspecified if the svg/xml already has colors
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            // Continue button
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 34.dp)
-            ) {
-                Button(
-                    onClick = {},
-                    modifier = Modifier.size(width = 188.dp, height = 50.dp),
-                    shape = RoundedCornerShape(25.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = UIAccentYellow,
-                        contentColor = UIBlack
-                    )
+                // Continue button
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 34.dp)
                 ) {
-                    Text(text = "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.size(width = 188.dp, height = 50.dp),
+                        shape = RoundedCornerShape(25.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = UIAccentYellow,
+                            contentColor = UIBlack
+                        )
+                    ) {
+                        Text(text = "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
+                    }
                 }
             }
         }

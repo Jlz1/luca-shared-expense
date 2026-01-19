@@ -61,9 +61,8 @@ fun SignUpScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = UIWhite
+    Box(
+        modifier = Modifier.fillMaxSize().background(UIWhite)
     ) {
         Column(
             modifier = Modifier

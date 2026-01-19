@@ -35,9 +35,10 @@ fun FillProfileScreen(
 ) {
     var username by remember { mutableStateOf("") }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = UIWhite
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIWhite)
     ) {
         Column(
             modifier = Modifier
