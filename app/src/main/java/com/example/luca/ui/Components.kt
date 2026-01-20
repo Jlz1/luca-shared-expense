@@ -1,10 +1,6 @@
 package com.example.luca.ui
 
 import android.annotation.SuppressLint
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -56,7 +52,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
@@ -73,11 +68,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,6 +107,9 @@ import com.example.luca.model.Event
 import java.text.NumberFormat
 import java.util.Locale
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import androidx.compose.ui.platform.LocalContext
 
 // Header State Definition
 enum class HeaderState(
@@ -524,23 +519,31 @@ fun StackedAvatarRow(
 @Composable
 fun AvatarItem(
     imageUrl: String,
-    zIndex: Float,
+    zIndex: Float = 0f, // Default value biar aman
     size: Dp = 40.dp
 ) {
+    val context = LocalContext.current
+
     val commonModifier = Modifier
         .size(size)
-        .zIndex(zIndex) // Important for stacking effect
+        .zIndex(zIndex)
         .clip(CircleShape)
         .border(2.dp, UIWhite, CircleShape)
-        .background(UIDarkGrey) // Background while loading
+        .background(UIGrey) // <--- INI KUNCINYA: Warna abu saat loading
 
     AsyncImage(
-        model = imageUrl,
+        model = ImageRequest.Builder(context)
+            .data(imageUrl)
+            .crossfade(true) // Animasi halus saat gambar muncul
+            .diskCachePolicy(CachePolicy.ENABLED) // Simpan di memori HP
+            .memoryCachePolicy(CachePolicy.ENABLED) // Simpan di RAM
+            .build(),
         contentDescription = "Avatar",
         modifier = commonModifier,
         contentScale = ContentScale.Crop,
-        // Placeholder/Error image if URL is empty or fails
-        placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+        // JANGAN PAKAI PLACEHOLDER GAMBAR (Biar cuma warna abu yg kelihatan)
+        placeholder = null,
+        // Kalau error (link mati/gak ada internet), baru munculkan icon default/android
         error = painterResource(id = R.drawable.ic_launcher_foreground)
     )
 }
@@ -572,17 +575,23 @@ fun EventCard(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
-                            .background(UIDarkGrey), // Warna background saat loading
-                        contentAlignment = Alignment.BottomEnd
+                            .background(UIGrey), // <--- Warna abu saat loading (ganti UIDarkGrey jadi UIGrey biar lebih soft)
+                        contentAlignment = Alignment.Center // Default center biar icon error di tengah
                     ) {
-                        // LOGIC BARU: Tampilkan gambar dari URL
+                        // LOGIC BARU: Tampilkan gambar dari URL dengan Caching Agresif
                         AsyncImage(
-                            model = event.imageUrl,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(event.imageUrl)
+                                .crossfade(true) // Fade in halus
+                                .crossfade(400) // Durasi 0.4 detik
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .build(),
                             contentDescription = "Event Image",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
-                            // (Opsional) Icon error kalau gambar gagal load
-                            error = painterResource(id = R.drawable.ic_launcher_foreground)
+                            placeholder = null, // Biarkan background abu yang bekerja
+                            error = painterResource(id = R.drawable.ic_launcher_foreground) // Icon android cuma muncul kalau ERROR/GAGAL
                         )
 
                         // Avatar Stack (Tetap menumpuk di atas gambar)
