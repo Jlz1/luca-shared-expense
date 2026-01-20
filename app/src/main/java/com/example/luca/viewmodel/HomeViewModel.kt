@@ -10,24 +10,44 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
-    // State untuk menyimpan daftar event dari database
+    // --- STATE UTAMA ---
+
+    // 1. Daftar Event (Data dari Firebase)
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
 
-    // State untuk search query
+    // 2. Search Query (Apa yang diketik user)
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    // 3. Loading State (FIX untuk masalah "Oops" flickering)
+    // Default 'true' agar saat aplikasi baru buka, yang muncul loading spinner dulu
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
+
     init {
-        // Otomatis ambil data saat ViewModel dibuat
+        // Otomatis ambil data saat aplikasi dibuka
         loadEvents()
     }
 
-    // Fungsi untuk mengambil data dari Repository (Firebase)
+    // --- LOGIC ---
+
     fun loadEvents() {
         viewModelScope.launch {
-            val eventList = repository.getAllEvents()
-            _events.value = eventList
+            // Mulai Loading
+            _isLoading.value = true
+
+            try {
+                // Ambil data dari Repository
+                val eventList = repository.getAllEvents()
+                _events.value = eventList
+            } catch (e: Exception) {
+                // Jika error, print ke log (bisa ditambahkan handling error UI nanti)
+                e.printStackTrace()
+            } finally {
+                // SELESAI Loading (Wajib jalan mau sukses atau gagal)
+                _isLoading.value = false
+            }
         }
     }
 
@@ -35,7 +55,7 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    // Logic filtering berdasarkan search query
+    // Logic filtering (pencarian)
     fun getFilteredEvents(): List<Event> {
         val query = _searchQuery.value
         val currentEvents = _events.value

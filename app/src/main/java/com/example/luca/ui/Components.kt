@@ -1,12 +1,6 @@
-
-
 package com.example.luca.ui
 
 import android.annotation.SuppressLint
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -58,7 +52,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
@@ -75,11 +68,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -117,6 +107,9 @@ import com.example.luca.model.Event
 import java.text.NumberFormat
 import java.util.Locale
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import androidx.compose.ui.platform.LocalContext
 
 // Header State Definition
 enum class HeaderState(
@@ -485,18 +478,16 @@ fun PrimaryButton(
     }
 }
 
-// Stacked Avatar Preview
+// --- UPDATE INSIDE StackedAvatarRow ---
 @Composable
 fun StackedAvatarRow(
     spacing: Int = -10,
     avatars: List<String>,
     maxVisible: Int = 4,
-    itemSize: Dp = 40.dp // Tambahan: Ukuran standar untuk avatar & counter
+    itemSize: Dp = 40.dp
 ) {
-    // 1. Hitung Logic Sisa
+    // ... existing logic for overflow ...
     val isOverflow = avatars.size > maxVisible
-
-    // Jika overflow, kurangi 1 slot untuk tempat counter (+N)
     val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
     val remainingCount = avatars.size - visibleCount
 
@@ -504,68 +495,57 @@ fun StackedAvatarRow(
         horizontalArrangement = Arrangement.spacedBy((spacing).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 2. Render Foto (Looping sebanyak visibleCount)
+        // 2. Render Foto (Looping)
         for (i in 0 until visibleCount) {
-            // Kita bungkus AvatarItem biar bisa dikontrol zIndex-nya dari sini jika perlu
-            // Atau asumsikan AvatarItem sudah handle size
             Box(
-                modifier = Modifier
-                    .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
+                modifier = Modifier.zIndex((visibleCount - i).toFloat())
             ) {
+                // UPDATE THIS CALL:
                 AvatarItem(
-                    imageCode = avatars[i],
+                    imageUrl = avatars[i], // Pass the URL string here
                     size = itemSize,
                     zIndex = (visibleCount - i).toFloat()
                 )
             }
         }
 
-        // 3. Render Counter Overflow (Jika ada sisa)
+        // ... existing logic for counter ...
         if (isOverflow) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .zIndex(0f) // Paling bawah tumpukannya
-                    .size(itemSize)
-                    .clip(CircleShape)
-                    .background(UIDarkGrey)
-                    // Optional: Kasih border putih biar misah sama foto sebelumnya
-                    .border(2.dp, Color.White, CircleShape)
-            ) {
-                Text(
-                    text = "+$remainingCount",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    style = AppFont.Bold
-                )
-            }
+            // ... (keep existing code)
         }
     }
 }
 
-// Komponen Dummy untuk AvatarItem (Hanya sebagai contoh agar kode di atas tidak error)
 @Composable
-fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
+fun AvatarItem(
+    imageUrl: String,
+    zIndex: Float = 0f, // Default value biar aman
+    size: Dp = 40.dp
+) {
+    val context = LocalContext.current
+
     val commonModifier = Modifier
         .size(size)
         .zIndex(zIndex)
         .clip(CircleShape)
         .border(2.dp, UIWhite, CircleShape)
+        .background(UIGrey) // <--- INI KUNCINYA: Warna abu saat loading
 
-    if (imageCode == "debug") {
-        Box(modifier = commonModifier.background(Color.Gray))
-    } else {
-        // Ambil ID resource berdasarkan kode string/angka
-        val imageRes = getResourceId(imageCode)
-
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = commonModifier.background(UIWhite)
-        )
-    }
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(imageUrl)
+            .crossfade(true) // Animasi halus saat gambar muncul
+            .diskCachePolicy(CachePolicy.ENABLED) // Simpan di memori HP
+            .memoryCachePolicy(CachePolicy.ENABLED) // Simpan di RAM
+            .build(),
+        contentDescription = "Avatar",
+        modifier = commonModifier,
+        contentScale = ContentScale.Crop,
+        // JANGAN PAKAI PLACEHOLDER GAMBAR (Biar cuma warna abu yg kelihatan)
+        placeholder = null,
+        // Kalau error (link mati/gak ada internet), baru munculkan icon default/android
+        error = painterResource(id = R.drawable.ic_launcher_foreground)
+    )
 }
 
 // Event Card Layout
@@ -595,17 +575,23 @@ fun EventCard(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
-                            .background(UIDarkGrey), // Warna background saat loading
-                        contentAlignment = Alignment.BottomEnd
+                            .background(UIGrey), // <--- Warna abu saat loading (ganti UIDarkGrey jadi UIGrey biar lebih soft)
+                        contentAlignment = Alignment.Center // Default center biar icon error di tengah
                     ) {
-                        // LOGIC BARU: Tampilkan gambar dari URL
+                        // LOGIC BARU: Tampilkan gambar dari URL dengan Caching Agresif
                         AsyncImage(
-                            model = event.imageUrl,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(event.imageUrl)
+                                .crossfade(true) // Fade in halus
+                                .crossfade(400) // Durasi 0.4 detik
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .build(),
                             contentDescription = "Event Image",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
-                            // (Opsional) Icon error kalau gambar gagal load
-                            error = painterResource(id = R.drawable.ic_launcher_foreground)
+                            placeholder = null, // Biarkan background abu yang bekerja
+                            error = painterResource(id = R.drawable.ic_launcher_foreground) // Icon android cuma muncul kalau ERROR/GAGAL
                         )
 
                         // Avatar Stack (Tetap menumpuk di atas gambar)
