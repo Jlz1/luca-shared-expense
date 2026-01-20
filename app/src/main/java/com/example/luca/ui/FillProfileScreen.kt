@@ -1,25 +1,30 @@
 package com.example.luca.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
@@ -34,6 +39,16 @@ fun FillProfileScreen(
     onCreateAccountClick: () -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
+
+    // --- LOGIC TAMBAHAN: IMAGE PICKER ---
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+    }
+    // ------------------------------------
 
     Box(
         modifier = Modifier
@@ -100,21 +115,39 @@ fun FillProfileScreen(
                     Box(
                         modifier = Modifier
                             .size(150.dp)
-                            .clickable { /* TODO: Pick Image */ }
+                            .clickable {
+                                // Memicu buka galeri saat diklik
+                                galleryLauncher.launch("image/*")
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_circle_profile),
-                            contentDescription = "Profile Placeholder",
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        // Jika belum pilih foto, tampilkan placeholder lama
+                        if (imageUri == null) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_circle_profile),
+                                contentDescription = "Profile Placeholder",
+                                modifier = Modifier.fillMaxSize()
+                            )
 
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_camera_form),
-                            contentDescription = "Upload Icon",
-                            modifier = Modifier
-                                .size(width = 24.44.dp, height = 20.dp)
-                                .align(Alignment.Center)
-                        )
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_camera_form),
+                                contentDescription = "Upload Icon",
+                                modifier = Modifier
+                                    .size(width = 24.44.dp, height = 20.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
+                        // Jika SUDAH pilih foto, tampilkan foto tersebut
+                        else {
+                            AsyncImage(
+                                model = imageUri,
+                                contentDescription = "Selected Profile",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape), // Membuat foto jadi bulat
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
