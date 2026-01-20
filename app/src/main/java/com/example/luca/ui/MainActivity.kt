@@ -153,7 +153,7 @@ fun LucaApp() {
                     composable("sign_up") {
                         SignUpScreen(
                             onBackClick = { navController.popBackStack() },
-                            onContinueClick = { navController.navigate("fill_profile") }
+                            onNavigateToHome = { navController.navigate("fill_profile") }
                         )
                     }
                     composable("fill_profile") {
