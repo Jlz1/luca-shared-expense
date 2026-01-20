@@ -1,6 +1,7 @@
 package com.example.luca.ui
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.luca.R
+import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
@@ -33,9 +36,6 @@ import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 import kotlinx.coroutines.launch
-import com.example.luca.data.AuthRepository
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun FillProfileScreen(
@@ -43,7 +43,6 @@ fun FillProfileScreen(
     onCreateAccountClick: () -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
-
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -61,15 +60,19 @@ fun FillProfileScreen(
         if (username.isNotEmpty()) {
             isLoading = true
             scope.launch {
-                // PANGGIL FUNGSI REPO UPDATE
-                val success = authRepo.updateProfile(username, imageUri)
+                // FIX: result bukan Boolean, tapi Result<Boolean>
+                val result = authRepo.updateProfile(username, imageUri)
                 isLoading = false
 
-                if (success) {
+                // CARA MENANGANI RESULT:
+                result.onSuccess {
                     Toast.makeText(context, "Profile Disimpan!", Toast.LENGTH_SHORT).show()
                     onCreateAccountClick() // Pindah ke Final Screen / Home
-                } else {
-                    Toast.makeText(context, "Gagal simpan profile", Toast.LENGTH_SHORT).show()
+                }
+
+                result.onFailure { exception ->
+                    val pesanError = exception.message ?: "Gagal simpan profile"
+                    Toast.makeText(context, "Error: $pesanError", Toast.LENGTH_LONG).show()
                 }
             }
         } else {
@@ -214,13 +217,21 @@ fun FillProfileScreen(
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(
-                            text = "Create Account",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack,
-                            textAlign = TextAlign.Center
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = UIBlack,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Create Account",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIBlack,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
                     // --- DISCLAIMER TEXT ---
