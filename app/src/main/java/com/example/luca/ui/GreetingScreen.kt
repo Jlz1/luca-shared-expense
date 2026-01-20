@@ -20,11 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.luca.R
 import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -34,7 +34,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.launch
 
-// --- FUNGSI 1: LOGIC WRAPPER (Tempat Firebase Berada) ---
+// --- FUNGSI 1: LOGIC WRAPPER ---
 @Composable
 fun GreetingScreen(
     onNavigateToLogin: () -> Unit,
@@ -83,11 +83,6 @@ fun GreetingScreen(
         googleLauncher.launch(client.signInIntent)
     }
 
-    // Handle Facebook Sign-In
-    val onFacebookClick: () -> Unit = {
-        Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show()
-    }
-
     // Handle X (Twitter) Sign-In
     val onXClick: () -> Unit = {
         val provider = OAuthProvider.newBuilder("twitter.com")
@@ -111,18 +106,16 @@ fun GreetingScreen(
     // Pass state and callbacks to UI Content
     GreetingScreenContent(
         onGoogleClick = onGoogleClick,
-        onFacebookClick = onFacebookClick,
         onXClick = onXClick,
         onSignUpClick = onNavigateToSignUp,
         onLoginClick = onNavigateToLogin
     )
 }
 
-// --- FUNGSI 2: UI CONTENT (Hanya Tampilan, Gak Kenal Firebase) ---
+// --- FUNGSI 2: UI CONTENT ---
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
-    onFacebookClick: () -> Unit,
     onXClick: () -> Unit,
     onSignUpClick: () -> Unit,
     onLoginClick: () -> Unit
@@ -150,11 +143,12 @@ fun GreetingScreenContent(
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // Image(
-                //    painter = painterResource(id = R.drawable.ic_luca_logo),
-                //    contentDescription = "Luca Logo",
-                //    modifier = Modifier.size(width = 60.dp, height = 59.dp)
-                // )
+                // LOGO SUDAH DIAKTIFKAN
+                Image(
+                    painter = painterResource(id = R.drawable.ic_luca_logo),
+                    contentDescription = "Luca Logo",
+                    modifier = Modifier.size(width = 60.dp, height = 59.dp)
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -178,34 +172,27 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(74.dp))
 
-                // --- TOMBOL GOOGLE ---
+                // --- TOMBOL GOOGLE (ICON AKTIF) ---
                 SocialButton(
                     text = "Continue with Google",
-//                        iconRes = R.drawable.ic_google_logo,
+                    iconRes = R.drawable.ic_google_logo,
                     onClick = onGoogleClick,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                SocialButton(
-                    text = "Continue with Facebook",
-//                        iconRes = R.drawable.ic_facebook_logo,
-                    onClick = onFacebookClick,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
+                // --- TOMBOL X/TWITTER (ICON AKTIF) ---
                 SocialButton(
                     text = "Continue with X",
-//                        iconRes = R.drawable.ic_x_logo,
+                    iconRes = R.drawable.ic_x_logo,
                     onClick = onXClick,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(107.dp))
 
+                // --- TOMBOL SIGN UP ---
                 Button(
                     onClick = onSignUpClick,
                     modifier = Modifier
@@ -226,6 +213,7 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // --- TOMBOL LOGIN ---
                 OutlinedButton(
                     onClick = onLoginClick,
                     modifier = Modifier
@@ -263,7 +251,7 @@ fun GreetingScreenContent(
 @Composable
 fun SocialButton(
     text: String,
-    // iconRes: Int,
+    iconRes: Int, // Parameter icon diaktifkan kembali
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -279,11 +267,13 @@ fun SocialButton(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(14.dp))
-//            Image(
-//                painter = painterResource(id = iconRes),
-//                contentDescription = null,
-//                modifier = Modifier.size(25.dp)
-//            )
+
+            // Image Icon diaktifkan kembali
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(25.dp)
+            )
 
             Text(
                 text = text,
@@ -298,18 +288,15 @@ fun SocialButton(
     }
 }
 
-// --- PREVIEW (Manggil yang Content saja agar tidak Crash) ---
 @Preview(showBackground = true)
 @Composable
 fun GreetingScreenPreview() {
     LucaTheme {
         GreetingScreenContent(
             onGoogleClick = {},
-            onFacebookClick = {},
             onXClick = {},
             onSignUpClick = {},
             onLoginClick = {}
         )
-
     }
 }
