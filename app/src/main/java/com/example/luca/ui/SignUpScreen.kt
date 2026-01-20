@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,7 +42,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import com.example.luca.R
+import com.example.luca.util.ValidationUtils
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
@@ -60,6 +65,42 @@ fun SignUpScreen(
 
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
+
+    // Error states for validation
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
+    // Validate on input change with sanitization
+    val onEmailChangeWithValidation: (String) -> Unit = { input ->
+        val sanitized = ValidationUtils.sanitizeInput(input)
+        email = sanitized
+        emailError = if (sanitized.isNotEmpty()) ValidationUtils.getEmailError(sanitized) else null
+    }
+
+    val onPasswordChangeWithValidation: (String) -> Unit = { input ->
+        password = input
+        passwordError = if (input.isNotEmpty()) ValidationUtils.getPasswordError(input) else null
+        // Re-validate confirm password if it's not empty
+        if (confirmPassword.isNotEmpty()) {
+            confirmPasswordError = if (confirmPassword != input) "Password tidak cocok" else null
+        }
+    }
+
+    val onConfirmPasswordChangeWithValidation: (String) -> Unit = { input ->
+        confirmPassword = input
+        confirmPasswordError = when {
+            input.isEmpty() -> null
+            input != password -> "Password tidak cocok"
+            else -> null
+        }
+    }
+
+    // Check if form is valid for enabling button
+    val isFormValid = emailError == null && passwordError == null && confirmPasswordError == null &&
+                      email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
+                      ValidationUtils.isEmailValid(email) && ValidationUtils.isPasswordValid(password) &&
+                      password == confirmPassword
 
     Box(
         modifier = Modifier.fillMaxSize().background(UIWhite)
@@ -129,46 +170,61 @@ fun SignUpScreen(
 
                     SignUpInputForm(
                         text = email,
-                        onValueChange = { email = it },
+                        onValueChange = onEmailChangeWithValidation,
                         placeholder = "Email Address",
-                        iconRes = R.drawable.ic_email_form
+                        iconRes = R.drawable.ic_email_form,
+                        errorMessage = emailError
                     )
 
                     Spacer(modifier = Modifier.height(15.dp))
 
                     SignUpInputForm(
                         text = password,
-                        onValueChange = { password = it },
+                        onValueChange = onPasswordChangeWithValidation,
                         placeholder = "Password",
                         iconRes = R.drawable.ic_password_form,
                         isPasswordField = true,
                         isPasswordVisible = isPasswordVisible,
-                        onVisibilityChange = { isPasswordVisible = !isPasswordVisible }
+                        onVisibilityChange = { isPasswordVisible = !isPasswordVisible },
+                        errorMessage = passwordError
                     )
 
                     Spacer(modifier = Modifier.height(15.dp))
 
                     SignUpInputForm(
                         text = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = onConfirmPasswordChangeWithValidation,
                         placeholder = "Confirm Password",
                         iconRes = R.drawable.ic_password_form,
                         isPasswordField = true,
                         isPasswordVisible = isConfirmPasswordVisible,
-                        onVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible }
+                        onVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible },
+                        errorMessage = confirmPasswordError
                     )
 
                     Spacer(modifier = Modifier.height(57.dp))
 
                     Button(
-                        onClick = onContinueClick,
+                        onClick = {
+                            // Final validation before navigate
+                            emailError = ValidationUtils.getEmailError(email)
+                            passwordError = ValidationUtils.getPasswordError(password)
+                            confirmPasswordError = if (confirmPassword != password) "Password tidak cocok" else null
+
+                            if (emailError == null && passwordError == null && confirmPasswordError == null) {
+                                onContinueClick()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
+                        enabled = isFormValid,
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
-                            contentColor = UIBlack
+                            contentColor = UIBlack,
+                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
+                            disabledContentColor = UIBlack.copy(alpha = 0.5f)
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
@@ -210,68 +266,101 @@ fun SignUpInputForm(
     iconRes: Int,
     isPasswordField: Boolean = false,
     isPasswordVisible: Boolean = false,
-    onVisibilityChange: () -> Unit = {}
+    onVisibilityChange: () -> Unit = {},
+    errorMessage: String? = null
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
-            .background(color = UIGrey, shape = RoundedCornerShape(23.dp)),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Spacer(modifier = Modifier.width(27.dp))
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                tint = UIBlack,
-                modifier = Modifier.size(15.dp, 10.dp)
-            )
+    val focusRequester = remember { FocusRequester() }
 
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.CenterStart
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .background(
+                    color = if (errorMessage != null) Color.Red.copy(alpha = 0.08f) else UIGrey,
+                    shape = RoundedCornerShape(23.dp)
+                )
+                .clickable { focusRequester.requestFocus() },
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (text.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        style = AppFont.Medium,
-                        fontSize = 14.sp,
-                        color = UIBlack.copy(alpha = 0.5f)
+                Spacer(modifier = Modifier.width(27.dp))
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = if (errorMessage != null) Color.Red.copy(alpha = 0.7f) else UIBlack,
+                    modifier = Modifier.size(15.dp, 10.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = text,
+                        onValueChange = onValueChange,
+                        textStyle = TextStyle(
+                            fontFamily = AppFont.Medium.fontFamily,
+                            fontSize = 14.sp,
+                            color = UIBlack
+                        ),
+                        singleLine = true,
+                        visualTransformation = if (isPasswordField && !isPasswordVisible)
+                            PasswordVisualTransformation() else VisualTransformation.None,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .focusRequester(focusRequester),
+                        decorationBox = { innerTextField ->
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (text.isEmpty()) {
+                                    Text(
+                                        text = placeholder,
+                                        style = AppFont.Medium,
+                                        fontSize = 14.sp,
+                                        color = UIBlack.copy(alpha = 0.5f)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
                     )
                 }
-                BasicTextField(
-                    value = text,
-                    onValueChange = onValueChange,
-                    textStyle = TextStyle(
-                        fontFamily = AppFont.Medium.fontFamily,
-                        fontSize = 14.sp,
-                        color = UIBlack
-                    ),
-                    singleLine = true,
-                    visualTransformation = if (isPasswordField && !isPasswordVisible)
-                        PasswordVisualTransformation() else VisualTransformation.None
-                )
-            }
 
-            if (isPasswordField) {
-                Icon(
-                    painter = painterResource(
-                        id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form
-                        else R.drawable.ic_eye_hide_form
-                    ),
-                    contentDescription = "Toggle Password",
-                    tint = UIBlack,
-                    modifier = Modifier
-                        .padding(end = 18.dp)
-                        .size(15.92.dp, 13.44.dp)
-                        .clickable { onVisibilityChange() }
-                )
+                if (isPasswordField) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form
+                            else R.drawable.ic_eye_hide_form
+                        ),
+                        contentDescription = "Toggle Password",
+                        tint = UIBlack,
+                        modifier = Modifier
+                            .padding(end = 18.dp)
+                            .size(15.92.dp, 13.44.dp)
+                            .clickable { onVisibilityChange() }
+                    )
+                }
             }
+        }
+
+        // Error message display
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = AppFont.Medium,
+                fontSize = 12.sp,
+                color = Color.Red.copy(alpha = 0.8f),
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
         }
     }
 }

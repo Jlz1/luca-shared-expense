@@ -106,7 +106,7 @@ fun LucaApp() {
                                     }
                                 }
                             },
-                            onAddClick = { showAddOverlay = true },
+                            onAddClick = { navController.navigate("add_event") },
                             onHomeClick = {
                                 navController.navigate("home") {
                                     popUpTo("home") { inclusive = true }
@@ -128,7 +128,7 @@ fun LucaApp() {
                 contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { innerPadding ->
 
-                // --- NAV HOST ---
+                // --- NAV HOST --
                 NavHost(
                     navController = navController,
                     startDestination = "greeting",
@@ -188,7 +188,7 @@ fun LucaApp() {
                         HomeScreen(
                             onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
-                            onAddEventClick = { navController.navigate("new_event") }
+                            onAddEventClick = { navController.navigate("add_event") }
                         )
                     }
                     composable("contacts") {
