@@ -116,6 +116,7 @@ import com.example.luca.ui.theme.UIWhite
 import com.example.luca.model.Event
 import java.text.NumberFormat
 import java.util.Locale
+import coil.compose.AsyncImage
 
 // Header State Definition
 enum class HeaderState(
@@ -570,7 +571,7 @@ fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
 // Event Card Layout
 @Composable
 fun EventCard(
-    event: Event, // Menerima data asli
+    event: Event,
     width: Dp,
     onClick: () -> Unit
 ) {
@@ -587,24 +588,27 @@ fun EventCard(
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // --- GAMBAR EVENT ---
+
+                // --- 1. GAMBAR EVENT (UPDATED) ---
                 Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
-                            .background(UIDarkGrey), // Placeholder warna abu
+                            .background(UIDarkGrey), // Warna background saat loading
                         contentAlignment = Alignment.BottomEnd
                     ) {
-                        // Nanti ganti Image(painter = ...) saat sudah ada gambar real
-                        // Text Placeholder
-                        Text(
-                            text = "Image Placeholder",
-                            color = UIWhite,
-                            modifier = Modifier.align(Alignment.Center)
+                        // LOGIC BARU: Tampilkan gambar dari URL
+                        AsyncImage(
+                            model = event.imageUrl,
+                            contentDescription = "Event Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            // (Opsional) Icon error kalau gambar gagal load
+                            error = painterResource(id = R.drawable.ic_launcher_foreground)
                         )
 
-                        // Avatar Stack di pojok kanan gambar
+                        // Avatar Stack (Tetap menumpuk di atas gambar)
                         Box(modifier = Modifier.padding(10.dp)) {
                             StackedAvatarRow(
                                 itemSize = 36.dp,
@@ -614,7 +618,7 @@ fun EventCard(
                     }
                 }
 
-                // --- JUDUL ---
+                // --- 2. JUDUL (TETAP SAMA) ---
                 Text(
                     text = event.title,
                     color = UIBlack,
@@ -624,13 +628,13 @@ fun EventCard(
                     maxLines = 1
                 )
 
-                // --- LOKASI ---
+                // --- 3. LOKASI (TETAP SAMA) ---
                 Row(
                     modifier = Modifier.fillMaxWidth().height(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_location_marker), // Pastikan icon ada
+                        painter = painterResource(R.drawable.ic_location_marker),
                         contentDescription = "Location",
                         tint = UIAccentYellow
                     )
@@ -644,7 +648,7 @@ fun EventCard(
                     )
                 }
 
-                // --- TANGGAL ---
+                // --- 4. TANGGAL (TETAP SAMA) ---
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
