@@ -1,7 +1,6 @@
 package com.example.luca.ui
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -14,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.NavHost
@@ -22,8 +20,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.luca.ui.theme.LucaTheme
-// Pastikan semua screen dan komponen UI di-import dengan benar
-import com.example.luca.ui.* class MainActivity : ComponentActivity() {
+
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -51,7 +49,6 @@ import com.example.luca.ui.* class MainActivity : ComponentActivity() {
 fun LucaApp() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
     // --- STATE MANAGEMENT ---
 
@@ -69,6 +66,7 @@ fun LucaApp() {
         else -> 1
     }
 
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED")
     var showAddOverlay by remember { mutableStateOf(false) }
 
     LucaTheme {
@@ -186,19 +184,13 @@ fun LucaApp() {
                     // === MAIN APP ===
                     composable("home") {
                         HomeScreen(
-                            onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
+                            onNavigateToDetail = { _ -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
                             onAddEventClick = { navController.navigate("new_event") }
                         )
                     }
                     composable("contacts") {
-                        ContactsScreen(
-                            onHomeClick = {
-                                navController.navigate("home") {
-                                    popUpTo("home") { inclusive = true }
-                                }
-                            }
-                        )
+                        ContactsScreen()
                     }
                     composable("scan") {
 //                        CameraScreen()
