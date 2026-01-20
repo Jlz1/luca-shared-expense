@@ -64,11 +64,11 @@ class AddEventViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1. Cek User Login (WAJIB)
+            // 1. Cek User Login (Hanya untuk memastikan user tidak null)
             val currentUser = auth.currentUser
 
             if (currentUser != null) {
-                val userId = currentUser.uid
+                // (userId tidak perlu diambil disini untuk dikirim ke repo, karena repo ambil sendiri)
 
                 // 2. Upload Gambar (Jika User memilih gambar)
                 var imageUrl = ""
@@ -90,12 +90,13 @@ class AddEventViewModel : ViewModel() {
                     participantAvatars = _participants.value
                 )
 
-                // 4. Simpan ke Firestore (FIX: Kirim userId dan event)
-                val success = repository.createEvent(userId, newEvent)
+                // 4. FIX: Panggil createEvent CUKUP dengan object event saja
+                // Repository akan otomatis mendeteksi userId di dalamnya
+                val success = repository.createEvent(newEvent)
 
                 _isSuccess.value = success
             } else {
-                // User belum login (harusnya tidak terjadi di flow ini, tapi buat jaga-jaga)
+                // User belum login
                 _isSuccess.value = false
             }
 
