@@ -12,21 +12,19 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
     // --- STATE UTAMA ---
 
-    // 1. Daftar Event (Data dari Firebase)
+    // 1. Daftar Event
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
 
-    // 2. Search Query (Apa yang diketik user)
+    // 2. Search Query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // 3. Loading State (FIX untuk masalah "Oops" flickering)
-    // Default 'true' agar saat aplikasi baru buka, yang muncul loading spinner dulu
+    // 3. Loading State (Default true agar loading muncul saat pertama buka)
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
     init {
-        // Otomatis ambil data saat aplikasi dibuka
         loadEvents()
     }
 
@@ -34,18 +32,17 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
     fun loadEvents() {
         viewModelScope.launch {
-            // Mulai Loading
             _isLoading.value = true
 
             try {
-                // Ambil data dari Repository
+                // UPDATE: Tidak perlu pass userId, repo cari sendiri
                 val eventList = repository.getAllEvents()
                 _events.value = eventList
             } catch (e: Exception) {
-                // Jika error, print ke log (bisa ditambahkan handling error UI nanti)
                 e.printStackTrace()
+                _events.value = emptyList()
             } finally {
-                // SELESAI Loading (Wajib jalan mau sukses atau gagal)
+                // Loading selesai (sukses/gagal)
                 _isLoading.value = false
             }
         }
@@ -55,7 +52,7 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    // Logic filtering (pencarian)
+    // Logic filtering (Search)
     fun getFilteredEvents(): List<Event> {
         val query = _searchQuery.value
         val currentEvents = _events.value
@@ -63,6 +60,7 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         return if (query.isEmpty()) {
             currentEvents
         } else {
+            // Filter berdasarkan judul (Title), ignoreCase = huruf besar/kecil dianggap sama
             currentEvents.filter { it.title.contains(query, ignoreCase = true) }
         }
     }

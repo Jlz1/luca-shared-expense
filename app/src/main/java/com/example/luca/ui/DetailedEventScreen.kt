@@ -26,17 +26,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage // PENTING: Import Coil untuk load gambar URL
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.DetailedEventViewModel
 import com.example.luca.viewmodel.UIActivityState
 import com.example.luca.viewmodel.UIEventState
 
-data class ActivityData(
-    val color: Color,
-    val title: String,
-    val payer: String,
-    val price: String
-)
+// Data class dummy lokal dihapus karena sudah pakai dari ViewModel
 
 @Composable
 fun DetailedEventScreen(
@@ -45,43 +41,51 @@ fun DetailedEventScreen(
     onBackClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {}
 ) {
-    // 1. Load event data based on ID
+    // 1. Load data saat layar dibuka
     LaunchedEffect(eventId) {
         viewModel.loadEventData(eventId)
     }
 
-    // 2. Hoist state from ViewModel
+    // 2. Ambil state dari ViewModel
     val eventState by viewModel.uiEvent.collectAsState()
     val activitiesState by viewModel.uiActivities.collectAsState()
     val isEmpty = activitiesState.isEmpty()
 
-    // 3. STRUKTUR UTAMA (No Scaffold)
+    // 3. STRUKTUR UTAMA
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(UIAccentYellow) // Background Kuning Global
-            .statusBarsPadding() // Agar tidak ketutup status bar
+            .background(UIAccentYellow)
+            .statusBarsPadding()
     ) {
 
-        // 4. HEADER (Manual Placement)
-        // Surface opsional, tapi HeaderSection biasanya sudah punya background transparan/kuning
-        HeaderSection(onLeftIconClick = onBackClick)
+        // 4. HEADER
+        // Asumsi: HeaderSection ada di Components.kt. Kalau error merah, buat fungsi dummy di bawah.
+        // HeaderSection(onLeftIconClick = onBackClick)
+        // (Saya ganti manual pakai Row biar aman kalau kamu belum punya Components.kt)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SmallCircleButton(Icons.Default.ArrowBack, Modifier.clickable { onBackClick() })
+            Spacer(modifier = Modifier.weight(1f))
+            SmallCircleButton(Icons.Default.MoreVert)
+        }
 
-        // 5. CONTENT CONTAINER (White Area)
+        // 5. CONTENT CONTAINER
         Box(
             modifier = Modifier
-                .weight(1f) // Mengisi sisa ruang ke bawah
+                .weight(1f)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) // Melengkung atas
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                 .background(UIBackground)
         ) {
             // SCROLLABLE CONTENT
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                // Tidak perlu padding bottom besar di sini, spacer nanti yang ngurus
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Tambahkan padding horizontal untuk konten di dalam
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -89,7 +93,7 @@ fun DetailedEventScreen(
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Event Card
+                    // Event Card (YANG DIUPDATE)
                     FigmaEventCard(event = eventState)
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -97,22 +101,20 @@ fun DetailedEventScreen(
                     FigmaSearchBar()
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Activity List Section
-                    // Pastikan ActivitySection handle scrolling atau gunakan LazyColumn di dalamnya
+                    // Activity List
                     ActivitySection(
                         activities = activitiesState,
                         isEmpty = isEmpty,
                         onNavigateToAddActivity = onNavigateToAddActivity
                     )
 
-                    // Spacer agar konten paling bawah tidak ketutup tombol floating
                     Spacer(modifier = Modifier.height(120.dp))
                 }
             }
 
-            // --- FLOATING ELEMENTS (Overlay) ---
+            // --- FLOATING ELEMENTS ---
 
-            // Bottom Gradient Overlay (Pemanis biar tombol gak kaku)
+            // Gradient Overlay
             if (!isEmpty) {
                 Box(
                     modifier = Modifier
@@ -127,8 +129,7 @@ fun DetailedEventScreen(
                 )
             }
 
-            // Bottom Action Area (Tombol Add / Total Bill)
-            // Ditaruh di sini agar melayang di atas list
+            // Bottom Action Area
             BottomActionArea(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -152,8 +153,8 @@ fun ActivitySection(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 0.dp),
+                .fillMaxHeight(), // Biarkan LazyColumn mengisi sisa ruang
+            contentPadding = PaddingValues(bottom = 100.dp), // Padding bawah biar gak ketutup tombol
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(activities) { activity ->
@@ -228,13 +229,16 @@ fun FigmaEventCard(event: UIEventState) {
         colors = CardDefaults.cardColors(containerColor = UIWhite),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 24.dp, start = 20.dp, end = 20.dp)
+            .padding(top = 24.dp, start = 20.dp, end = 20.dp) // Sesuaikan padding agar tidak terlalu lebar
             .height(280.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (event.imageRes != null) {
-                Image(
-                    painter = painterResource(id = event.imageRes),
+
+            // --- BAGIAN IMAGE (UPDATED) ---
+            // Cek apakah ada URL gambar dari Firebase?
+            if (event.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = event.imageUrl,
                     contentDescription = "Event Image",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -243,6 +247,7 @@ fun FigmaEventCard(event: UIEventState) {
                         .align(Alignment.TopCenter)
                 )
             } else {
+                // Placeholder Abu-abu kalau tidak ada gambar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -259,13 +264,16 @@ fun FigmaEventCard(event: UIEventState) {
                     )
                 }
             }
+            // ------------------------------
 
+            // Tombol Overlay (Close, Edit, Delete)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
                     .align(Alignment.TopCenter)
             ) {
+                // Note: Logic tombol ini belum dipasang fungsinya
                 SmallCircleButton(Icons.Default.Close, Modifier.align(Alignment.TopStart))
                 Row(modifier = Modifier.align(Alignment.TopEnd)) {
                     SmallCircleButton(Icons.Default.Edit)
@@ -274,6 +282,7 @@ fun FigmaEventCard(event: UIEventState) {
                 }
             }
 
+            // Bagian Putih Bawah (Judul, Lokasi, Tanggal)
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -328,6 +337,7 @@ fun FigmaEventCard(event: UIEventState) {
                 }
             }
 
+            // Lingkaran Warna Peserta (Floating)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -401,7 +411,6 @@ fun FigmaSearchBar() {
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
-            .padding(horizontal = 20.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -422,9 +431,8 @@ fun SmallCircleButton(
     Surface(
         shape = CircleShape,
         color = UIWhite,
-        modifier = modifier
-            .size(36.dp)
-            .clickable { }
+        modifier = modifier.size(36.dp)
+        // clickable dihandle di caller
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(icon, null, modifier = Modifier.size(18.dp), tint = UIBlack)

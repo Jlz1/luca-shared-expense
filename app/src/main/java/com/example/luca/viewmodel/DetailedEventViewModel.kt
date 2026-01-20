@@ -3,20 +3,19 @@ package com.example.luca.viewmodel
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.luca.R
-// Perhatikan import ini sudah mengarah ke folder 'data'
 import com.example.luca.data.LucaRepository
 import com.example.luca.data.LucaFirebaseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// Wrapper State untuk UI (Visual Data)
+// Wrapper State untuk UI
 data class UIEventState(
     val title: String = "",
     val location: String = "",
     val date: String = "",
-    val imageRes: Int? = null,
+    // UPDATE: Kita pakai String URL biar bisa load image asli dari Firebase Storage
+    val imageUrl: String = "",
     val participantColors: List<Color> = emptyList()
 )
 
@@ -30,6 +29,9 @@ data class UIActivityState(
 class DetailedEventViewModel : ViewModel() {
     private val repository: LucaRepository = LucaFirebaseRepository()
 
+    // HAPUS: Kita tidak butuh FirebaseAuth di sini lagi
+    // private val auth = FirebaseAuth.getInstance()
+
     private val _uiEvent = MutableStateFlow(UIEventState())
     val uiEvent = _uiEvent.asStateFlow()
 
@@ -38,6 +40,8 @@ class DetailedEventViewModel : ViewModel() {
 
     fun loadEventData(eventId: String) {
         viewModelScope.launch {
+            // FIX: Langsung panggil repository dengan 1 parameter saja (eventId).
+            // Repository otomatis tahu ID user yang sedang login.
             val eventRaw = repository.getEventById(eventId)
 
             if (eventRaw != null) {
@@ -46,21 +50,27 @@ class DetailedEventViewModel : ViewModel() {
                     title = eventRaw.title,
                     location = eventRaw.location,
                     date = eventRaw.date,
-                    // Contoh Logic Gambar: Kalau di DB tulisannya "img_bali", load resource Bali
-                    imageRes = if (eventRaw.imageUrl.contains("bali", true)) R.drawable.bg_accent_final_page else null,
-                    // Contoh Logic Warna: Hardcode sementara atau ambil list Hex dari DB
+                    // Ambil URL asli dari database
+                    imageUrl = eventRaw.imageUrl,
+                    // Contoh Logic Warna: Hardcode sementara
                     participantColors = listOf(Color(0xFFE57373), Color(0xFF64B5F6), Color(0xFFFFD54F))
                 )
             }
 
+            // Note: getActivitiesByEventId sementara masih pakai logic lama (root collection)
+            // Kalau nanti activities dipindah ke sub-collection user, ini perlu diubah juga.
             val activitiesRaw = repository.getActivitiesByEventId(eventId)
+
             _uiActivities.value = activitiesRaw.map { act ->
                 UIActivityState(
                     title = act.title,
                     payer = act.payerName,
                     price = act.amount,
-                    // Convert Hex String (#FF0000) jadi Color Object
-                    iconColor = try { Color(android.graphics.Color.parseColor(act.categoryColorHex)) } catch (e: Exception) { Color.Gray }
+                    iconColor = try {
+                        Color(android.graphics.Color.parseColor(act.categoryColorHex))
+                    } catch (e: Exception) {
+                        Color.Gray
+                    }
                 )
             }
         }

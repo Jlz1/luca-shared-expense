@@ -12,54 +12,49 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 interface LucaRepository {
+    // UPDATED: Tidak perlu passing userId dari luar, repo cari sendiri
     suspend fun getAllEvents(): List<Event>
     suspend fun getEventById(id: String): Event?
-    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
 
-    // FUNGSI BARU: Upload & Create
+    // Create event otomatis masuk ke user yang sedang login
     suspend fun createEvent(event: Event): Boolean
+
     suspend fun uploadEventImage(imageUri: Uri): String?
+    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
 }
 
 class LucaFirebaseRepository : LucaRepository {
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
-    private val auth = FirebaseAuth.getInstance() // ✅ Tambahan: Buat ambil UID
+    private val auth = FirebaseAuth.getInstance()
 
-    // ❌ eventsCollection yang lama DIHAPUS karena path-nya sekarang berubah-ubah tergantung user.
-    // private val eventsCollection = db.collection("events")
-
-    // ✅ activities tetap global dulu (kecuali kamu mau ubah logic Add Activity-nya juga nanti)
+    // Activities sementara masih global (belum per user)
     private val activitiesCollection = db.collection("activities")
 
-    // --- HELPER FUNCTION: Ambil UID User Sekarang ---
+    // --- HELPER: Ambil ID User Sendiri ---
     private fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
 
-    // --- FUNGSI CREATE EVENT (VERSI BARU - SUB-COLLECTION) ---
+    // --- CREATE ---
     override suspend fun createEvent(event: Event): Boolean {
         val uid = getCurrentUserId()
         if (uid == null) {
-            Log.e("FIREBASE_ERROR", "Gagal Create: User belum login!")
+            Log.e("FIREBASE", "User belum login, gagal create event")
             return false
         }
 
         return try {
-            // ✅ PATH BARU: users/{uid}/events/{eventId}
-            // Masuk ke laci pribadi user, bukan laci umum.
+            // Simpan di: users/{uid}/events/{eventId}
             db.collection("users")
                 .document(uid)
                 .collection("events")
                 .document(event.id)
                 .set(event)
                 .await()
-
-            Log.d("FIREBASE_SUCCESS", "Event berhasil disimpan di folder user: $uid")
             true
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("FIREBASE_ERROR", "Error writing document", e)
             false
         }
     }
@@ -67,9 +62,7 @@ class LucaFirebaseRepository : LucaRepository {
     override suspend fun uploadEventImage(imageUri: Uri): String? {
         return try {
             val fileName = UUID.randomUUID().toString()
-            // Opsional: Bisa dirapikan jadi images/users/{uid}/{fileName} kalau mau
             val ref = storage.reference.child("images/events/$fileName.jpg")
-
             ref.putFile(imageUri).await()
             ref.downloadUrl.await().toString()
         } catch (e: Exception) {
@@ -78,25 +71,19 @@ class LucaFirebaseRepository : LucaRepository {
         }
     }
 
-    // --- FUNGSI GET DATA (VERSI BARU - SUB-COLLECTION) ---
-
+    // --- GET DATA ---
     override suspend fun getAllEvents(): List<Event> {
-        val uid = getCurrentUserId()
-        if (uid == null) return emptyList()
+        val uid = getCurrentUserId() ?: return emptyList()
 
         return try {
-            // ✅ PATH BARU: Ambil cuma dari laci user ini
             val snapshot = db.collection("users")
                 .document(uid)
                 .collection("events")
                 .get()
                 .await()
 
-            Log.d("FIREBASE_DEBUG", "Jumlah dokumen user $uid: ${snapshot.size()}")
-            val events = snapshot.toObjects<Event>()
-            events
+            snapshot.toObjects<Event>()
         } catch (e: Exception) {
-            Log.e("FIREBASE_ERROR", "Gagal ambil data: ${e.message}")
             e.printStackTrace()
             emptyList()
         }
@@ -106,26 +93,23 @@ class LucaFirebaseRepository : LucaRepository {
         val uid = getCurrentUserId() ?: return null
 
         return try {
-            // ✅ OPTIMASI: Langsung tembak ID-nya (Direct Lookup), gak perlu searching (Query)
             val snapshot = db.collection("users")
                 .document(uid)
                 .collection("events")
-                .document(id) // Langsung ke dokumen spesifik
+                .document(id)
                 .get()
                 .await()
 
             snapshot.toObject(Event::class.java)
         } catch (e: Exception) {
-            Log.e("FIREBASE_ERROR", "Gagal get detail event: ${e.message}")
+            e.printStackTrace()
             null
         }
     }
 
     override suspend fun getActivitiesByEventId(eventId: String): List<Activity> {
-        // Catatan: Ini masih mengambil dari koleksi global "activities".
-        // Kalau kamu nanti mau activities-nya private juga, logic AddActivity harus diubah dulu.
-        // Untuk sekarang, biarkan begini biar tidak error.
         return try {
+            // Sementara ambil dari collection global "activities"
             val snapshot = activitiesCollection.whereEqualTo("eventId", eventId).get().await()
             snapshot.toObjects<Activity>()
         } catch (e: Exception) { emptyList() }
