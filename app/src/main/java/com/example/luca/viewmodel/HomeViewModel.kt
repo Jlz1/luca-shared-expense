@@ -4,30 +4,62 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.LucaRepository
 import com.example.luca.model.Event
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
-    // State untuk menyimpan daftar event dari database
+    // --- STATE ---
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
 
-    // State untuk search query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
+
+    // --- FIREBASE AUTH INSTANCE ---
+    // Ini adalah "satpam" yang tahu siapa user yang sedang aktif
+    private val auth = FirebaseAuth.getInstance()
+
     init {
-        // Otomatis ambil data saat ViewModel dibuat
         loadEvents()
     }
 
-    // Fungsi untuk mengambil data dari Repository (Firebase)
+    // --- LOGIC UTAMA (DYNAMIC) ---
     fun loadEvents() {
         viewModelScope.launch {
-            val eventList = repository.getAllEvents()
-            _events.value = eventList
+            _isLoading.value = true
+
+            // 1. Cek User yang sedang Login secara REAL
+            val currentUser = auth.currentUser
+
+            if (currentUser != null) {
+                // KASUS A: User Sudah Login
+                // Ambil UID asli (misal: "Kz8dJ9sX...") dari Firebase Auth
+                val userId = currentUser.uid
+
+                try {
+                    // Minta data ke "kamar" user tersebut
+                    val eventList = repository.getAllEvents(userId)
+                    _events.value = eventList
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    _events.value = emptyList()
+                }
+            } else {
+                // KASUS B: Belum Login / Logout
+                // Data kosong karena kita tidak tahu harus ambil data siapa
+                _events.value = emptyList()
+
+                // TODO: Di real app, biasanya di sini kita trigger navigasi ke LoginScreen
+                // tapi untuk HomeViewModel, cukup kosongkan data saja.
+            }
+
+            _isLoading.value = false
         }
     }
 
@@ -35,7 +67,6 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    // Logic filtering berdasarkan search query
     fun getFilteredEvents(): List<Event> {
         val query = _searchQuery.value
         val currentEvents = _events.value

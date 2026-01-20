@@ -1,7 +1,6 @@
 package com.example.luca.ui
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -14,27 +13,31 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.LucaTheme
-// Pastikan semua screen dan komponen UI di-import dengan benar
-import com.example.luca.ui.* class MainActivity : ComponentActivity() {
+import com.example.luca.viewmodel.HomeViewModel
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
+
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // UBAH BAGIAN INI:
+        // Konfigurasi Status Bar & Nav Bar (Transparan/Putih)
         enableEdgeToEdge(
-            // statusBarStyle.light = Background Terang (Putih), Ikon Gelap (Hitam)
             statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.WHITE, // Warna Background (Siang) -> PUTIH
-                android.graphics.Color.WHITE  // Warna Background (Malam/Dark Mode) -> Tetap PUTIH
+                android.graphics.Color.WHITE,
+                android.graphics.Color.WHITE
             ),
-            // navigationBarStyle biarkan transparan agar navbar bawah tetap menyatu
             navigationBarStyle = SystemBarStyle.light(
                 android.graphics.Color.TRANSPARENT,
                 android.graphics.Color.TRANSPARENT
@@ -54,7 +57,6 @@ fun LucaApp() {
     val scope = rememberCoroutineScope()
 
     // --- STATE MANAGEMENT ---
-
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -86,7 +88,7 @@ fun LucaApp() {
             }
         ) {
             Scaffold(
-                // 1. PINDAHKAN NAVBAR KE SINI (FLOATING ACTION BUTTON)
+                // 1. FLOATING ACTION BUTTON SEBAGAI NAVBAR
                 floatingActionButton = {
                     if (showBottomBar) {
                         FloatingNavbar(
@@ -121,33 +123,65 @@ fun LucaApp() {
                 // 2. SET POSISI KE TENGAH (CENTER)
                 floatingActionButtonPosition = FabPosition.Center,
 
-                // 3. HAPUS bottomBar (Supaya bar putih di belakang hilang)
-                // bottomBar = { ... }, <--- DIBUANG
-
-                // 4. Pastikan konten tembus full screen
+                // 3. Pastikan konten tembus full screen
                 contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { innerPadding ->
 
                 // --- NAV HOST ---
+                // FIX: Gunakan "splash" sebagai start destination netral
                 NavHost(
                     navController = navController,
-                    startDestination = "greeting",
+                    startDestination = "splash",
                     modifier = Modifier.padding(innerPadding)
-                    // Note: innerPadding dari FAB biasanya 0 di bagian bawah,
-                    // jadi kontenmu sekarang akan bablas sampai bawah layar (di belakang navbar)
                 ) {
+
+                    // === 1. SPLASH SCREEN (LOGIKA PENENTU) ===
+                    composable("splash") {
+                        val auth = FirebaseAuth.getInstance()
+                        // Cek status login sekali saja saat aplikasi dibuka
+                        LaunchedEffect(Unit) {
+                            // Opsional: Delay sedikit biar gak kedip terlalu cepat
+                            delay(500)
+
+                            if (auth.currentUser != null) {
+                                // User Sudah Login -> Masuk Home
+                                navController.navigate("home") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            } else {
+                                // User Belum Login -> Masuk Greeting
+                                navController.navigate("greeting") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            }
+                        }
+
+                        // Tampilan Loading Sementara
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
 
                     // === ONBOARDING & AUTH ===
                     composable("greeting") {
                         GreetingScreen(
                             onNavigateToLogin = { navController.navigate("login") },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
-                            onNavigateToHome = { navController.navigate("home") }
+                            onNavigateToHome = {
+                                // Login Sosmed sukses -> Langsung Home
+                                navController.navigate("home") { popUpTo("greeting") { inclusive = true } }
+                            }
                         )
                     }
                     composable("login") {
                         LoginScreen(
-                            onNavigateToHome = { navController.navigate("final_login") },
+                            onNavigateToHome = {
+                                // Login Manual sukses -> Ke Final Screen dulu (Welcome Back)
+                                navController.navigate("final_login") { popUpTo("greeting") { inclusive = true } }
+                            },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
                             onNavigateBack = { navController.popBackStack() }
                         )
@@ -155,17 +189,23 @@ fun LucaApp() {
                     composable("sign_up") {
                         SignUpScreen(
                             onBackClick = { navController.popBackStack() },
+                            // Logika: Sign Up Sukses -> Isi Profile
                             onContinueClick = { navController.navigate("fill_profile") }
                         )
                     }
                     composable("fill_profile") {
                         FillProfileScreen(
                             onBackClick = { navController.popBackStack() },
+                            // Logika: Profile Sukses -> Welcome Screen
                             onCreateAccountClick = { navController.navigate("final_signup") }
                         )
                     }
                     composable("final_login") {
+                        // Ambil nama user untuk ditampilkan
+                        val auth = FirebaseAuth.getInstance()
+                        val name = auth.currentUser?.displayName ?: "User"
                         FinalScreen(
+                            name = name,
                             onNavigateToHome = {
                                 navController.navigate("home") {
                                     popUpTo("greeting") { inclusive = true }
@@ -174,7 +214,11 @@ fun LucaApp() {
                         )
                     }
                     composable("final_signup") {
+                        // Ambil nama user untuk ditampilkan
+                        val auth = FirebaseAuth.getInstance()
+                        val name = auth.currentUser?.displayName ?: "Crew"
                         FinalSignUpScreen(
+                            name = name,
                             onNavigateToHome = {
                                 navController.navigate("home") {
                                     popUpTo("greeting") { inclusive = true }
@@ -185,12 +229,24 @@ fun LucaApp() {
 
                     // === MAIN APP ===
                     composable("home") {
+                        // --- INJEKSI VIEWMODEL & REPOSITORY ---
+                        val repository = remember { LucaFirebaseRepository() }
+                        val viewModel: HomeViewModel = viewModel(
+                            factory = object : ViewModelProvider.Factory {
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                    return HomeViewModel(repository) as T
+                                }
+                            }
+                        )
+
                         HomeScreen(
+                            viewModel = viewModel,
                             onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
                             onAddEventClick = { showAddOverlay = true }
                         )
                     }
+
                     composable("contacts") {
                         ContactsScreen(
                             onHomeClick = {
@@ -201,7 +257,7 @@ fun LucaApp() {
                         )
                     }
                     composable("scan") {
-//                        CameraScreen()
+                        // CameraScreen() // Aktifkan jika sudah ada
                     }
 
                     // === DETAIL PAGES ===
@@ -258,8 +314,9 @@ fun LucaApp() {
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            UserProfileOverlay(onClose = { println("Close")},
-                                onAddContact = {println("Add Contact")}
+                            UserProfileOverlay(
+                                onClose = { showAddOverlay = false },
+                                onAddContact = { println("Add Contact") }
                             )
                         }
                     }

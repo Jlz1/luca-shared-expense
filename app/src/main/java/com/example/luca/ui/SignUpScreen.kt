@@ -19,12 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +45,11 @@ import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.luca.data.AuthRepository
 
 @Composable
 fun SignUpScreen(
@@ -60,6 +62,37 @@ fun SignUpScreen(
 
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authRepo = remember { AuthRepository() }
+    var isLoading by remember { mutableStateOf(false) } // Loading state
+
+    // Logic Tombol Continue
+    val handleSignUp: () -> Unit = {
+        if (email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
+            if (password == confirmPassword) {
+                isLoading = true
+                scope.launch {
+                    // PANGGIL FUNGSI REPO BARU
+                    val success = authRepo.signUpManual(email, password)
+                    isLoading = false
+
+                    if (success) {
+                        Toast.makeText(context, "Akun berhasil dibuat!", Toast.LENGTH_SHORT).show()
+                        // Pindah ke Fill Profile
+                        onContinueClick()
+                    } else {
+                        Toast.makeText(context, "Gagal daftar (Email mungkin sudah dipakai)", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                Toast.makeText(context, "Password tidak sama!", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Isi semua data!", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize().background(UIWhite)
@@ -161,7 +194,8 @@ fun SignUpScreen(
                     Spacer(modifier = Modifier.height(57.dp))
 
                     Button(
-                        onClick = onContinueClick,
+                        onClick = handleSignUp,
+                        enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

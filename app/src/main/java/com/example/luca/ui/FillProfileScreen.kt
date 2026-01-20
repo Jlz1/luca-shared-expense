@@ -32,6 +32,10 @@ import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
+import kotlinx.coroutines.launch
+import com.example.luca.data.AuthRepository
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun FillProfileScreen(
@@ -40,7 +44,6 @@ fun FillProfileScreen(
 ) {
     var username by remember { mutableStateOf("") }
 
-    // --- LOGIC TAMBAHAN: IMAGE PICKER ---
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -48,7 +51,31 @@ fun FillProfileScreen(
     ) { uri: Uri? ->
         imageUri = uri
     }
-    // ------------------------------------
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authRepo = remember { AuthRepository() }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val handleCreateAccount: () -> Unit = {
+        if (username.isNotEmpty()) {
+            isLoading = true
+            scope.launch {
+                // PANGGIL FUNGSI REPO UPDATE
+                val success = authRepo.updateProfile(username, imageUri)
+                isLoading = false
+
+                if (success) {
+                    Toast.makeText(context, "Profile Disimpan!", Toast.LENGTH_SHORT).show()
+                    onCreateAccountClick() // Pindah ke Final Screen / Home
+                } else {
+                    Toast.makeText(context, "Gagal simpan profile", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            Toast.makeText(context, "Username wajib diisi!", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -175,7 +202,8 @@ fun FillProfileScreen(
                     Spacer(modifier = Modifier.height(29.dp))
 
                     Button(
-                        onClick = onCreateAccountClick,
+                        onClick = handleCreateAccount,
+                        enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
