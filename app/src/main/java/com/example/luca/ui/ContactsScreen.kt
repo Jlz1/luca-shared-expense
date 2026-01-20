@@ -45,20 +45,45 @@ fun ContactsScreen(
     // Ubah list ini jadi emptyList() untuk mengetes tampilan kosong (Empty State)
     val contacts = remember { generateDummyContacts() }
 
+    // State untuk UserProfileOverlay
+    var showUserProfileOverlay by remember { mutableStateOf(false) }
+
+    // State untuk Search Bar
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Filtered contacts berdasarkan search query (case-insensitive)
+    val filteredContacts = remember(contacts, searchQuery) {
+        if (searchQuery.isEmpty()) {
+            contacts
+        } else {
+            contacts.filter { contact ->
+                contact.name.startsWith(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     // Grouping data berdasarkan huruf awal
-    val groupedContacts = remember(contacts) {
-        contacts.sortedBy { it.name }.groupBy {
+    val groupedContacts = remember(filteredContacts) {
+        filteredContacts.sortedBy { it.name }.groupBy {
             val firstChar = it.name.first().uppercaseChar()
             if (firstChar.isLetter()) firstChar else '#'
         }
     }
 
-    // State untuk Search Bar
-    var searchQuery by remember { mutableStateOf("") }
 
     // State untuk Scrolling
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Auto scroll saat search query berubah
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotEmpty()) {
+            val firstMatchIndex = getFirstMatchingContactIndex(groupedContacts, searchQuery)
+            if (firstMatchIndex != -1) {
+                listState.animateScrollToItem(firstMatchIndex)
+            }
+        }
+    }
 
     // List Huruf untuk Sidebar (# + A-Z)
     val alphabet = remember { listOf('#') + ('A'..'Z').toList() }
@@ -101,44 +126,30 @@ fun ContactsScreen(
                 // --- SEARCH BAR & ADD BUTTON ROW ---
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Search Bar Custom
-                    Surface(
+                    SearchBarModify(
                         modifier = Modifier
                             .weight(1f)
+                            .padding(vertical = 12.dp)
                             .height(50.dp),
-                        shape = RoundedCornerShape(25.dp),
-                        color = UIWhite,
-                        shadowElevation = 2.dp
-                    ) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = {
-                                Text("Search", style = AppFont.Regular, color = UIDarkGrey)
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = UIBlack)
-                            },
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                        placeholder = "Search contacts...",
+                        initialQuery = searchQuery,
+                        onSearchQueryChange = { query ->
+                            searchQuery = query
+                        },
+                        readOnly = false,
+                        databaseLabel = "Database: Contacts"
+                    )
 
-                    Spacer(modifier = Modifier.width(12.dp))
 
                     // Add Button (Yellow Circle)
                     Surface(
                         modifier = Modifier
                             .size(50.dp)
-                            .clickable { /* Handle Add Contact logic here */ },
+                            .clickable { showUserProfileOverlay = true },
                         shape = CircleShape,
                         color = UIAccentYellow,
                         shadowElevation = 2.dp
@@ -152,14 +163,17 @@ fun ContactsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // --- CONTACT LIST / EMPTY STATE ---
-                if (contacts.isEmpty()) {
+                if (filteredContacts.isEmpty()) {
                     // TAMPILAN KOSONG (EMPTY STATE)
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "You define your world,\nstart adding contacts now!",
+                            text = if (searchQuery.isEmpty())
+                                "You define your world,\nstart adding contacts now!"
+                            else
+                                "No contacts found for \"$searchQuery\"",
                             textAlign = TextAlign.Center,
                             style = AppFont.Regular,
                             color = UIDarkGrey,
@@ -204,7 +218,7 @@ fun ContactsScreen(
 
         // --- ALPHABET SIDEBAR (Floating di Kanan) ---
         // Ditaruh di luar Column utama agar posisinya absolute/floating
-        if (contacts.isNotEmpty()) {
+        if (filteredContacts.isNotEmpty()) {
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -233,6 +247,31 @@ fun ContactsScreen(
                             }
                     )
                 }
+            }
+        }
+
+        // --- USER PROFILE OVERLAY DIALOG ---
+        // Tampilkan overlay ketika showUserProfileOverlay = true
+        if (showUserProfileOverlay) {
+            // Scrim (Background gelap semi-transparent)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable {} // Close saat klik luar
+            )
+
+            // Overlay Card di tengah
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                UserProfileOverlay(
+                    onClose = { showUserProfileOverlay = false },
+                    onAddContact = { showUserProfileOverlay = false },
+
+                )
             }
         }
     }
@@ -300,6 +339,28 @@ fun getScrollIndex(groupedContacts: Map<Char, List<Contact>>, targetChar: Char):
         val listSize = groupedContacts[key]?.size ?: 0
         // Tambahkan jumlah item + 1 (untuk headernya sendiri)
         currentIndex += listSize + 1
+    }
+    return -1 // Tidak ketemu
+}
+
+// 2. Fungsi untuk mencari index kontak pertama yang cocok dengan search query
+fun getFirstMatchingContactIndex(groupedContacts: Map<Char, List<Contact>>, query: String): Int {
+    if (query.isEmpty()) return -1
+
+    var currentIndex = 0
+    val sortedKeys = groupedContacts.keys.sorted()
+
+    for (key in sortedKeys) {
+        // Tambah 1 untuk header
+        currentIndex += 1
+
+        val contactsForKey = groupedContacts[key] ?: continue
+        for (contact in contactsForKey) {
+            if (contact.name.contains(query, ignoreCase = true)) {
+                return currentIndex
+            }
+            currentIndex += 1
+        }
     }
     return -1 // Tidak ketemu
 }

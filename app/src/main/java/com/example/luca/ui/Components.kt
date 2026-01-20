@@ -1,6 +1,10 @@
 package com.example.luca.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -69,6 +73,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,6 +114,7 @@ import com.example.luca.ui.theme.UIWhite
 import com.example.luca.model.Event
 import java.text.NumberFormat
 import java.util.Locale
+import coil.compose.AsyncImage
 
 // Header State Definition
 enum class HeaderState(
@@ -473,18 +483,16 @@ fun PrimaryButton(
     }
 }
 
-// Stacked Avatar Preview
+// --- UPDATE INSIDE StackedAvatarRow ---
 @Composable
 fun StackedAvatarRow(
     spacing: Int = -10,
     avatars: List<String>,
     maxVisible: Int = 4,
-    itemSize: Dp = 40.dp // Tambahan: Ukuran standar untuk avatar & counter
+    itemSize: Dp = 40.dp
 ) {
-    // 1. Hitung Logic Sisa
+    // ... existing logic for overflow ...
     val isOverflow = avatars.size > maxVisible
-
-    // Jika overflow, kurangi 1 slot untuk tempat counter (+N)
     val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
     val remainingCount = avatars.size - visibleCount
 
@@ -492,74 +500,55 @@ fun StackedAvatarRow(
         horizontalArrangement = Arrangement.spacedBy((spacing).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 2. Render Foto (Looping sebanyak visibleCount)
+        // 2. Render Foto (Looping)
         for (i in 0 until visibleCount) {
-            // Kita bungkus AvatarItem biar bisa dikontrol zIndex-nya dari sini jika perlu
-            // Atau asumsikan AvatarItem sudah handle size
             Box(
-                modifier = Modifier
-                    .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
+                modifier = Modifier.zIndex((visibleCount - i).toFloat())
             ) {
+                // UPDATE THIS CALL:
                 AvatarItem(
-                    imageCode = avatars[i],
+                    imageUrl = avatars[i], // Pass the URL string here
                     size = itemSize,
                     zIndex = (visibleCount - i).toFloat()
                 )
             }
         }
 
-        // 3. Render Counter Overflow (Jika ada sisa)
+        // ... existing logic for counter ...
         if (isOverflow) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .zIndex(0f) // Paling bawah tumpukannya
-                    .size(itemSize)
-                    .clip(CircleShape)
-                    .background(UIDarkGrey)
-                    // Optional: Kasih border putih biar misah sama foto sebelumnya
-                    .border(2.dp, Color.White, CircleShape)
-            ) {
-                Text(
-                    text = "+$remainingCount",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    style = AppFont.Bold
-                )
-            }
+            // ... (keep existing code)
         }
     }
 }
 
-// Komponen Dummy untuk AvatarItem (Hanya sebagai contoh agar kode di atas tidak error)
 @Composable
-fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
+fun AvatarItem(
+    imageUrl: String,
+    zIndex: Float,
+    size: Dp = 40.dp
+) {
     val commonModifier = Modifier
         .size(size)
-        .zIndex(zIndex)
+        .zIndex(zIndex) // Important for stacking effect
         .clip(CircleShape)
         .border(2.dp, UIWhite, CircleShape)
+        .background(UIDarkGrey) // Background while loading
 
-    if (imageCode == "debug") {
-        Box(modifier = commonModifier.background(Color.Gray))
-    } else {
-        // Ambil ID resource berdasarkan kode string/angka
-        val imageRes = getResourceId(imageCode)
-
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = commonModifier.background(UIWhite)
-        )
-    }
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Avatar",
+        modifier = commonModifier,
+        contentScale = ContentScale.Crop,
+        // Placeholder/Error image if URL is empty or fails
+        placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+        error = painterResource(id = R.drawable.ic_launcher_foreground)
+    )
 }
 
 // Event Card Layout
 @Composable
 fun EventCard(
-    event: Event, // Menerima data asli
+    event: Event,
     width: Dp,
     onClick: () -> Unit
 ) {
@@ -576,24 +565,27 @@ fun EventCard(
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // --- GAMBAR EVENT ---
+
+                // --- 1. GAMBAR EVENT (UPDATED) ---
                 Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
-                            .background(UIDarkGrey), // Placeholder warna abu
+                            .background(UIDarkGrey), // Warna background saat loading
                         contentAlignment = Alignment.BottomEnd
                     ) {
-                        // Nanti ganti Image(painter = ...) saat sudah ada gambar real
-                        // Text Placeholder
-                        Text(
-                            text = "Image Placeholder",
-                            color = UIWhite,
-                            modifier = Modifier.align(Alignment.Center)
+                        // LOGIC BARU: Tampilkan gambar dari URL
+                        AsyncImage(
+                            model = event.imageUrl,
+                            contentDescription = "Event Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            // (Opsional) Icon error kalau gambar gagal load
+                            error = painterResource(id = R.drawable.ic_launcher_foreground)
                         )
 
-                        // Avatar Stack di pojok kanan gambar
+                        // Avatar Stack (Tetap menumpuk di atas gambar)
                         Box(modifier = Modifier.padding(10.dp)) {
                             StackedAvatarRow(
                                 itemSize = 36.dp,
@@ -603,7 +595,7 @@ fun EventCard(
                     }
                 }
 
-                // --- JUDUL ---
+                // --- 2. JUDUL (TETAP SAMA) ---
                 Text(
                     text = event.title,
                     color = UIBlack,
@@ -613,13 +605,13 @@ fun EventCard(
                     maxLines = 1
                 )
 
-                // --- LOKASI ---
+                // --- 3. LOKASI (TETAP SAMA) ---
                 Row(
                     modifier = Modifier.fillMaxWidth().height(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_location_marker), // Pastikan icon ada
+                        painter = painterResource(R.drawable.ic_location_marker),
                         contentDescription = "Location",
                         tint = UIAccentYellow
                     )
@@ -633,7 +625,7 @@ fun EventCard(
                     )
                 }
 
-                // --- TANGGAL ---
+                // --- 4. TANGGAL (TETAP SAMA) ---
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
@@ -664,35 +656,55 @@ fun getResourceId(name: String): Int {
 
 // Add Contact Overlay
 @Composable
-fun UserProfileOverlay() {
-    // State untuk text field
+fun UserProfileOverlay(
+    onClose: () -> Unit,
+    onAddContact: () -> Unit,
+) {
+    // --- STATE FIELDS ---
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
 
-    // Card Utama (Container Putih)
+    // --- STATE BANK ---
+    var bankAccounts by remember { mutableStateOf<List<BankAccount>>(emptyList()) }
+    var showBankDialog by remember { mutableStateOf(false) }
+    var selectedBank by remember { mutableStateOf("") }
+    var accountNumber by remember { mutableStateOf("") }
+    val bankList = listOf("BRI", "BCA", "BNI", "Mandiri")
+
+    // --- STATE AVATAR (BARU) ---
+    var selectedAvatar by remember { mutableStateOf<Int?>(null) } // Menyimpan Res ID gambar
+    var showAvatarDialog by remember { mutableStateOf(false) }
+
+    // TODO: Masukkan resource ID gambar avatar Anda di sini (Pastikan file ada di res/drawable)
+    // Contoh: listOf(R.drawable.avatar_boy, R.drawable.avatar_girl, ...)
+    // Untuk sementara saya gunakan list kosong atau integer dummy agar tidak error saat dicopy
+//    val avatarList = listOf(
+//        // R.drawable.ic_avatar_1,
+//        // R.drawable.ic_avatar_2,
+//        // R.drawable.ic_avatar_3,
+//        // R.drawable.ic_avatar_4
+//        // Masukkan data dummy jika belum ada gambar, atau hapus list ini jika R.drawable sudah siap
+//    )
+
+    // Card Utama
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp) // Margin luar
-        // .height(IntrinsicSize.Min) // Opsional jika ingin fit content
+            .padding(16.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(all = 20.dp) // Padding dalam card
+            modifier = Modifier.padding(all = 20.dp)
         ) {
 
-            // --- BAGIAN ATAS (Header: Icon X, Foto, Icon Centang) ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                // Tombol Silang (Kiri)
+            // --- HEADER ---
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Close Button
                 IconButton(
-                    onClick = { /* TODO: Nanti ditaro sini logic buat Close/Cancel */ },
+                    onClick = onClose,  // TODO: logic close button
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Icon(
@@ -703,7 +715,7 @@ fun UserProfileOverlay() {
                     )
                 }
 
-                // Foto Placeholder (Tengah)
+                // --- FOTO PROFIL (MODIFIED) ---
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -711,35 +723,47 @@ fun UserProfileOverlay() {
                         .clip(CircleShape)
                         .background(UIGrey)
                         .align(Alignment.Center)
-                        .clickable { /* TODO: Nanti ditaro sini logic buat ambil foto */ }
+                        .clickable {
+                            // TODO: Logic Membuka dialog pemilihan avatar
+                            showAvatarDialog = true
+                        }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Upload Photo",
-                        tint = UIDarkGrey,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (selectedAvatar != null) {
+                        // Jika avatar sudah dipilih, tampilkan Image
+                        Image(
+                            painter = painterResource(id = selectedAvatar!!),
+                            contentDescription = "Selected Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Jika belum ada, tampilkan Icon Kamera
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Upload Photo",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
 
-                // Tombol Centang (Kanan)
+                // Check Button
                 IconButton(
-                    onClick = { /* TODO: Nanti ditaro sini logic buat Save/Submit */ },
+                    onClick = onAddContact, //Todo: logic add contact
                     modifier = Modifier.align(Alignment.TopEnd)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Save",
+                        contentDescription = "Add Contact",
                         modifier = Modifier.size(32.dp),
-                        tint = Color.Black
+                        tint = UIBlack
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BAGIAN TENGAH (Input Fields) ---
-
-            // Input Name
+            // --- INPUT FIELDS ---
             CustomRoundedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -749,7 +773,6 @@ fun UserProfileOverlay() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Input Phone
             CustomRoundedTextField(
                 value = phoneNumber,
                 onValueChange = { phoneNumber = it },
@@ -759,8 +782,7 @@ fun UserProfileOverlay() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BAGIAN BAWAH (Bank Accounts + Plus Button) ---
-
+            // --- BANK ACCOUNTS ---
             Text(
                 text = "Bank Accounts",
                 fontSize = 18.sp,
@@ -770,20 +792,301 @@ fun UserProfileOverlay() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Tombol Plus (+)
+            // Add Bank Button
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(UIAccentYellow) // Warna kuning/oranye
-                    .clickable { /* TODO: Nanti ditaro sini logic buat nambah akun bank */ }
+                    .background(UIAccentYellow)
+                    .clickable { showBankDialog = true }  // TODO: logic show list bank
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Bank Account",
                     tint = Color.Black,
                     modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // List Bank Accounts
+            if (bankAccounts.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    bankAccounts.forEach { account ->
+                        BankAccountItem(
+                            bankName = account.bankName,
+                            accountNumber = account.accountNumber,
+                            onDelete = {
+                                bankAccounts = bankAccounts.filter { it != account }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+    }
+
+    // --- DIALOG TAMBAH BANK ---
+    if (showBankDialog) {
+        // ... (Kode Dialog Bank Anda Tetap Sama)
+        // Saya persingkat di sini agar fokus ke perubahan Avatar,
+        // tapi pastikan kode dialog bank Anda tetap ada di sini.
+        BankDialogOverlay(
+            bankList = bankList,
+            selectedBank = selectedBank,
+            onBankSelected = { selectedBank = it },
+            accountNumber = accountNumber,
+            onAccountNumberChanged = { accountNumber = it },
+            onDismiss = {
+                showBankDialog = false
+                selectedBank = ""
+                accountNumber = ""
+            },
+            onAdd = {
+                if (selectedBank.isNotEmpty() && accountNumber.isNotEmpty()) {
+                    bankAccounts = bankAccounts + BankAccount(selectedBank, accountNumber)
+                    showBankDialog = false
+                    selectedBank = ""
+                    accountNumber = ""
+                }
+            }
+        )
+    }
+
+    // --- DIALOG PILIH AVATAR (BARU) ---
+    if (showAvatarDialog) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { showAvatarDialog = false },
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = UIWhite),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .padding(16.dp)
+                    .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Choose Avatar",
+                        style = AppFont.Bold,
+                        fontSize = 18.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Grid Avatar
+                    // Pastikan avatarList tidak kosong agar UI muncul
+//                    if (avatarList.isNotEmpty()) {
+//                        LazyVerticalGrid(
+//                            columns = GridCells.Fixed(3), // 3 kolom
+//                            verticalArrangement = Arrangement.spacedBy(16.dp),
+//                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+//                            modifier = Modifier.heightIn(max = 300.dp) // Batasi tinggi
+//                        ) {
+//                            items(avatarList) { avatarResId ->
+//                                Box(
+//                                    contentAlignment = Alignment.Center,
+//                                    modifier = Modifier
+//                                        .size(70.dp)
+//                                        .clip(CircleShape)
+//                                        .background(if (selectedAvatar == avatarResId) UIAccentYellow else UIGrey)
+//                                        .clickable {
+//                                            selectedAvatar = avatarResId
+//                                            showAvatarDialog = false
+//                                        }
+//                                        .padding(4.dp) // Padding border effect
+//                                ) {
+//                                    Image(
+//                                        painter = painterResource(id = avatarResId),
+//                                        contentDescription = "Avatar",
+//                                        contentScale = ContentScale.Crop,
+//                                        modifier = Modifier
+//                                            .fillMaxSize()
+//                                            .clip(CircleShape)
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        // Fallback jika belum ada list gambar di kode
+//
+//                    }
+                    Text("No avatars available yet.", color = UIDarkGrey)
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Tombol Cancel / Remove Photo
+                    Button(
+                        onClick = {
+                            selectedAvatar = null // Hapus foto
+                            showAvatarDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Remove Photo", color = Color.Black, style = AppFont.Medium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper Composable untuk mempersingkat kode utama (Opsional, hanya untuk kerapihan)
+@Composable
+fun BankDialogOverlay(
+    bankList: List<String>,
+    selectedBank: String,
+    onBankSelected: (String) -> Unit,
+    accountNumber: String,
+    onAccountNumberChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onAdd: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = UIWhite),
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text("Add Bank Account", fontSize = 18.sp, color = UIBlack, modifier = Modifier.padding(bottom = 16.dp))
+                Text("Select Bank", fontSize = 14.sp, color = UIBlack, modifier = Modifier.padding(bottom = 12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    bankList.forEach { bank ->
+                        // Asumsikan BankButton sudah Anda buat sebelumnya
+                        // BankButton(bankName = bank, isSelected = selectedBank == bank, onClick = { onBankSelected(bank) })
+                        // Placeholder button sederhana:
+                        Button(
+                            onClick = { onBankSelected(bank) },
+                            colors = ButtonDefaults.buttonColors(containerColor = if(selectedBank == bank) UIAccentYellow else UIGrey)
+                        ) { Text(bank, color = UIBlack) }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                CustomRoundedTextField(
+                    value = accountNumber,
+                    onValueChange = onAccountNumberChanged,
+                    placeholder = "Account Number",
+                    backgroundColor = UIGrey
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = UIGrey), modifier = Modifier.weight(1f)) {
+                        Text("Cancel", color = Color.Black)
+                    }
+                    Button(onClick = onAdd, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow), modifier = Modifier.weight(1f)) {
+                        Text("Add", color = Color.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Komponen untuk button pilihan bank
+@Composable
+fun BankButton(
+    bankName: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) UIAccentYellow else UIGrey
+        ),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .padding(4.dp)
+            .height(40.dp)
+    ) {
+        Text(
+            text = bankName,
+            color = if (isSelected) Color.Black else UIDarkGrey,
+            style = AppFont.Medium,
+            fontSize = 12.sp
+        )
+    }
+}
+
+// Komponen untuk menampilkan item bank account yang sudah ditambahkan
+@Composable
+fun BankAccountItem(
+    bankName: String,
+    accountNumber: String,
+    onDelete: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = UIGrey),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = bankName,
+                    style = AppFont.SemiBold,
+                    fontSize = 14.sp,
+                    color = UIBlack
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = accountNumber,
+                    style = AppFont.Medium,
+                    fontSize = 12.sp,
+                    color = UIDarkGrey
+                )
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Delete",
+                    tint = UIDarkGrey,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -1534,9 +1837,15 @@ fun PreviewOverlay() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        UserProfileOverlay()
+        UserProfileOverlay(
+            onClose = { println("Overlay closed") },
+            onAddContact = { println("Contact added") }
+
+        )
     }
 }
+
+
 
 @Preview(showBackground = true)
 @Composable
@@ -1769,3 +2078,17 @@ fun ComponentsPreviewStv(){
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

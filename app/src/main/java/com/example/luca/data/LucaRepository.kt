@@ -8,7 +8,7 @@ import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
-
+import android.util.Log
 interface LucaRepository {
     suspend fun getAllEvents(): List<Event>
     suspend fun getEventById(id: String): Event?
@@ -61,8 +61,20 @@ class LucaFirebaseRepository : LucaRepository {
     override suspend fun getAllEvents(): List<Event> {
         return try {
             val snapshot = eventsCollection.get().await()
-            snapshot.toObjects<Event>()
-        } catch (e: Exception) { emptyList() }
+            // Log jumlah dokumen yang didapat
+            Log.d("FIREBASE_DEBUG", "Jumlah dokumen ditemukan: ${snapshot.size()}")
+
+            val events = snapshot.toObjects<Event>()
+            // Log sukses convert
+            Log.d("FIREBASE_DEBUG", "Berhasil convert: ${events.size} event")
+
+            events
+        } catch (e: Exception) {
+            // INI PENTING: Print errornya ke Logcat biar ketahuan kenapa
+            Log.e("FIREBASE_ERROR", "Gagal ambil data: ${e.message}")
+            e.printStackTrace()
+            emptyList()
+        }
     }
 
     override suspend fun getEventById(id: String): Event? {
