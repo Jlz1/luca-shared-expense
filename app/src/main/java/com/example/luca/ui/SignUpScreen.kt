@@ -1,38 +1,19 @@
 package com.example.luca.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -41,19 +22,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.R
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
+import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.AuthViewModel
 
 @Composable
 fun SignUpScreen(
-    onBackClick: () -> Unit = {},
-    onContinueClick: () -> Unit = {}
+    onBackClick: () -> Unit,
+    onNavigateToHome: () -> Unit, // Diganti jadi navigasi ke Home kalau sukses
+    authViewModel: AuthViewModel = viewModel() // Inject ViewModel
 ) {
+    // State Form
+    var name by remember { mutableStateOf("") } // Tambahan: Input Nama
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -61,9 +42,36 @@ fun SignUpScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+
+    // --- LOGIKA UTAMA ---
+    // 1. Cek jika sukses register -> Pindah ke Home
+    LaunchedEffect(authViewModel.isSuccess) {
+        if (authViewModel.isSuccess) {
+            Toast.makeText(context, "Akun Berhasil Dibuat!", Toast.LENGTH_LONG).show()
+            authViewModel.resetState()
+            onNavigateToHome()
+        }
+    }
+
+    // 2. Cek jika ada error
+    LaunchedEffect(authViewModel.errorMessage) {
+        authViewModel.errorMessage?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize().background(UIWhite)
     ) {
+        // Loading Indicator (Optional)
+        if (authViewModel.isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = UIAccentYellow
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -125,7 +133,18 @@ fun SignUpScreen(
                         color = UIBlack.copy(alpha = 0.6f)
                     )
 
-                    Spacer(modifier = Modifier.height(54.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    // INPUT NAMA (Baru ditambahkan agar sesuai database)
+                    SignUpInputForm(
+                        text = name,
+                        onValueChange = { name = it },
+                        placeholder = "Full Name",
+                        // Pakai icon user atau email sementara kalau belum ada icon user
+                        iconRes = R.drawable.ic_email_form
+                    )
+
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     SignUpInputForm(
                         text = email,
@@ -158,27 +177,47 @@ fun SignUpScreen(
                         onVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible }
                     )
 
-                    Spacer(modifier = Modifier.height(57.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
 
                     Button(
-                        onClick = onContinueClick,
+                        onClick = {
+                            // Validasi Sederhana sebelum kirim ke ViewModel
+                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Mohon isi semua data", Toast.LENGTH_SHORT).show()
+                            } else if (password != confirmPassword) {
+                                Toast.makeText(context, "Password tidak cocok!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                // EKSEKUSI KE DATABASE
+                                authViewModel.register(email, password, name)
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
+                        enabled = !authViewModel.isLoading, // Matikan tombol saat loading
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
-                            contentColor = UIBlack
+                            contentColor = UIBlack,
+                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f)
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(
-                            text = "Continue",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack,
-                            textAlign = TextAlign.Center
-                        )
+                        if (authViewModel.isLoading) {
+                            CircularProgressIndicator(
+                                color = UIBlack,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Continue",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIBlack,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -202,6 +241,7 @@ fun SignUpScreen(
     }
 }
 
+// Component Form tetap sama
 @Composable
 fun SignUpInputForm(
     text: String,
@@ -254,7 +294,8 @@ fun SignUpInputForm(
                     ),
                     singleLine = true,
                     visualTransformation = if (isPasswordField && !isPasswordVisible)
-                        PasswordVisualTransformation() else VisualTransformation.None
+                        PasswordVisualTransformation() else VisualTransformation.None,
+                    modifier = Modifier.fillMaxWidth() // Tambahan agar text field full width
                 )
             }
 
@@ -280,6 +321,6 @@ fun SignUpInputForm(
 @Composable
 fun SignUpScreenPreview() {
     LucaTheme {
-        SignUpScreen()
+        SignUpScreen(onBackClick = {}, onNavigateToHome = {})
     }
 }
