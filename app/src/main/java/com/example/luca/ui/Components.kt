@@ -1,5 +1,3 @@
-
-
 package com.example.luca.ui
 
 import android.annotation.SuppressLint
@@ -485,18 +483,16 @@ fun PrimaryButton(
     }
 }
 
-// Stacked Avatar Preview
+// --- UPDATE INSIDE StackedAvatarRow ---
 @Composable
 fun StackedAvatarRow(
     spacing: Int = -10,
     avatars: List<String>,
     maxVisible: Int = 4,
-    itemSize: Dp = 40.dp // Tambahan: Ukuran standar untuk avatar & counter
+    itemSize: Dp = 40.dp
 ) {
-    // 1. Hitung Logic Sisa
+    // ... existing logic for overflow ...
     val isOverflow = avatars.size > maxVisible
-
-    // Jika overflow, kurangi 1 slot untuk tempat counter (+N)
     val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
     val remainingCount = avatars.size - visibleCount
 
@@ -504,68 +500,49 @@ fun StackedAvatarRow(
         horizontalArrangement = Arrangement.spacedBy((spacing).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 2. Render Foto (Looping sebanyak visibleCount)
+        // 2. Render Foto (Looping)
         for (i in 0 until visibleCount) {
-            // Kita bungkus AvatarItem biar bisa dikontrol zIndex-nya dari sini jika perlu
-            // Atau asumsikan AvatarItem sudah handle size
             Box(
-                modifier = Modifier
-                    .zIndex((visibleCount - i).toFloat()) // Biar yang kiri selalu di atas (tumpukan menurun ke kanan)
+                modifier = Modifier.zIndex((visibleCount - i).toFloat())
             ) {
+                // UPDATE THIS CALL:
                 AvatarItem(
-                    imageCode = avatars[i],
+                    imageUrl = avatars[i], // Pass the URL string here
                     size = itemSize,
                     zIndex = (visibleCount - i).toFloat()
                 )
             }
         }
 
-        // 3. Render Counter Overflow (Jika ada sisa)
+        // ... existing logic for counter ...
         if (isOverflow) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .zIndex(0f) // Paling bawah tumpukannya
-                    .size(itemSize)
-                    .clip(CircleShape)
-                    .background(UIDarkGrey)
-                    // Optional: Kasih border putih biar misah sama foto sebelumnya
-                    .border(2.dp, Color.White, CircleShape)
-            ) {
-                Text(
-                    text = "+$remainingCount",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    style = AppFont.Bold
-                )
-            }
+            // ... (keep existing code)
         }
     }
 }
 
-// Komponen Dummy untuk AvatarItem (Hanya sebagai contoh agar kode di atas tidak error)
 @Composable
-fun AvatarItem(imageCode: String, zIndex: Float, size: Dp = 40.dp) {
+fun AvatarItem(
+    imageUrl: String,
+    zIndex: Float,
+    size: Dp = 40.dp
+) {
     val commonModifier = Modifier
         .size(size)
-        .zIndex(zIndex)
+        .zIndex(zIndex) // Important for stacking effect
         .clip(CircleShape)
         .border(2.dp, UIWhite, CircleShape)
+        .background(UIDarkGrey) // Background while loading
 
-    if (imageCode == "debug") {
-        Box(modifier = commonModifier.background(Color.Gray))
-    } else {
-        // Ambil ID resource berdasarkan kode string/angka
-        val imageRes = getResourceId(imageCode)
-
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = commonModifier.background(UIWhite)
-        )
-    }
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Avatar",
+        modifier = commonModifier,
+        contentScale = ContentScale.Crop,
+        // Placeholder/Error image if URL is empty or fails
+        placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+        error = painterResource(id = R.drawable.ic_launcher_foreground)
+    )
 }
 
 // Event Card Layout
