@@ -188,7 +188,7 @@ fun LucaApp() {
                         HomeScreen(
                             onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
-                            onAddEventClick = { showAddOverlay = true }
+                            onAddEventClick = { navController.navigate("new_event") }
                         )
                     }
                     composable("contacts") {
