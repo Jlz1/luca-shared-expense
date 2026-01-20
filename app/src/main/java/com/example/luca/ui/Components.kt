@@ -727,7 +727,7 @@ fun UserProfileOverlay(
             Box(modifier = Modifier.fillMaxWidth()) {
                 // Close Button
                 IconButton(
-                    onClick = onClose,
+                    onClick = onClose,  // TODO: logic close button
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
                     Icon(
@@ -747,7 +747,7 @@ fun UserProfileOverlay(
                         .background(UIGrey)
                         .align(Alignment.Center)
                         .clickable {
-                            // Membuka dialog pemilihan avatar
+                            // TODO: Logic Membuka dialog pemilihan avatar
                             showAvatarDialog = true
                         }
                 ) {
@@ -772,7 +772,7 @@ fun UserProfileOverlay(
 
                 // Check Button
                 IconButton(
-                    onClick = onAddContact,
+                    onClick = onAddContact, //Todo: logic add contact
                     modifier = Modifier.align(Alignment.TopEnd)
                 ) {
                     Icon(
@@ -822,7 +822,7 @@ fun UserProfileOverlay(
                     .size(56.dp)
                     .clip(CircleShape)
                     .background(UIAccentYellow)
-                    .clickable { showBankDialog = true }
+                    .clickable { showBankDialog = true }  // TODO: logic show list bank
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
