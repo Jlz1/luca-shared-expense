@@ -1,35 +1,19 @@
 package com.example.luca.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,24 +22,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.R
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import com.example.luca.R
 import com.example.luca.data.AuthRepository
+import com.example.luca.ui.theme.*
 
 @Composable
 fun SignUpScreen(
-    onBackClick: () -> Unit = {},
-    onContinueClick: () -> Unit = {}
+    onBackClick: () -> Unit,
+    onContinueClick: () -> Unit // Tetap gunakan callback ini untuk ke Fill Profile
 ) {
+    // State Form
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -65,8 +43,9 @@ fun SignUpScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Menggunakan Repository langsung agar kontrol navigasi lebih mudah
     val authRepo = remember { AuthRepository() }
-    var isLoading by remember { mutableStateOf(false) } // Loading state
+    var isLoading by remember { mutableStateOf(false) }
 
     // Logic Tombol Continue
     val handleSignUp: () -> Unit = {
@@ -74,7 +53,7 @@ fun SignUpScreen(
             if (password == confirmPassword) {
                 isLoading = true
                 scope.launch {
-                    // PANGGIL FUNGSI REPO BARU
+                    // PANGGIL FUNGSI REPO MANUAL
                     val success = authRepo.signUpManual(email, password)
                     isLoading = false
 
@@ -97,43 +76,33 @@ fun SignUpScreen(
     Box(
         modifier = Modifier.fillMaxSize().background(UIWhite)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(all = 30.dp),
-        ) {
+        if (isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = UIAccentYellow
+            )
+        }
 
-            // BOX 1: HEADER (Back Icon)
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(30.dp),
+        ) {
+            // Header Back
+            Box(modifier = Modifier.fillMaxWidth()) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
-                    modifier = Modifier
-                        .size(29.dp)
-                        .clickable { onBackClick() }
+                    modifier = Modifier.size(29.dp).clickable { onBackClick() }
                 )
             }
 
-            // BOX 2: CONTENT (Middle)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
+            // Content
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
                         Text(
                             text = "Welcome to Luca!",
                             style = AppFont.SemiBold,
@@ -141,13 +110,10 @@ fun SignUpScreen(
                             color = UIBlack,
                             modifier = Modifier.align(Alignment.CenterStart)
                         )
-
                         Image(
                             painter = painterResource(id = R.drawable.ic_luca_logo),
                             contentDescription = "Logo",
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .size(34.5.dp, 34.dp)
+                            modifier = Modifier.align(Alignment.CenterEnd).size(34.5.dp, 34.dp)
                         )
                     }
 
@@ -158,17 +124,22 @@ fun SignUpScreen(
                         color = UIBlack.copy(alpha = 0.6f)
                     )
 
-                    Spacer(modifier = Modifier.height(54.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
 
+                    SignUpInputForm(
+                        text = name,
+                        onValueChange = { name = it },
+                        placeholder = "Full Name",
+                        iconRes = R.drawable.ic_email_form // Bisa ganti icon user
+                    )
+                    Spacer(modifier = Modifier.height(15.dp))
                     SignUpInputForm(
                         text = email,
                         onValueChange = { email = it },
                         placeholder = "Email Address",
                         iconRes = R.drawable.ic_email_form
                     )
-
                     Spacer(modifier = Modifier.height(15.dp))
-
                     SignUpInputForm(
                         text = password,
                         onValueChange = { password = it },
@@ -178,9 +149,7 @@ fun SignUpScreen(
                         isPasswordVisible = isPasswordVisible,
                         onVisibilityChange = { isPasswordVisible = !isPasswordVisible }
                     )
-
                     Spacer(modifier = Modifier.height(15.dp))
-
                     SignUpInputForm(
                         text = confirmPassword,
                         onValueChange = { confirmPassword = it },
@@ -191,39 +160,32 @@ fun SignUpScreen(
                         onVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible }
                     )
 
-                    Spacer(modifier = Modifier.height(57.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
 
                     Button(
                         onClick = handleSignUp,
                         enabled = !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
-                            contentColor = UIBlack
+                            contentColor = UIBlack,
+                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f)
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(
-                            text = "Continue",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack,
-                            textAlign = TextAlign.Center
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(color = UIBlack, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("Continue", style = AppFont.Medium, fontSize = 14.sp, color = UIBlack, textAlign = TextAlign.Center)
+                        }
                     }
-
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
 
-            // BOX 3: FOOTER (Bottom)
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
+            // Footer
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "Privacy Policy   ·   Terms of Service",
                     style = AppFont.SemiBold,
@@ -247,73 +209,34 @@ fun SignUpInputForm(
     onVisibilityChange: () -> Unit = {}
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
-            .background(color = UIGrey, shape = RoundedCornerShape(23.dp)),
+        modifier = Modifier.fillMaxWidth().height(50.dp).background(color = UIGrey, shape = RoundedCornerShape(23.dp)),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.width(27.dp))
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                tint = UIBlack,
-                modifier = Modifier.size(15.dp, 10.dp)
-            )
-
+            Icon(painter = painterResource(id = iconRes), contentDescription = null, tint = UIBlack, modifier = Modifier.size(15.dp, 10.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.CenterStart
-            ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (text.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        style = AppFont.Medium,
-                        fontSize = 14.sp,
-                        color = UIBlack.copy(alpha = 0.5f)
-                    )
+                    Text(text = placeholder, style = AppFont.Medium, fontSize = 14.sp, color = UIBlack.copy(alpha = 0.5f))
                 }
                 BasicTextField(
                     value = text,
                     onValueChange = onValueChange,
-                    textStyle = TextStyle(
-                        fontFamily = AppFont.Medium.fontFamily,
-                        fontSize = 14.sp,
-                        color = UIBlack
-                    ),
+                    textStyle = TextStyle(fontFamily = AppFont.Medium.fontFamily, fontSize = 14.sp, color = UIBlack),
                     singleLine = true,
-                    visualTransformation = if (isPasswordField && !isPasswordVisible)
-                        PasswordVisualTransformation() else VisualTransformation.None
+                    visualTransformation = if (isPasswordField && !isPasswordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-
             if (isPasswordField) {
                 Icon(
-                    painter = painterResource(
-                        id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form
-                        else R.drawable.ic_eye_hide_form
-                    ),
+                    painter = painterResource(id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form else R.drawable.ic_eye_hide_form),
                     contentDescription = "Toggle Password",
                     tint = UIBlack,
-                    modifier = Modifier
-                        .padding(end = 18.dp)
-                        .size(15.92.dp, 13.44.dp)
-                        .clickable { onVisibilityChange() }
+                    modifier = Modifier.padding(end = 18.dp).size(15.92.dp, 13.44.dp).clickable { onVisibilityChange() }
                 )
             }
         }
-    }
-}
-
-@Preview(device = "spec:width=375dp,height=812dp,dpi=440")
-@Composable
-fun SignUpScreenPreview() {
-    LucaTheme {
-        SignUpScreen()
     }
 }

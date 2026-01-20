@@ -1,6 +1,5 @@
 package com.example.luca.ui
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,13 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -30,9 +26,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
-import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
-import kotlinx.coroutines.launch
+import com.example.luca.util.ValidationUtils
+import androidx.compose.ui.graphics.Color
 
 // --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
@@ -41,45 +37,52 @@ fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val authRepo = remember { AuthRepository() }
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
 
-    // Handle Login Click
-    val handleLoginClick: () -> Unit = {
-        if (email.isNotEmpty() && password.isNotEmpty()) {
-            isLoading = true
-            scope.launch {
-                val success = authRepo.loginManual(email, password)
-                isLoading = false
-                if (success) {
-                    Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
-                    onNavigateToHome()
-                } else {
-                    Toast.makeText(context, "Email atau Password Salah", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            Toast.makeText(context, "Isi semua kolom dulu!", Toast.LENGTH_SHORT).show()
-        }
+    // Error states for validation
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+
+    // Validate on input change with sanitization
+    val onEmailChangeWithValidation: (String) -> Unit = { input ->
+        val sanitized = ValidationUtils.sanitizeInput(input)
+        email = sanitized
+        emailError = if (sanitized.isNotEmpty()) ValidationUtils.getEmailError(sanitized) else null
     }
+
+    val onPasswordChangeWithValidation: (String) -> Unit = { input ->
+        password = input
+        passwordError = if (input.isNotEmpty()) ValidationUtils.getPasswordError(input) else null
+    }
+
+    // Check if form is valid for enabling button
+    val isFormValid = emailError == null && passwordError == null &&
+                      email.isNotBlank() && password.isNotBlank() &&
+                      ValidationUtils.isLoginFormValid(email, password)
 
     // Pass state and callbacks to UI Content
     LoginScreenContent(
         email = email,
-        onEmailChange = { email = it },
+        onEmailChange = onEmailChangeWithValidation,
         password = password,
-        onPasswordChange = { password = it },
+        onPasswordChange = onPasswordChangeWithValidation,
         isPasswordVisible = isPasswordVisible,
         onPasswordVisibilityChange = { isPasswordVisible = !isPasswordVisible },
-        isLoading = isLoading,
+        isFormValid = isFormValid,
+        emailError = emailError,
+        passwordError = passwordError,
         onBackClick = onNavigateBack,
-        onLoginClick = handleLoginClick,
+        onLoginClick = {
+            // Final validation before navigate
+            emailError = ValidationUtils.getEmailError(email)
+            passwordError = ValidationUtils.getPasswordError(password)
+
+            if (emailError == null && passwordError == null) {
+                onNavigateToHome()
+            }
+        },
         onSignUpClick = onNavigateToSignUp
     )
 }
@@ -93,7 +96,9 @@ fun LoginScreenContent(
     onPasswordChange: (String) -> Unit,
     isPasswordVisible: Boolean,
     onPasswordVisibilityChange: () -> Unit,
-    isLoading: Boolean,
+    isFormValid: Boolean,
+    emailError: String?,
+    passwordError: String?,
     onBackClick: () -> Unit,
     onLoginClick: () -> Unit,
     onSignUpClick: () -> Unit
@@ -157,6 +162,7 @@ fun LoginScreenContent(
                         iconRes = R.drawable.ic_email_form,
                         iconSizeWidth = 15.dp,
                         iconSizeHeight = 10.dp,
+                        errorMessage = emailError,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -172,6 +178,7 @@ fun LoginScreenContent(
                         isPasswordField = true,
                         isPasswordVisible = isPasswordVisible,
                         onVisibilityChange = onPasswordVisibilityChange,
+                        errorMessage = passwordError,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -182,25 +189,23 @@ fun LoginScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        enabled = !isLoading,
+                        enabled = isFormValid,
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
-                            contentColor = UIBlack
+                            contentColor = UIBlack,
+                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
+                            disabledContentColor = UIBlack.copy(alpha = 0.5f)
                         ),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(color = UIBlack, modifier = Modifier.size(24.dp))
-                        } else {
-                            Text(
-                                text = "Log in",
-                                style = AppFont.Medium,
-                                fontSize = 14.sp,
-                                color = UIBlack,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        Text(
+                            text = "Log in",
+                            style = AppFont.Medium,
+                            fontSize = 14.sp,
+                            color = UIBlack,
+                            textAlign = TextAlign.Center
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(15.dp))
@@ -262,66 +267,92 @@ fun CustomInputForm(
     isPasswordField: Boolean = false,
     isPasswordVisible: Boolean = false,
     onVisibilityChange: () -> Unit = {},
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .height(50.dp)
-            .background(color = UIGrey, shape = RoundedCornerShape(23.dp)),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize()
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .background(
+                    color = if (errorMessage != null) UIGrey.copy(alpha = 0.9f) else UIGrey,
+                    shape = RoundedCornerShape(23.dp)
+                )
+                .then(
+                    if (errorMessage != null) {
+                        Modifier.background(
+                            color = Color.Red.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(23.dp)
+                        )
+                    } else Modifier
+                ),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Spacer(modifier = Modifier.width(27.dp))
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                tint = UIBlack,
-                modifier = Modifier.size(width = iconSizeWidth, height = iconSizeHeight)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.CenterStart
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (text.isEmpty()) {
-                    Text(
-                        text = placeholder,
-                        style = AppFont.Medium,
-                        fontSize = 14.sp,
-                        color = UIBlack.copy(alpha = 0.5f)
+                Spacer(modifier = Modifier.width(27.dp))
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = if (errorMessage != null) Color.Red.copy(alpha = 0.7f) else UIBlack,
+                    modifier = Modifier.size(width = iconSizeWidth, height = iconSizeHeight)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (text.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            style = AppFont.Medium,
+                            fontSize = 14.sp,
+                            color = UIBlack.copy(alpha = 0.5f)
+                        )
+                    }
+                    BasicTextField(
+                        value = text,
+                        onValueChange = onValueChange,
+                        textStyle = TextStyle(
+                            fontFamily = AppFont.Medium.fontFamily,
+                            fontSize = 14.sp,
+                            color = UIBlack
+                        ),
+                        singleLine = true,
+                        visualTransformation = if (isPasswordField && !isPasswordVisible)
+                            PasswordVisualTransformation() else VisualTransformation.None,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-                BasicTextField(
-                    value = text,
-                    onValueChange = onValueChange,
-                    textStyle = TextStyle(
-                        fontFamily = AppFont.Medium.fontFamily,
-                        fontSize = 14.sp,
-                        color = UIBlack
-                    ),
-                    singleLine = true,
-                    visualTransformation = if (isPasswordField && !isPasswordVisible)
-                        PasswordVisualTransformation() else VisualTransformation.None,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (isPasswordField) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form
+                            else R.drawable.ic_eye_hide_form
+                        ),
+                        contentDescription = "Toggle Password",
+                        tint = UIBlack,
+                        modifier = Modifier
+                            .padding(end = 18.dp)
+                            .size(width = 15.92.dp, height = 13.44.dp)
+                            .clickable { onVisibilityChange() }
+                    )
+                }
             }
-            if (isPasswordField) {
-                Icon(
-                    painter = painterResource(
-                        id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form
-                        else R.drawable.ic_eye_hide_form
-                    ),
-                    contentDescription = "Toggle Password",
-                    tint = UIBlack,
-                    modifier = Modifier
-                        .padding(end = 18.dp)
-                        .size(width = 15.92.dp, height = 13.44.dp)
-                        .clickable { onVisibilityChange() }
-                )
-            }
+        }
+
+        // Error message display
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = AppFont.Medium,
+                fontSize = 12.sp,
+                color = Color.Red.copy(alpha = 0.8f),
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
         }
     }
 }
@@ -337,7 +368,9 @@ fun LoginScreenPreview() {
             onPasswordChange = {},
             isPasswordVisible = false,
             onPasswordVisibilityChange = {},
-            isLoading = false,
+            isFormValid = false,
+            emailError = null,
+            passwordError = null,
             onBackClick = {},
             onLoginClick = {},
             onSignUpClick = {}

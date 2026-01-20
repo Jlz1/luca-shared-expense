@@ -1,13 +1,15 @@
 package com.example.luca.data
 
+import android.app.Activity
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import kotlinx.coroutines.tasks.await
-import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 class AuthRepository {
@@ -15,7 +17,8 @@ class AuthRepository {
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    suspend fun signInWithGoogle(idToken: String): Boolean {
+    // --- 1. GOOGLE LOGIN ---
+    suspend fun signInWithGoogle(idToken: String): Result<String> {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = auth.signInWithCredential(credential).await()
@@ -26,42 +29,77 @@ class AuthRepository {
                 if (isNewUser) {
                     saveUserToFirestore(user.uid, user.email ?: "", user.displayName ?: "")
                 }
+                Result.success("Login Google Berhasil")
+            } else {
+                Result.failure(Exception("Gagal login: User null"))
             }
-            true
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            Result.failure(e)
         }
     }
 
-    fun saveUserAfterSocialLogin(user: FirebaseUser) {
-        saveUserToFirestore(user.uid, user.email ?: "", user.displayName ?: "")
-    }
-
-    suspend fun loginManual(email: String, pass: String): Boolean {
+    // --- 2. X (TWITTER) LOGIN ---
+    suspend fun signInWithTwitter(activity: Activity): Result<String> {
         return try {
-            auth.signInWithEmailAndPassword(email, pass).await()
-            true
+            val provider = OAuthProvider.newBuilder("twitter.com")
+            provider.addCustomParameter("lang", "id")
+
+            val result = auth.startActivityForSignInWithProvider(activity, provider.build()).await()
+            val user = result.user
+
+            if (user != null) {
+                val isNewUser = result.additionalUserInfo?.isNewUser == true
+                if (isNewUser) {
+                    val username = result.additionalUserInfo?.profile?.get("screen_name") as? String
+                        ?: user.displayName
+                        ?: "Twitter User"
+                    saveUserToFirestore(user.uid, user.email ?: "", username)
+                }
+                Result.success("Login Twitter Berhasil")
+            } else {
+                Result.failure(Exception("Gagal login Twitter"))
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            Result.failure(e)
         }
     }
 
-    suspend fun signUpManual(email: String, pass: String): Boolean {
+    // --- 3. REGISTER MANUAL (Versi Result - Future Proof) ---
+    suspend fun registerManual(email: String, pass: String, name: String): Result<String> {
         return try {
-            // Ini perintah inti untuk bikin user baru di Firebase Auth
             val result = auth.createUserWithEmailAndPassword(email, pass).await()
             val user = result.user
 
-            // Jika berhasil, kita buat dokumen kosong dulu di Firestore
             if (user != null) {
-                val userMap = hashMapOf(
-                    "uid" to user.uid,
-                    "email" to email,
-                    "createdAt" to System.currentTimeMillis()
-                )
-                db.collection("users").document(user.uid).set(userMap, SetOptions.merge()).await()
+                saveUserToFirestore(user.uid, email, name)
+                Result.success("Registrasi Berhasil")
+            } else {
+                Result.failure(Exception("Gagal membuat user"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --- 4. LOGIN MANUAL ---
+    suspend fun loginManual(email: String, pass: String): Result<String> {
+        return try {
+            auth.signInWithEmailAndPassword(email, pass).await()
+            Result.success("Login Berhasil")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --- 5. FUNGSI LEGACY (Dipakai SignUpScreen saat ini) ---
+    suspend fun signUpManual(email: String, pass: String): Boolean {
+        return try {
+            val result = auth.createUserWithEmailAndPassword(email, pass).await()
+            val user = result.user
+
+            if (user != null) {
+                // Buat dokumen user kosong (atau dengan email)
+                saveUserToFirestore(user.uid, email, "")
             }
             true
         } catch (e: Exception) {
@@ -75,7 +113,6 @@ class AuthRepository {
         return try {
             var imageUrl = ""
 
-            // Kalau user pilih foto, upload dulu
             if (imageUri != null) {
                 val fileName = UUID.randomUUID().toString()
                 val ref = storage.reference.child("profile_images/${user.uid}/$fileName")
@@ -83,16 +120,13 @@ class AuthRepository {
                 imageUrl = ref.downloadUrl.await().toString()
             }
 
-            // Siapkan data update
             val updates = hashMapOf<String, Any>(
                 "username" to username
             )
-            // Kalau ada foto, masukkan ke map
             if (imageUrl.isNotEmpty()) {
                 updates["profileImageUrl"] = imageUrl
             }
 
-            // Update ke Firestore
             db.collection("users").document(user.uid).update(updates).await()
             true
         } catch (e: Exception) {
@@ -101,13 +135,18 @@ class AuthRepository {
         }
     }
 
-    private fun saveUserToFirestore(uid: String, email: String, name: String) {
+    // --- HELPER ---
+    fun saveUserAfterSocialLogin(user: FirebaseUser) {
+        // Placeholder untuk kompatibilitas
+    }
+
+    private suspend fun saveUserToFirestore(uid: String, email: String, name: String) {
         val userMap = hashMapOf(
             "uid" to uid,
             "email" to email,
             "username" to name,
             "createdAt" to System.currentTimeMillis()
         )
-        db.collection("users").document(uid).set(userMap, SetOptions.merge())
+        db.collection("users").document(uid).set(userMap, SetOptions.merge()).await()
     }
 }
