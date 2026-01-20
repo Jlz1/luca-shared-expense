@@ -258,7 +258,8 @@ fun LucaApp() {
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            UserProfileOverlay()
+                            UserProfileOverlay(onClose = { println("Overlay closed") },
+                                onAddContact = { println("Contact added") })
                         }
                     }
                 }
