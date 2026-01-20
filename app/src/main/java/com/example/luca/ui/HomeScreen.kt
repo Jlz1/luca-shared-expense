@@ -29,22 +29,41 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.model.Event
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.HomeViewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.luca.data.LucaFirebaseRepository
 
 // --- STATEFUL COMPOSABLE (Logic) ---
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel(),
+    // 1. UPDATE DI SINI: Kita inject Repository ke ViewModel menggunakan Factory
+    viewModel: HomeViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                HomeViewModel(repository = LucaFirebaseRepository())
+            }
+        }
+    ),
     onNavigateToDetail: (String) -> Unit = {},
-    onContactsClick: () -> Unit = {}, // Parameter ini sisa, tapi gapapa dibiarin
+    onContactsClick: () -> Unit = {},
     onAddEventClick: () -> Unit = {}
 ) {
     val allEvents by viewModel.events.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+
+    // Logic filter dipanggil setiap kali UI direcompose
     val filteredEvents = viewModel.getFilteredEvents()
 
     val listState = rememberLazyListState()
 
-    // Auto-scroll logic
+    // Opsional: Refresh data setiap kali user kembali ke halaman ini
+    LaunchedEffect(Unit) {
+        viewModel.loadEvents()
+    }
+
+    // Auto-scroll logic (Tetap sama)
     LaunchedEffect(searchQuery, allEvents) {
         if (searchQuery.isNotEmpty() && allEvents.isNotEmpty()) {
             val index = allEvents.indexOfFirst {
@@ -59,7 +78,7 @@ fun HomeScreen(
     HomeScreenContent(
         searchQuery = searchQuery,
         onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
-        filteredEvents = filteredEvents,
+        filteredEvents = filteredEvents, // Ini sekarang berisi data real dari Firebase
         listState = listState,
         onEventClick = onNavigateToDetail,
         onAddEventClick = onAddEventClick
