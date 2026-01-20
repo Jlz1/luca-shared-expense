@@ -45,6 +45,9 @@ fun ContactsScreen(
     // Ubah list ini jadi emptyList() untuk mengetes tampilan kosong (Empty State)
     val contacts = remember { generateDummyContacts() }
 
+    // State untuk UserProfileOverlay
+    var showUserProfileOverlay by remember { mutableStateOf(false) }
+
     // State untuk Search Bar
     var searchQuery by remember { mutableStateOf("") }
 
@@ -54,7 +57,7 @@ fun ContactsScreen(
             contacts
         } else {
             contacts.filter { contact ->
-                contact.name.contains(searchQuery, ignoreCase = true)
+                contact.name.startsWith(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -146,7 +149,7 @@ fun ContactsScreen(
                     Surface(
                         modifier = Modifier
                             .size(50.dp)
-                            .clickable { /* Handle Add Contact logic here */ },
+                            .clickable { showUserProfileOverlay = true },
                         shape = CircleShape,
                         color = UIAccentYellow,
                         shadowElevation = 2.dp
@@ -244,6 +247,31 @@ fun ContactsScreen(
                             }
                     )
                 }
+            }
+        }
+
+        // --- USER PROFILE OVERLAY DIALOG ---
+        // Tampilkan overlay ketika showUserProfileOverlay = true
+        if (showUserProfileOverlay) {
+            // Scrim (Background gelap semi-transparent)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable {} // Close saat klik luar
+            )
+
+            // Overlay Card di tengah
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                UserProfileOverlay(
+                    onClose = { showUserProfileOverlay = false },
+                    onAddContact = { showUserProfileOverlay = false },
+
+                )
             }
         }
     }
