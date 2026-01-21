@@ -104,7 +104,7 @@ class AuthRepository {
                 if (!userExists) {
                     // User authenticated but not in database - sign them out
                     auth.signOut()
-                    return Result.failure(Exception("Account does not exist. Please sign up first."))
+                    return Result.failure(Exception("Account does not exist"))
                 }
 
                 // User exists in database, login successful
@@ -115,9 +115,12 @@ class AuthRepository {
         } catch (e: Exception) {
             // Handle authentication errors
             val errorMessage = when {
-                e.message?.contains("password") == true -> "Wrong email or password"
-                e.message?.contains("user") == true -> "Account does not exist. Please sign up first."
-                e.message?.contains("network") == true -> "Network error. Please check your connection."
+                e.message?.contains("password", ignoreCase = true) == true -> "Password incorrect"
+                e.message?.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true) == true -> "Password incorrect"
+                e.message?.contains("user-not-found", ignoreCase = true) == true -> "Account does not exist"
+                e.message?.contains("user not found", ignoreCase = true) == true -> "Account does not exist"
+                e.message?.contains("email", ignoreCase = true) == true -> "Account does not exist"
+                e.message?.contains("network", ignoreCase = true) == true -> "Network error. Please check your connection."
                 else -> e.message ?: "Login failed"
             }
             Result.failure(Exception(errorMessage))
