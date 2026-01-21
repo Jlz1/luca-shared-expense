@@ -31,13 +31,16 @@ import com.example.luca.util.ValidationUtils
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.luca.viewmodel.AuthViewModel
 
 // --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -46,6 +49,9 @@ fun LoginScreen(
     // Error states for validation
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+
+    // Snackbar host state
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Validate on input change with sanitization
     val onEmailChangeWithValidation: (String) -> Unit = { input ->
@@ -64,6 +70,25 @@ fun LoginScreen(
                       email.isNotBlank() && password.isNotBlank() &&
                       ValidationUtils.isLoginFormValid(email, password)
 
+    // Observe ViewModel states
+    LaunchedEffect(viewModel.isSuccess) {
+        if (viewModel.isSuccess) {
+            viewModel.resetState()
+            onNavigateToHome()
+        }
+    }
+
+    // Show error notification
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Long
+            )
+            viewModel.resetState()
+        }
+    }
+
     // Pass state and callbacks to UI Content
     LoginScreenContent(
         email = email,
@@ -75,14 +100,16 @@ fun LoginScreen(
         isFormValid = isFormValid,
         emailError = emailError,
         passwordError = passwordError,
+        isLoading = viewModel.isLoading,
+        snackbarHostState = snackbarHostState,
         onBackClick = onNavigateBack,
         onLoginClick = {
-            // Final validation before navigate
+            // Final validation before login
             emailError = ValidationUtils.getEmailError(email)
             passwordError = ValidationUtils.getPasswordError(password)
 
             if (emailError == null && passwordError == null) {
-                onNavigateToHome()
+                viewModel.login(email, password)
             }
         },
         onSignUpClick = onNavigateToSignUp
@@ -101,158 +128,189 @@ fun LoginScreenContent(
     isFormValid: Boolean,
     emailError: String?,
     passwordError: String?,
+    isLoading: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onBackClick: () -> Unit,
     onLoginClick: () -> Unit,
     onSignUpClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(UIWhite)
-    ) {
-        Column(
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = if (data.visuals.message.contains("does not exist", ignoreCase = true)) {
+                        Color(0xFFE57373) // Red for account not exists
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(all = 30.dp),
+                .background(UIWhite)
+                .padding(paddingValues)
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_back),
-                    contentDescription = "Back",
-                    tint = UIBlack,
-                    modifier = Modifier
-                        .size(29.dp)
-                        .clickable { onBackClick() }
-                )
-            }
-
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .fillMaxSize()
+                    .padding(all = 30.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.Start
+                Box(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-
-                    Text(
-                        text = "Welcome Back!",
-                        style = AppFont.SemiBold,
-                        fontSize = 32.sp,
-                        color = UIBlack,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(modifier = Modifier.height(5.dp))
-                    Text(
-                        text = "Enter your email and password to log in.",
-                        style = AppFont.Medium,
-                        fontSize = 14.sp,
-                        color = UIBlack.copy(alpha = 0.6f)
-                    )
-
-                    Spacer(modifier = Modifier.height(50.dp))
-
-                    CustomInputForm(
-                        text = email,
-                        onValueChange = onEmailChange,
-                        placeholder = "Email Address",
-                        iconRes = R.drawable.ic_email_form,
-                        iconSizeWidth = 15.dp,
-                        iconSizeHeight = 10.dp,
-                        errorMessage = emailError,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(13.dp))
-
-                    CustomInputForm(
-                        text = password,
-                        onValueChange = onPasswordChange,
-                        placeholder = "Password",
-                        iconRes = R.drawable.ic_password_form,
-                        iconSizeWidth = 15.dp,
-                        iconSizeHeight = 10.dp,
-                        isPasswordField = true,
-                        isPasswordVisible = isPasswordVisible,
-                        onVisibilityChange = onPasswordVisibilityChange,
-                        errorMessage = passwordError,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(49.dp))
-
-                    Button(
-                        onClick = onLoginClick,
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_back),
+                        contentDescription = "Back",
+                        tint = UIBlack,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        enabled = isFormValid,
-                        shape = RoundedCornerShape(23.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = UIAccentYellow,
-                            contentColor = UIBlack,
-                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
-                            disabledContentColor = UIBlack.copy(alpha = 0.5f)
-                        ),
-                        contentPadding = PaddingValues(0.dp)
+                            .size(29.dp)
+                            .clickable { onBackClick() }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.Start
                     ) {
+
                         Text(
-                            text = "Log in",
+                            text = "Welcome Back!",
+                            style = AppFont.SemiBold,
+                            fontSize = 32.sp,
+                            color = UIBlack,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Spacer(modifier = Modifier.height(5.dp))
+                        Text(
+                            text = "Enter your email and password to log in.",
                             style = AppFont.Medium,
                             fontSize = 14.sp,
-                            color = UIBlack,
-                            textAlign = TextAlign.Center
+                            color = UIBlack.copy(alpha = 0.6f)
                         )
-                    }
 
-                    Spacer(modifier = Modifier.height(15.dp))
+                        Spacer(modifier = Modifier.height(50.dp))
 
-                    val signUpText = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = UIBlack, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
-                            append("Don't have an account? ")
-                        }
-                        pushStringAnnotation(tag = "SIGN_UP", annotation = "navigate_signup")
-                        withStyle(style = SpanStyle(color = UIAccentYellow, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
-                            append("Sign Up.")
-                        }
-                        pop()
-                    }
+                        CustomInputForm(
+                            text = email,
+                            onValueChange = onEmailChange,
+                            placeholder = "Email Address",
+                            iconRes = R.drawable.ic_email_form,
+                            iconSizeWidth = 15.dp,
+                            iconSizeHeight = 10.dp,
+                            errorMessage = emailError,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ClickableText(
-                            text = signUpText,
-                            onClick = { offset ->
-                                signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
-                                    .firstOrNull()?.let {
-                                        onSignUpClick()
-                                    }
+                        Spacer(modifier = Modifier.height(13.dp))
+
+                        CustomInputForm(
+                            text = password,
+                            onValueChange = onPasswordChange,
+                            placeholder = "Password",
+                            iconRes = R.drawable.ic_password_form,
+                            iconSizeWidth = 15.dp,
+                            iconSizeHeight = 10.dp,
+                            isPasswordField = true,
+                            isPasswordVisible = isPasswordVisible,
+                            onVisibilityChange = onPasswordVisibilityChange,
+                            errorMessage = passwordError,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(49.dp))
+
+                        Button(
+                            onClick = onLoginClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            enabled = isFormValid && !isLoading,
+                            shape = RoundedCornerShape(23.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIAccentYellow,
+                                contentColor = UIBlack,
+                                disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
+                                disabledContentColor = UIBlack.copy(alpha = 0.5f)
+                            ),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = UIBlack,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Log in",
+                                    style = AppFont.Medium,
+                                    fontSize = 14.sp,
+                                    color = UIBlack,
+                                    textAlign = TextAlign.Center
+                                )
                             }
-                        )
+                        }
+
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        val signUpText = buildAnnotatedString {
+                            withStyle(style = SpanStyle(color = UIBlack, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
+                                append("Don't have an account? ")
+                            }
+                            pushStringAnnotation(tag = "SIGN_UP", annotation = "navigate_signup")
+                            withStyle(style = SpanStyle(color = UIAccentYellow, fontSize = 14.sp, fontFamily = AppFont.Medium.fontFamily)) {
+                                append("Sign Up.")
+                            }
+                            pop()
+                        }
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ClickableText(
+                                text = signUpText,
+                                onClick = { offset ->
+                                    signUpText.getStringAnnotations(tag = "SIGN_UP", start = offset, end = offset)
+                                        .firstOrNull()?.let {
+                                            onSignUpClick()
+                                        }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
-            }
 
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Privacy Policy   ·   Terms of Service",
-                    style = AppFont.SemiBold,
-                    fontSize = 12.sp,
-                    color = UIBlack.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Privacy Policy   ·   Terms of Service",
+                        style = AppFont.SemiBold,
+                        fontSize = 12.sp,
+                        color = UIBlack.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -378,6 +436,7 @@ fun LoginScreenPreview() {
             isFormValid = false,
             emailError = null,
             passwordError = null,
+            isLoading = false,
             onBackClick = {},
             onLoginClick = {},
             onSignUpClick = {}

@@ -4,7 +4,6 @@ import android.app.Activity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
@@ -80,12 +79,49 @@ class AuthRepository {
         } catch (e: Exception) { Result.failure(e) }
     }
 
+    // --- CHECK IF USER EXISTS IN FIRESTORE ---
+    suspend fun checkUserExists(uid: String): Boolean {
+        return try {
+            val document = db.collection("users").document(uid).get().await()
+            document.exists()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     // --- MANUAL LOGIN ---
     suspend fun loginManual(email: String, pass: String): Result<String> {
         return try {
-            auth.signInWithEmailAndPassword(email, pass).await()
-            Result.success("Login Berhasil")
-        } catch (e: Exception) { Result.failure(e) }
+            // Step 1: Authenticate with Firebase Auth
+            val result = auth.signInWithEmailAndPassword(email, pass).await()
+            val user = result.user
+
+            if (user != null) {
+                // Step 2: Check if user exists in Firestore database
+                val userExists = checkUserExists(user.uid)
+
+                if (!userExists) {
+                    // User authenticated but not in database - sign them out
+                    auth.signOut()
+                    return Result.failure(Exception("Account does not exist. Please sign up first."))
+                }
+
+                // User exists in database, login successful
+                Result.success("Login Berhasil")
+            } else {
+                Result.failure(Exception("Login failed"))
+            }
+        } catch (e: Exception) {
+            // Handle authentication errors
+            val errorMessage = when {
+                e.message?.contains("password") == true -> "Wrong email or password"
+                e.message?.contains("user") == true -> "Account does not exist. Please sign up first."
+                e.message?.contains("network") == true -> "Network error. Please check your connection."
+                else -> e.message ?: "Login failed"
+            }
+            Result.failure(Exception(errorMessage))
+        }
     }
 
     // --- Code Legacy/Tidak Terpakai ---
