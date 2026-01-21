@@ -4,19 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,37 +13,34 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import com.example.luca.R
-import com.example.luca.util.ValidationUtils
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
-import kotlinx.coroutines.launch
 import com.example.luca.R
 import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
+import com.example.luca.util.ValidationUtils
+import kotlinx.coroutines.launch
 
 @Composable
 fun SignUpScreen(
     onBackClick: () -> Unit,
     onContinueClick: () -> Unit
 ) {
-    // State Form (Name HILANG)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val authRepo = remember { AuthRepository() }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // State Form
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -79,7 +63,6 @@ fun SignUpScreen(
     val onPasswordChangeWithValidation: (String) -> Unit = { input ->
         password = input
         passwordError = if (input.isNotEmpty()) ValidationUtils.getPasswordError(input) else null
-        // Re-validate confirm password if it's not empty
         if (confirmPassword.isNotEmpty()) {
             confirmPasswordError = if (confirmPassword != input) "Password tidak cocok" else null
         }
@@ -96,50 +79,37 @@ fun SignUpScreen(
 
     // Check if form is valid for enabling button
     val isFormValid = emailError == null && passwordError == null && confirmPasswordError == null &&
-                      email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
-                      ValidationUtils.isEmailValid(email) && ValidationUtils.isPasswordValid(password) &&
-                      password == confirmPassword
-
-    Box(
-        modifier = Modifier.fillMaxSize().background(UIWhite)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(all = 30.dp),
-        ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val authRepo = remember { AuthRepository() }
-    var isLoading by remember { mutableStateOf(false) }
+            email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
+            ValidationUtils.isEmailValid(email) && ValidationUtils.isPasswordValid(password) &&
+            password == confirmPassword
 
     val handleSignUp: () -> Unit = {
-        if (email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
-            if (password == confirmPassword) {
-                isLoading = true
-                scope.launch {
-                    // PANGGIL REPO (Cuma Email & Pass)
-                    val success = authRepo.signUpManual(email, password)
-                    isLoading = false
+        emailError = ValidationUtils.getEmailError(email)
+        passwordError = ValidationUtils.getPasswordError(password)
+        confirmPasswordError = if (confirmPassword != password) "Password tidak cocok" else null
 
-                    if (success) {
-                        Toast.makeText(context, "Akun berhasil dibuat!", Toast.LENGTH_SHORT).show()
-                        onContinueClick() // Lanjut ke Fill Profile buat isi Username
-                    } else {
-                        Toast.makeText(context, "Gagal daftar", Toast.LENGTH_LONG).show()
-                    }
+        if (emailError == null && passwordError == null && confirmPasswordError == null) {
+            isLoading = true
+            scope.launch {
+                val success = authRepo.signUpManual(email, password)
+                isLoading = false
+
+                if (success) {
+                    Toast.makeText(context, "Akun berhasil dibuat!", Toast.LENGTH_SHORT).show()
+                    onContinueClick()
+                } else {
+                    Toast.makeText(context, "Gagal daftar", Toast.LENGTH_LONG).show()
                 }
-            } else {
-                Toast.makeText(context, "Password tidak sama!", Toast.LENGTH_SHORT).show()
             }
-        } else {
-            Toast.makeText(context, "Isi semua data!", Toast.LENGTH_SHORT).show()
         }
     }
 
     Box(modifier = Modifier.fillMaxSize().background(UIWhite)) {
         if (isLoading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), color = UIAccentYellow)
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = UIAccentYellow
+            )
         }
 
         Column(modifier = Modifier.fillMaxSize().padding(30.dp)) {
@@ -160,15 +130,28 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                        Text(text = "Welcome to Luca!", style = AppFont.SemiBold, fontSize = 28.sp, color = UIBlack, modifier = Modifier.align(Alignment.CenterStart))
-                        Image(painter = painterResource(id = R.drawable.ic_luca_logo), contentDescription = "Logo", modifier = Modifier.align(Alignment.CenterEnd).size(34.5.dp, 34.dp))
+                        Text(
+                            text = "Welcome to Luca!",
+                            style = AppFont.SemiBold,
+                            fontSize = 28.sp,
+                            color = UIBlack,
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        )
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_luca_logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier.align(Alignment.CenterEnd).size(34.5.dp, 34.dp)
+                        )
                     }
 
-                    Text(text = "Splitting bills made easy.", style = AppFont.Medium, fontSize = 14.sp, color = UIBlack.copy(alpha = 0.6f))
+                    Text(
+                        text = "Splitting bills made easy.",
+                        style = AppFont.Medium,
+                        fontSize = 14.sp,
+                        color = UIBlack.copy(alpha = 0.6f)
+                    )
 
                     Spacer(modifier = Modifier.height(30.dp))
-
-                    // INPUT NAME DIHAPUS DISINI
 
                     SignUpInputForm(
                         text = email,
@@ -203,20 +186,9 @@ fun SignUpScreen(
                     Spacer(modifier = Modifier.height(40.dp))
 
                     Button(
-                        onClick = {
-                            // Final validation before navigate
-                            emailError = ValidationUtils.getEmailError(email)
-                            passwordError = ValidationUtils.getPasswordError(password)
-                            confirmPasswordError = if (confirmPassword != password) "Password tidak cocok" else null
-
-                            if (emailError == null && passwordError == null && confirmPasswordError == null) {
-                                onContinueClick()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        enabled = isFormValid,
+                        onClick = handleSignUp,
+                        enabled = isFormValid && !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
@@ -224,17 +196,22 @@ fun SignUpScreen(
                             disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
                             disabledContentColor = UIBlack.copy(alpha = 0.5f)
                         ),
-                        onClick = handleSignUp,
-                        enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(23.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack, disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f)),
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = UIBlack, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                color = UIBlack,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
-                            Text("Continue", style = AppFont.Medium, fontSize = 14.sp, color = UIBlack, textAlign = TextAlign.Center)
+                            Text(
+                                "Continue",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIBlack,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
@@ -242,13 +219,18 @@ fun SignUpScreen(
 
             // Footer
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(text = "Privacy Policy   ·   Terms of Service", style = AppFont.SemiBold, fontSize = 12.sp, color = UIBlack.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                Text(
+                    text = "Privacy Policy   ·   Terms of Service",
+                    style = AppFont.SemiBold,
+                    fontSize = 12.sp,
+                    color = UIBlack.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
 }
 
-// (Input Form Composable tetap sama)
 @Composable
 fun SignUpInputForm(
     text: String,
@@ -341,10 +323,8 @@ fun SignUpInputForm(
                     )
                 }
             }
-            if (isPasswordField) Icon(painter = painterResource(id = if (isPasswordVisible) R.drawable.ic_eye_unhide_form else R.drawable.ic_eye_hide_form), contentDescription = "Toggle Password", tint = UIBlack, modifier = Modifier.padding(end = 18.dp).size(15.92.dp, 13.44.dp).clickable { onVisibilityChange() })
         }
 
-        // Error message display
         if (errorMessage != null) {
             Text(
                 text = errorMessage,
