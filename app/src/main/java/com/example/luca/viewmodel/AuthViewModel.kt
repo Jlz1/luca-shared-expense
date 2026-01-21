@@ -67,7 +67,7 @@ class AuthViewModel : ViewModel() {
             result.onSuccess {
                 isSuccess = true
             }.onFailure { error ->
-                errorMessage = "Email atau Password Salah"
+                errorMessage = error.message ?: "Login failed"
             }
             isLoading = false
         }
