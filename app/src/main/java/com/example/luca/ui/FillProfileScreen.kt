@@ -1,9 +1,6 @@
 package com.example.luca.ui
 
-import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,24 +15,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.example.luca.R
 import com.example.luca.data.AuthRepository
-import com.example.luca.ui.theme.AppFont
-import com.example.luca.ui.theme.LucaTheme
-import com.example.luca.ui.theme.UIAccentYellow
-import com.example.luca.ui.theme.UIBlack
-import com.example.luca.ui.theme.UIGrey
-import com.example.luca.ui.theme.UIWhite
-import kotlinx.coroutines.launch
+// Import Component Overlay yang baru dibuat
+import com.example.luca.ui.components.AvatarSelectionOverlay
+import com.example.luca.ui.theme.*
+// Import Utils yang baru dibuat
+import com.example.luca.util.AvatarUtils
 
 @Composable
 fun FillProfileScreen(
@@ -43,13 +38,12 @@ fun FillProfileScreen(
     onCreateAccountClick: () -> Unit = {}
 ) {
     var username by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        imageUri = uri
-    }
+    // Default Avatar (Pilih avatar_1 saat pertama buka)
+    var selectedAvatarName by remember { mutableStateOf(AvatarUtils.avatars[0].first) }
+
+    // State untuk kontrol muncul/tidaknya overlay dialog
+    var showAvatarDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -60,14 +54,13 @@ fun FillProfileScreen(
         if (username.isNotEmpty()) {
             isLoading = true
             scope.launch {
-                // FIX: result bukan Boolean, tapi Result<Boolean>
-                val result = authRepo.updateProfile(username, imageUri)
+                // UPDATE: Kirim String AvatarName, bukan URI
+                val result = authRepo.updateProfile(username, selectedAvatarName)
                 isLoading = false
 
-                // CARA MENANGANI RESULT:
                 result.onSuccess {
                     Toast.makeText(context, "Profile Disimpan!", Toast.LENGTH_SHORT).show()
-                    onCreateAccountClick() // Pindah ke Final Screen / Home
+                    onCreateAccountClick()
                 }
 
                 result.onFailure { exception ->
@@ -80,6 +73,7 @@ fun FillProfileScreen(
         }
     }
 
+    // --- UI UTAMA ---
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -88,13 +82,11 @@ fun FillProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(all = 30.dp),
-            horizontalAlignment = Alignment.Start
+                .padding(30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // BOX 1: HEADER (Back Icon)
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // Header: Back Icon
+            Box(modifier = Modifier.fillMaxWidth()) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
@@ -105,163 +97,123 @@ fun FillProfileScreen(
                 )
             }
 
-            // BOX 2: CONTENT (Middle)
-            Box(
+            // Scrollable Content
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                Spacer(modifier = Modifier.height(60.dp))
+
+                Text(
+                    text = "What’s your name?",
+                    style = AppFont.SemiBold,
+                    fontSize = 28.sp,
+                    color = UIBlack
+                )
+                Text(
+                    text = "We want to know you more!",
+                    style = AppFont.Medium,
+                    fontSize = 14.sp,
+                    color = UIBlack.copy(alpha = 0.6f)
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // --- AREA FOTO PROFIL (KLIK UNTUK GANTI) ---
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .clickable { showAvatarDialog = true }, // Munculkan Dialog saat diklik
+                    contentAlignment = Alignment.Center
                 ) {
-                    Spacer(modifier = Modifier.height(104.dp))
+                    // Tampilkan gambar berdasarkan String selectedAvatarName (Ambil dari Local)
+                    Image(
+                        painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
+                        contentDescription = "Selected Avatar",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
 
-                    // --- TITLE SECTION ---
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Text(
-                            text = "What’s your name?",
-                            style = AppFont.SemiBold,
-                            fontSize = 28.sp,
-                            color = UIBlack
-                        )
-                        Text(
-                            text = "We want to know you more!",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack.copy(alpha = 0.6f)
-                        )
-                    }
-
-                    // --- PROFILE PICTURE UPLOAD ---
-                    Spacer(modifier = Modifier.height(30.dp))
-
+                    // Overlay transparan + Icon Kamera
                     Box(
                         modifier = Modifier
-                            .size(150.dp)
-                            .clickable {
-                                // Memicu buka galeri saat diklik
-                                galleryLauncher.launch("image/*")
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Jika belum pilih foto, tampilkan placeholder lama
-                        if (imageUri == null) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_circle_profile),
-                                contentDescription = "Profile Placeholder",
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.1f))
+                    )
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_camera_form),
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
 
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_camera_form),
-                                contentDescription = "Upload Icon",
-                                modifier = Modifier
-                                    .size(width = 24.44.dp, height = 20.dp)
-                                    .align(Alignment.Center)
-                            )
-                        }
-                        // Jika SUDAH pilih foto, tampilkan foto tersebut
-                        else {
-                            AsyncImage(
-                                model = imageUri,
-                                contentDescription = "Selected Profile",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape), // Membuat foto jadi bulat
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                Spacer(modifier = Modifier.height(15.dp))
+
+                Text(
+                    text = "Tap to change avatar",
+                    style = AppFont.Medium,
+                    fontSize = 12.sp,
+                    color = UIAccentYellow
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // Input Username
+                ProfileInputForm(
+                    text = username,
+                    onValueChange = { username = it },
+                    placeholder = "Username",
+                    iconRes = R.drawable.ic_user_form, // Pastikan icon ini ada di drawable
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // Tombol Create
+                Button(
+                    onClick = handleCreateAccount,
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(23.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = UIAccentYellow,
+                        contentColor = UIBlack
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = UIBlack,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Create Account",
+                            style = AppFont.Medium,
+                            fontSize = 14.sp,
+                            color = UIBlack
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "Profile Picture",
-                        style = AppFont.SemiBold,
-                        fontSize = 14.sp,
-                        color = UIBlack,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // --- USERNAME FORM ---
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    ProfileInputForm(
-                        text = username,
-                        onValueChange = { username = it },
-                        placeholder = "Username",
-                        iconRes = R.drawable.ic_user_form,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // --- BUTTON CREATE ACCOUNT ---
-                    Spacer(modifier = Modifier.height(29.dp))
-
-                    Button(
-                        onClick = handleCreateAccount,
-                        enabled = !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(23.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = UIAccentYellow,
-                            contentColor = UIBlack
-                        ),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = UIBlack,
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = "Create Account",
-                                style = AppFont.Medium,
-                                fontSize = 14.sp,
-                                color = UIBlack,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    // --- DISCLAIMER TEXT ---
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "*Don’t worry, you can change them later!",
-                        style = AppFont.Medium,
-                        fontSize = 12.sp,
-                        color = UIBlack.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
+        }
 
-            // BOX 3: FOOTER (Bottom)
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Privacy Policy   ·   Terms of Service",
-                    style = AppFont.SemiBold,
-                    fontSize = 12.sp,
-                    color = UIBlack.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
-            }
+        // --- PANGGIL OVERLAY DI SINI ---
+        if (showAvatarDialog) {
+            AvatarSelectionOverlay(
+                currentSelection = selectedAvatarName,
+                onDismiss = { showAvatarDialog = false },
+                onAvatarSelected = { newName ->
+                    selectedAvatarName = newName
+                    // Dialog otomatis tertutup di dalam komponen overlay
+                }
+            )
         }
     }
 }
