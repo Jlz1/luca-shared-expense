@@ -232,30 +232,54 @@ fun ContactsScreen() {
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp, top = 150.dp, bottom = 120.dp) // Sesuaikan padding biar pas di tengah vertikal
+                    .padding(end = 4.dp, top = 180.dp, bottom = 90.dp) // Sesuaikan padding biar pas di tengah vertikal
                     .width(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
                 alphabet.forEach { letter ->
-                    Text(
-                        text = letter.toString(),
-                        style = AppFont.Regular,
-                        fontSize = 10.sp,
-                        color = UIDarkGrey,
+                    Box(
                         modifier = Modifier
-                            .padding(vertical = 2.dp)
+                            .fillMaxWidth() // Memenuhi lebar parent (20.dp)
+                            .height(20.dp) // OPSI: Bisa set tinggi fix jika ingin konsisten antar huruf
                             .clickable {
-                                // LOGIKA SCROLL KE HURUF
+                                // LOGIKA SCROLL (Pindahkan ke sini)
                                 coroutineScope.launch {
-                                    // Cari index header huruf tersebut di list
                                     val index = getScrollIndex(groupedContacts, letter)
                                     if (index != -1) {
                                         listState.animateScrollToItem(index)
                                     }
                                 }
-                            }
-                    )
+                            },
+//                            .padding(vertical = 2.dp), // Spasi antar item (visual)
+                        contentAlignment = Alignment.Center // Pastikan huruf di tengah Box
+                    ) {
+                        Text(
+                            text = letter.toString(),
+                            style = AppFont.Regular,
+                            fontSize = 12.sp,
+                            color = UIDarkGrey,
+                            textAlign = TextAlign.Center // Jaga-jaga biar text align tengah
+                        )
+                    }
+//                    Text(
+//                        text = letter.toString(),
+//                        style = AppFont.Regular,
+//                        fontSize = 10.sp,
+//                        color = UIDarkGrey,
+//                        modifier = Modifier
+//                            .padding(vertical = 2.dp)
+//                            .clickable {
+//                                // LOGIKA SCROLL KE HURUF
+//                                coroutineScope.launch {
+//                                    // Cari index header huruf tersebut di list
+//                                    val index = getScrollIndex(groupedContacts, letter)
+//                                    if (index != -1) {
+//                                        listState.animateScrollToItem(index)
+//                                    }
+//                                }
+//                            }
+//                    )
                 }
             }
         }
