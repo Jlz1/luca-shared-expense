@@ -70,6 +70,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -1787,42 +1788,96 @@ fun SearchBarModify(
             }
         } else {
             // Mode Editable: Bisa diisi text dengan STATE INTERNAL
-            TextField(
+            BasicTextField(
                 value = internalSearchQuery,
                 onValueChange = { newQuery ->
-                    internalSearchQuery = newQuery // Update state internal
-                    onSearchQueryChange(newQuery) // Kirim ke callback
+                    internalSearchQuery = newQuery
+                    onSearchQueryChange(newQuery)
                 },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        text = placeholder,
-                        style = AppFont.Regular,
-                        fontSize = 16.sp,
-                        color = UIDarkGrey
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = UIDarkGrey,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                enabled = enabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // PENTING: Padding vertikal Container diatur disini
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
+                textStyle = AppFont.Regular.copy(
+                    fontSize = 16.sp,
+                    color = UIBlack // Pastikan warna text di set disini
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                textStyle = AppFont.Regular.copy(fontSize = 16.sp)
+                decorationBox = { innerTextField ->
+                    // Kita harus menyusun ulang layoutnya secara manual (Row -> Icon -> Text)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. LEADING ICON
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // 2. PLACEHOLDER & TEXT FIELD
+                        Box(
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            // Tampilkan Placeholder jika query kosong
+                            if (internalSearchQuery.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = AppFont.Regular,
+                                    fontSize = 16.sp,
+                                    color = UIDarkGrey
+                                )
+                            }
+
+                            // Ini adalah komponen input teks aslinya
+                            // Karena BasicTextField tidak punya container,
+                            // dia tidak akan memotong 'ekor' huruf
+                            innerTextField()
+                        }
+                    }
+                }
             )
+//            TextField(
+//                value = internalSearchQuery,
+//                onValueChange = { newQuery ->
+//                    internalSearchQuery = newQuery // Update state internal
+//                    onSearchQueryChange(newQuery) // Kirim ke callback
+//                },
+//                modifier = Modifier.fillMaxWidth(),
+//                placeholder = {
+//                    Text(
+//                        text = placeholder,
+//                        style = AppFont.Regular,
+//                        fontSize = 16.sp,
+//                        color = UIDarkGrey
+//                    )
+//                },
+//                leadingIcon = {
+//                    Icon(
+//                        imageVector = Icons.Default.Search,
+//                        contentDescription = "Search",
+//                        tint = UIDarkGrey,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                },
+//                enabled = enabled,
+//                singleLine = true,
+//                colors = TextFieldDefaults.colors(
+//                    focusedContainerColor = Color.Transparent,
+//                    unfocusedContainerColor = Color.Transparent,
+//                    disabledContainerColor = Color.Transparent,
+//                    focusedIndicatorColor = Color.Transparent,
+//                    unfocusedIndicatorColor = Color.Transparent,
+//                    disabledIndicatorColor = Color.Transparent
+//                ),
+//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+//                textStyle = AppFont.Regular.copy(
+//                    fontSize = 16.sp)
+//            )
         }
     }
 }
