@@ -327,37 +327,6 @@ fun ContactsScreen() {
                     .padding(16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .wrapContentHeight(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = UIWhite),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        // Close Button
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.TopEnd
-                        ) {
-                            IconButton(
-                                onClick = { selectedContact = null },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = UIBlack,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
 
                         // Contact Card Component
                         ContactCard(
@@ -381,7 +350,7 @@ fun ContactsScreen() {
                             }
                         )
                     }
-                }
+
             }
         }
 
@@ -591,7 +560,7 @@ fun ContactsScreen() {
             }
         }
     }
-}
+
 
 // --- SUB-COMPONENT: CONTACT ROW ITEM ---
 @Composable
