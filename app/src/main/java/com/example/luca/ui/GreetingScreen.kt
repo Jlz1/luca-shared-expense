@@ -30,8 +30,6 @@ import com.example.luca.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.launch
 
 // --- FUNGSI 1: LOGIC WRAPPER ---
@@ -43,10 +41,13 @@ fun GreetingScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Inisialisasi Repository
     val authRepo = remember { AuthRepository() }
+
+    // Web Client ID (Pastikan ini sesuai dengan console firebase kamu)
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
 
-    // --- LAUNCHER GOOGLE ---
+    // --- 1. LAUNCHER GOOGLE ---
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -58,12 +59,14 @@ fun GreetingScreen(
 
                 if (idToken != null) {
                     scope.launch {
-                        val success = authRepo.signInWithGoogle(idToken)
-                        if (success) {
+                        // FIX: Menggunakan Result handling (onSuccess/onFailure)
+                        val authResult = authRepo.signInWithGoogle(idToken)
+
+                        authResult.onSuccess {
                             Toast.makeText(context, "Login Google Berhasil!", Toast.LENGTH_SHORT).show()
                             onNavigateToHome()
-                        } else {
-                            Toast.makeText(context, "Gagal simpan ke Firebase", Toast.LENGTH_SHORT).show()
+                        }.onFailure { error ->
+                            Toast.makeText(context, "Gagal: ${error.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -73,7 +76,7 @@ fun GreetingScreen(
         }
     }
 
-    // Handle Google Sign-In
+    // Handle Google Click
     val onGoogleClick: () -> Unit = {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(webClientId)
@@ -83,24 +86,25 @@ fun GreetingScreen(
         googleLauncher.launch(client.signInIntent)
     }
 
-    // Handle X (Twitter) Sign-In
+    // --- 2. HANDLE X (TWITTER) CLICK ---
     val onXClick: () -> Unit = {
-        val provider = OAuthProvider.newBuilder("twitter.com")
-        val firebaseAuth = FirebaseAuth.getInstance()
-        val activity = context as Activity
+        val activity = context as? Activity
+        if (activity != null) {
+            scope.launch {
+                // FIX: Panggil fungsi di Repository, bukan manual di sini
+                // Repository sudah otomatis menangani login & save database
+                val result = authRepo.signInWithTwitter(activity)
 
-        firebaseAuth.startActivityForSignInWithProvider(activity, provider.build())
-            .addOnSuccessListener { result ->
-                val user = result.user
-                if (user != null) {
-                    authRepo.saveUserAfterSocialLogin(user)
-                    Toast.makeText(context, "Welcome ${user.displayName}!", Toast.LENGTH_SHORT).show()
+                result.onSuccess {
+                    Toast.makeText(context, "Login X Berhasil!", Toast.LENGTH_SHORT).show()
                     onNavigateToHome()
+                }.onFailure { error ->
+                    Toast.makeText(context, "Login X Gagal: ${error.message}", Toast.LENGTH_LONG).show()
                 }
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "X Login Failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        } else {
+            Toast.makeText(context, "Error: Context bukan Activity", Toast.LENGTH_SHORT).show()
+        }
     }
 
     // Pass state and callbacks to UI Content
@@ -112,7 +116,7 @@ fun GreetingScreen(
     )
 }
 
-// --- FUNGSI 2: UI CONTENT ---
+// --- FUNGSI 2: UI CONTENT (TIDAK ADA PERUBAHAN) ---
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
@@ -143,7 +147,6 @@ fun GreetingScreenContent(
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
 
-                // LOGO SUDAH DIAKTIFKAN
                 Image(
                     painter = painterResource(id = R.drawable.ic_luca_logo),
                     contentDescription = "Luca Logo",
@@ -172,7 +175,6 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(74.dp))
 
-                // --- TOMBOL GOOGLE (ICON AKTIF) ---
                 SocialButton(
                     text = "Continue with Google",
                     iconRes = R.drawable.ic_google_logo,
@@ -182,7 +184,6 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- TOMBOL X/TWITTER (ICON AKTIF) ---
                 SocialButton(
                     text = "Continue with X",
                     iconRes = R.drawable.ic_x_logo,
@@ -192,7 +193,6 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(107.dp))
 
-                // --- TOMBOL SIGN UP ---
                 Button(
                     onClick = onSignUpClick,
                     modifier = Modifier
@@ -213,7 +213,6 @@ fun GreetingScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- TOMBOL LOGIN ---
                 OutlinedButton(
                     onClick = onLoginClick,
                     modifier = Modifier
@@ -251,7 +250,7 @@ fun GreetingScreenContent(
 @Composable
 fun SocialButton(
     text: String,
-    iconRes: Int, // Parameter icon diaktifkan kembali
+    iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -268,7 +267,6 @@ fun SocialButton(
         ) {
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Image Icon diaktifkan kembali
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = null,

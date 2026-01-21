@@ -1,10 +1,6 @@
 package com.example.luca.ui
 
 import android.annotation.SuppressLint
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -56,7 +52,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
@@ -73,11 +68,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,6 +108,9 @@ import com.example.luca.model.Event
 import java.text.NumberFormat
 import java.util.Locale
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
+import androidx.compose.ui.platform.LocalContext
 
 // Header State Definition
 enum class HeaderState(
@@ -524,23 +520,31 @@ fun StackedAvatarRow(
 @Composable
 fun AvatarItem(
     imageUrl: String,
-    zIndex: Float,
+    zIndex: Float = 0f, // Default value biar aman
     size: Dp = 40.dp
 ) {
+    val context = LocalContext.current
+
     val commonModifier = Modifier
         .size(size)
-        .zIndex(zIndex) // Important for stacking effect
+        .zIndex(zIndex)
         .clip(CircleShape)
         .border(2.dp, UIWhite, CircleShape)
-        .background(UIDarkGrey) // Background while loading
+        .background(UIGrey) // <--- INI KUNCINYA: Warna abu saat loading
 
     AsyncImage(
-        model = imageUrl,
+        model = ImageRequest.Builder(context)
+            .data(imageUrl)
+            .crossfade(true) // Animasi halus saat gambar muncul
+            .diskCachePolicy(CachePolicy.ENABLED) // Simpan di memori HP
+            .memoryCachePolicy(CachePolicy.ENABLED) // Simpan di RAM
+            .build(),
         contentDescription = "Avatar",
         modifier = commonModifier,
         contentScale = ContentScale.Crop,
-        // Placeholder/Error image if URL is empty or fails
-        placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+        // JANGAN PAKAI PLACEHOLDER GAMBAR (Biar cuma warna abu yg kelihatan)
+        placeholder = null,
+        // Kalau error (link mati/gak ada internet), baru munculkan icon default/android
         error = painterResource(id = R.drawable.ic_launcher_foreground)
     )
 }
@@ -572,17 +576,23 @@ fun EventCard(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(15.dp))
-                            .background(UIDarkGrey), // Warna background saat loading
-                        contentAlignment = Alignment.BottomEnd
+                            .background(UIGrey), // <--- Warna abu saat loading (ganti UIDarkGrey jadi UIGrey biar lebih soft)
+                        contentAlignment = Alignment.Center // Default center biar icon error di tengah
                     ) {
-                        // LOGIC BARU: Tampilkan gambar dari URL
+                        // LOGIC BARU: Tampilkan gambar dari URL dengan Caching Agresif
                         AsyncImage(
-                            model = event.imageUrl,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(event.imageUrl)
+                                .crossfade(true) // Fade in halus
+                                .crossfade(400) // Durasi 0.4 detik
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .build(),
                             contentDescription = "Event Image",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
-                            // (Opsional) Icon error kalau gambar gagal load
-                            error = painterResource(id = R.drawable.ic_launcher_foreground)
+                            placeholder = null, // Biarkan background abu yang bekerja
+                            error = painterResource(id = R.drawable.ic_launcher_foreground) // Icon android cuma muncul kalau ERROR/GAGAL
                         )
 
                         // Avatar Stack (Tetap menumpuk di atas gambar)
@@ -1778,42 +1788,96 @@ fun SearchBarModify(
             }
         } else {
             // Mode Editable: Bisa diisi text dengan STATE INTERNAL
-            TextField(
+            BasicTextField(
                 value = internalSearchQuery,
                 onValueChange = { newQuery ->
-                    internalSearchQuery = newQuery // Update state internal
-                    onSearchQueryChange(newQuery) // Kirim ke callback
+                    internalSearchQuery = newQuery
+                    onSearchQueryChange(newQuery)
                 },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        text = placeholder,
-                        style = AppFont.Regular,
-                        fontSize = 16.sp,
-                        color = UIDarkGrey
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = UIDarkGrey,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                enabled = enabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // PENTING: Padding vertikal Container diatur disini
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
+                textStyle = AppFont.Regular.copy(
+                    fontSize = 16.sp,
+                    color = UIBlack // Pastikan warna text di set disini
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                textStyle = AppFont.Regular.copy(fontSize = 16.sp)
+                decorationBox = { innerTextField ->
+                    // Kita harus menyusun ulang layoutnya secara manual (Row -> Icon -> Text)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. LEADING ICON
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // 2. PLACEHOLDER & TEXT FIELD
+                        Box(
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            // Tampilkan Placeholder jika query kosong
+                            if (internalSearchQuery.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = AppFont.Regular,
+                                    fontSize = 16.sp,
+                                    color = UIDarkGrey
+                                )
+                            }
+
+                            // Ini adalah komponen input teks aslinya
+                            // Karena BasicTextField tidak punya container,
+                            // dia tidak akan memotong 'ekor' huruf
+                            innerTextField()
+                        }
+                    }
+                }
             )
+//            TextField(
+//                value = internalSearchQuery,
+//                onValueChange = { newQuery ->
+//                    internalSearchQuery = newQuery // Update state internal
+//                    onSearchQueryChange(newQuery) // Kirim ke callback
+//                },
+//                modifier = Modifier.fillMaxWidth(),
+//                placeholder = {
+//                    Text(
+//                        text = placeholder,
+//                        style = AppFont.Regular,
+//                        fontSize = 16.sp,
+//                        color = UIDarkGrey
+//                    )
+//                },
+//                leadingIcon = {
+//                    Icon(
+//                        imageVector = Icons.Default.Search,
+//                        contentDescription = "Search",
+//                        tint = UIDarkGrey,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                },
+//                enabled = enabled,
+//                singleLine = true,
+//                colors = TextFieldDefaults.colors(
+//                    focusedContainerColor = Color.Transparent,
+//                    unfocusedContainerColor = Color.Transparent,
+//                    disabledContainerColor = Color.Transparent,
+//                    focusedIndicatorColor = Color.Transparent,
+//                    unfocusedIndicatorColor = Color.Transparent,
+//                    disabledIndicatorColor = Color.Transparent
+//                ),
+//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+//                textStyle = AppFont.Regular.copy(
+//                    fontSize = 16.sp)
+//            )
         }
     }
 }

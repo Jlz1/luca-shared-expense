@@ -1,11 +1,13 @@
-package com.example.luca.model // <-- Pastikan package-nya bener
+package com.example.luca.model
 
 data class User(
-    val uid: String = "",           // ID unik dari Firebase Auth
-    val email: String = "",         // Email user
-    val username: String = "",      // Nama tampilan
-    val photoUrl: String = "",      // Foto profil (opsional, buat nanti)
-    val createdAt: Long = 0         // Tanggal dibuat (biar bisa diurutin)
+    val uid: String = "",
+    val email: String = "",
+    val username: String = "",
+
+    // UBAH DARI photoUrl KE avatarName
+    // Default-nya kasih "avatar_1" biar gak error kalau datanya kosong
+    val avatarName: String = "avatar_1",
+
+    val createdAt: Long = 0
 )
-// PENTING: Semua harus punya nilai default (= "")
-// Supaya Firebase bisa otomatis mengubah data dari database menjadi object User ini.

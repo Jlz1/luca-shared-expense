@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
 import kotlinx.coroutines.launch
-import kotlin.collections.iterator
 // Pastikan HeaderSection diimport
 // import com.example.luca.ui.components.HeaderSection
 
@@ -38,18 +37,26 @@ data class Contact(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ContactsScreen(
-    onHomeClick: () -> Unit = {} // Parameter sisa, biarkan saja agar kompatibel
-) {
+fun ContactsScreen() {
     // 1. DUMMY DATA GENERATOR
     // Ubah list ini jadi emptyList() untuk mengetes tampilan kosong (Empty State)
     val contacts = remember { generateDummyContacts() }
-
     // State untuk UserProfileOverlay
     var showUserProfileOverlay by remember { mutableStateOf(false) }
 
     // State untuk Search Bar
     var searchQuery by remember { mutableStateOf("") }
+
+    // State untuk menampilkan ContactCard detail
+    var selectedContact by remember { mutableStateOf<Contact?>(null) }
+
+    // State untuk Edit Contact
+    var editingContact by remember { mutableStateOf<Contact?>(null) }
+    var showEditOverlay by remember { mutableStateOf(false) }
+
+    // State untuk Delete Confirmation
+    var contactToDelete by remember { mutableStateOf<Contact?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     // Filtered contacts berdasarkan search query (case-insensitive)
     val filteredContacts = remember(contacts, searchQuery) {
@@ -207,7 +214,10 @@ fun ContactsScreen(
 
                             // Item Kontak
                             items(contactsForInitial) { contact ->
-                                ContactRowItem(contact = contact)
+                                ContactRowItem(
+                                    contact = contact,
+                                    onContactClicked = { selectedContact = it }
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
@@ -222,30 +232,54 @@ fun ContactsScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp, top = 150.dp, bottom = 120.dp) // Sesuaikan padding biar pas di tengah vertikal
+                    .padding(end = 4.dp, top = 180.dp, bottom = 90.dp) // Sesuaikan padding biar pas di tengah vertikal
                     .width(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceEvenly
             ) {
                 alphabet.forEach { letter ->
-                    Text(
-                        text = letter.toString(),
-                        style = AppFont.Regular,
-                        fontSize = 10.sp,
-                        color = UIDarkGrey,
+                    Box(
                         modifier = Modifier
-                            .padding(vertical = 2.dp)
+                            .fillMaxWidth() // Memenuhi lebar parent (20.dp)
+                            .height(20.dp) // OPSI: Bisa set tinggi fix jika ingin konsisten antar huruf
                             .clickable {
-                                // LOGIKA SCROLL KE HURUF
+                                // LOGIKA SCROLL (Pindahkan ke sini)
                                 coroutineScope.launch {
-                                    // Cari index header huruf tersebut di list
                                     val index = getScrollIndex(groupedContacts, letter)
                                     if (index != -1) {
                                         listState.animateScrollToItem(index)
                                     }
                                 }
-                            }
-                    )
+                            },
+//                            .padding(vertical = 2.dp), // Spasi antar item (visual)
+                        contentAlignment = Alignment.Center // Pastikan huruf di tengah Box
+                    ) {
+                        Text(
+                            text = letter.toString(),
+                            style = AppFont.Regular,
+                            fontSize = 12.sp,
+                            color = UIDarkGrey,
+                            textAlign = TextAlign.Center // Jaga-jaga biar text align tengah
+                        )
+                    }
+//                    Text(
+//                        text = letter.toString(),
+//                        style = AppFont.Regular,
+//                        fontSize = 10.sp,
+//                        color = UIDarkGrey,
+//                        modifier = Modifier
+//                            .padding(vertical = 2.dp)
+//                            .clickable {
+//                                // LOGIKA SCROLL KE HURUF
+//                                coroutineScope.launch {
+//                                    // Cari index header huruf tersebut di list
+//                                    val index = getScrollIndex(groupedContacts, letter)
+//                                    if (index != -1) {
+//                                        listState.animateScrollToItem(index)
+//                                    }
+//                                }
+//                            }
+//                    )
                 }
             }
         }
@@ -274,16 +308,301 @@ fun ContactsScreen(
                 )
             }
         }
+
+        // --- CONTACT DETAIL CARD OVERLAY ---
+        // Tampilkan ContactCard saat ada contact yang dipilih
+        if (selectedContact != null) {
+            // Scrim (Background gelap semi-transparent)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { selectedContact = null } // Close saat klik luar
+            )
+
+            // Overlay Card di tengah
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = UIWhite),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        // Close Button
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.TopEnd
+                        ) {
+                            IconButton(
+                                onClick = { selectedContact = null },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = UIBlack,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        // Contact Card Component
+                        ContactCard(
+                            contactName = selectedContact!!.name,
+                            phoneNumber = selectedContact!!.phoneNumber,
+                            avatarColor = selectedContact!!.color,
+                            events = listOf("Event 1", "Event 2"), // Dummy events
+                            bankAccounts = listOf(
+                                BankAccount("BCA", "1234567890", Color(0xFF1f4788)),
+                                BankAccount("Mandiri", "0987654321", Color(0xFFFF6B35))
+                            ), // Dummy bank accounts
+                            onEditClicked = {
+                                // Kerangka untuk Edit Contact
+                                editingContact = selectedContact
+                                showEditOverlay = true
+                            },
+                            onDeleteClicked = {
+                                // Kerangka untuk Delete Contact
+                                contactToDelete = selectedContact
+                                showDeleteConfirmation = true
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- EDIT CONTACT OVERLAY ---
+        // Tampilkan overlay edit ketika Edit button diklik
+        if (showEditOverlay && editingContact != null) {
+            // Scrim (Background gelap semi-transparent)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showEditOverlay = false } // Close saat klik luar
+            )
+
+            // Overlay Edit Form di tengah
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = UIWhite),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                    ) {
+                        // Title
+                        Text(
+                            text = "Edit Contact",
+                            style = AppFont.Bold,
+                            fontSize = 24.sp,
+                            color = UIBlack
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // KERANGKA: Edit Form akan ditampilkan di sini
+                        // Data dari editingContact akan ditampilkan dan bisa diedit
+                        Text(
+                            text = "Kerangka untuk Edit Form",
+                            style = AppFont.Regular,
+                            fontSize = 14.sp,
+                            color = UIDarkGrey
+                        )
+
+                        Text(
+                            text = "Contact: ${editingContact?.name}",
+                            style = AppFont.Regular,
+                            fontSize = 14.sp,
+                            color = UIBlack,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+
+                        Text(
+                            text = "Phone: ${editingContact?.phoneNumber}",
+                            style = AppFont.Regular,
+                            fontSize = 14.sp,
+                            color = UIBlack,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Action Buttons
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Cancel Button
+                            Button(
+                                onClick = { showEditOverlay = false },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = UIDarkGrey)
+                            ) {
+                                Text("Cancel", color = UIWhite, style = AppFont.Medium)
+                            }
+
+                            // Save Button (KERANGKA)
+                            Button(
+                                onClick = {
+                                    // KERANGKA: Implementasi save logic untuk edit contact
+                                    // - Update contact data dari editingContact
+                                    // - Tutup overlay
+                                    showEditOverlay = false
+                                    selectedContact = null
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                            ) {
+                                Text("Save", color = UIBlack, style = AppFont.Medium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- DELETE CONFIRMATION DIALOG ---
+        // Tampilkan confirmation dialog ketika Delete button diklik
+        if (showDeleteConfirmation && contactToDelete != null) {
+            // Scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showDeleteConfirmation = false }
+            )
+
+            // Confirmation Dialog
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = UIWhite),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Warning Icon or Title
+                        Text(
+                            text = "Delete Contact?",
+                            style = AppFont.Bold,
+                            fontSize = 20.sp,
+                            color = UIBlack
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Confirmation Message
+                        Text(
+                            text = "Are you sure you want to delete ${contactToDelete?.name}?",
+                            style = AppFont.Regular,
+                            fontSize = 14.sp,
+                            color = UIDarkGrey,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Cancel Button
+                            Button(
+                                onClick = {
+                                    showDeleteConfirmation = false
+                                    contactToDelete = null
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = UIDarkGrey)
+                            ) {
+                                Text("Cancel", color = UIWhite, style = AppFont.Medium, fontSize = 14.sp)
+                            }
+
+                            // Delete Button (KERANGKA)
+                            Button(
+                                onClick = {
+                                    // KERANGKA: Implementasi delete logic
+                                    // - Hapus contact dari database/list
+                                    // - Untuk sekarang tidak terjadi apa-apa
+                                    showDeleteConfirmation = false
+                                    selectedContact = null
+                                    contactToDelete = null
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350))
+                            ) {
+                                Text("Delete", color = UIWhite, style = AppFont.Medium, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 // --- SUB-COMPONENT: CONTACT ROW ITEM ---
 @Composable
-fun ContactRowItem(contact: Contact) {
+fun ContactRowItem(
+    contact: Contact,
+    onContactClicked: (Contact) -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Handle Click Contact */ },
+            .clickable { onContactClicked(contact) },
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar Bulat

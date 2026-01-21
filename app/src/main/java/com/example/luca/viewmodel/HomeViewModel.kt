@@ -10,24 +10,41 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
-    // State untuk menyimpan daftar event dari database
+    // --- STATE UTAMA ---
+
+    // 1. Daftar Event
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
 
-    // State untuk search query
+    // 2. Search Query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    // 3. Loading State (Default true agar loading muncul saat pertama buka)
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
+
     init {
-        // Otomatis ambil data saat ViewModel dibuat
         loadEvents()
     }
 
-    // Fungsi untuk mengambil data dari Repository (Firebase)
+    // --- LOGIC ---
+
     fun loadEvents() {
         viewModelScope.launch {
-            val eventList = repository.getAllEvents()
-            _events.value = eventList
+            _isLoading.value = true
+
+            try {
+                // UPDATE: Tidak perlu pass userId, repo cari sendiri
+                val eventList = repository.getAllEvents()
+                _events.value = eventList
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _events.value = emptyList()
+            } finally {
+                // Loading selesai (sukses/gagal)
+                _isLoading.value = false
+            }
         }
     }
 
@@ -35,7 +52,7 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    // Logic filtering berdasarkan search query
+    // Logic filtering (Search)
     fun getFilteredEvents(): List<Event> {
         val query = _searchQuery.value
         val currentEvents = _events.value
@@ -43,6 +60,7 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         return if (query.isEmpty()) {
             currentEvents
         } else {
+            // Filter berdasarkan judul (Title), ignoreCase = huruf besar/kecil dianggap sama
             currentEvents.filter { it.title.contains(query, ignoreCase = true) }
         }
     }

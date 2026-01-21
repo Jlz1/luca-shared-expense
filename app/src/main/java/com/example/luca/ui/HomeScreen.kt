@@ -26,19 +26,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.luca.model.Event
-import com.example.luca.ui.theme.*
-import com.example.luca.viewmodel.HomeViewModel
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.model.Event
+import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.HomeViewModel
 
 // --- STATEFUL COMPOSABLE (Logic) ---
 @Composable
 fun HomeScreen(
-    // 1. UPDATE DI SINI: Kita inject Repository ke ViewModel menggunakan Factory
+    // Inject ViewModel dengan Factory (Repository)
     viewModel: HomeViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
@@ -50,20 +48,17 @@ fun HomeScreen(
     onContactsClick: () -> Unit = {},
     onAddEventClick: () -> Unit = {}
 ) {
+    // Collect State dari ViewModel
     val allEvents by viewModel.events.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState() // <-- NEW: State Loading
 
-    // Logic filter dipanggil setiap kali UI direcompose
+    // Logic filter
     val filteredEvents = viewModel.getFilteredEvents()
 
     val listState = rememberLazyListState()
 
-    // Opsional: Refresh data setiap kali user kembali ke halaman ini
-    LaunchedEffect(Unit) {
-        viewModel.loadEvents()
-    }
-
-    // Auto-scroll logic (Tetap sama)
+    // Auto-scroll logic saat search
     LaunchedEffect(searchQuery, allEvents) {
         if (searchQuery.isNotEmpty() && allEvents.isNotEmpty()) {
             val index = allEvents.indexOfFirst {
@@ -77,8 +72,9 @@ fun HomeScreen(
 
     HomeScreenContent(
         searchQuery = searchQuery,
+        isLoading = isLoading, // <-- Oper ke UI
         onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
-        filteredEvents = filteredEvents, // Ini sekarang berisi data real dari Firebase
+        filteredEvents = filteredEvents,
         listState = listState,
         onEventClick = onNavigateToDetail,
         onAddEventClick = onAddEventClick
@@ -89,30 +85,27 @@ fun HomeScreen(
 @Composable
 fun HomeScreenContent(
     searchQuery: String,
+    isLoading: Boolean, // <-- Parameter Baru
     onSearchQueryChange: (String) -> Unit,
     filteredEvents: List<Event>,
     listState: LazyListState,
     onEventClick: (String) -> Unit,
     onAddEventClick: () -> Unit
 ) {
-    // 1. HAPUS SCAFFOLD. Ganti langsung dengan Container utama.
-    // Kita pakai Column full screen dengan background kuning.
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(UIAccentYellow)
-            // Tambahkan status bar padding jika perlu, atau biarkan MainActivity yang handle
             .statusBarsPadding()
     ) {
 
-        // 2. HEADER SECTION (Dulunya di topBar Scaffold, sekarang ditaruh manual disini)
-        // Pastikan komponen HeaderSection() kamu ada dan bisa diakses
+        // 1. HEADER SECTION
         HeaderSection()
 
-        // 3. SEARCH BAR AREA
+        // 2. SEARCH BAR AREA
         Box(
             modifier = Modifier
-                .height(90.dp) // Sesuaikan tinggi area search
+                .height(90.dp)
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 25.dp),
             contentAlignment = Alignment.Center
@@ -123,17 +116,33 @@ fun HomeScreenContent(
             )
         }
 
-        // 4. WHITE CONTENT AREA (Carousel / Empty State)
+        // 3. WHITE CONTENT AREA
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                 .background(UIBackground)
         ) {
-            if (filteredEvents.isEmpty()) {
-                // Empty state butuh tombol add, jadi kita passing fungsinya
+
+            // --- LOGIC TAMPILAN (Loading vs Empty vs Data) ---
+            if (isLoading) {
+                // TAMPILAN SAAT LOADING
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = UIAccentYellow,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            } else if (filteredEvents.isEmpty()) {
+                // TAMPILAN SAAT DATA KOSONG (Tapi sudah tidak loading)
                 EmptyStateView(onAddEventClick = onAddEventClick)
             } else {
+                // TAMPILAN DATA (CAROUSEL)
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -148,8 +157,7 @@ fun HomeScreenContent(
                 }
             }
 
-            // Spacer di bawah agar konten paling bawah tidak ketutup Navbar MainActivity
-            // Navbar tingginya sekitar 80dp-100dp, jadi kita kasih spacer aman.
+            // Spacer bawah agar tidak tertutup Navbar
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -290,6 +298,23 @@ fun HomeScreenPreview() {
     LucaTheme {
         HomeScreenContent(
             searchQuery = "",
+            isLoading = false, // Preview tidak loading
+            onSearchQueryChange = {},
+            filteredEvents = emptyList(),
+            listState = rememberLazyListState(),
+            onEventClick = {},
+            onAddEventClick = {}
+        )
+    }
+}
+
+@Preview(name = "Loading State")
+@Composable
+fun HomeScreenLoadingPreview() {
+    LucaTheme {
+        HomeScreenContent(
+            searchQuery = "",
+            isLoading = true, // Preview sedang loading
             onSearchQueryChange = {},
             filteredEvents = emptyList(),
             listState = rememberLazyListState(),

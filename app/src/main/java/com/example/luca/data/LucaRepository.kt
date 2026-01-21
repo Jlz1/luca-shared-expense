@@ -1,37 +1,57 @@
 package com.example.luca.data
 
 import android.net.Uri
+import android.util.Log
 import com.example.luca.model.Activity
 import com.example.luca.model.Event
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
-import android.util.Log
+
 interface LucaRepository {
+    // UPDATED: Tidak perlu passing userId dari luar, repo cari sendiri
     suspend fun getAllEvents(): List<Event>
     suspend fun getEventById(id: String): Event?
-    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
 
-    // FUNGSI BARU: Upload & Create
+    // Create event otomatis masuk ke user yang sedang login
     suspend fun createEvent(event: Event): Boolean
+
     suspend fun uploadEventImage(imageUri: Uri): String?
+    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
 }
 
 class LucaFirebaseRepository : LucaRepository {
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
-    private val eventsCollection = db.collection("events")
+    // Activities sementara masih global (belum per user)
     private val activitiesCollection = db.collection("activities")
 
-    // --- FUNGSI BARU UNTUK ADD EVENT ---
+    // --- HELPER: Ambil ID User Sendiri ---
+    private fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
+    }
 
+    // --- CREATE ---
     override suspend fun createEvent(event: Event): Boolean {
+        val uid = getCurrentUserId()
+        if (uid == null) {
+            Log.e("FIREBASE", "User belum login, gagal create event")
+            return false
+        }
+
         return try {
-            // Simpan event dengan ID yang sudah digenerate
-            eventsCollection.document(event.id).set(event).await()
+            // Simpan di: users/{uid}/events/{eventId}
+            db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(event.id)
+                .set(event)
+                .await()
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -41,14 +61,9 @@ class LucaFirebaseRepository : LucaRepository {
 
     override suspend fun uploadEventImage(imageUri: Uri): String? {
         return try {
-            // Generate nama file unik biar gak bentrok
             val fileName = UUID.randomUUID().toString()
             val ref = storage.reference.child("images/events/$fileName.jpg")
-
-            // Upload file
             ref.putFile(imageUri).await()
-
-            // Ambil URL download-nya untuk disimpan di database
             ref.downloadUrl.await().toString()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -56,36 +71,45 @@ class LucaFirebaseRepository : LucaRepository {
         }
     }
 
-    // --- FUNGSI LAMA (GET DATA) ---
-
+    // --- GET DATA ---
     override suspend fun getAllEvents(): List<Event> {
+        val uid = getCurrentUserId() ?: return emptyList()
+
         return try {
-            val snapshot = eventsCollection.get().await()
-            // Log jumlah dokumen yang didapat
-            Log.d("FIREBASE_DEBUG", "Jumlah dokumen ditemukan: ${snapshot.size()}")
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .get()
+                .await()
 
-            val events = snapshot.toObjects<Event>()
-            // Log sukses convert
-            Log.d("FIREBASE_DEBUG", "Berhasil convert: ${events.size} event")
-
-            events
+            snapshot.toObjects<Event>()
         } catch (e: Exception) {
-            // INI PENTING: Print errornya ke Logcat biar ketahuan kenapa
-            Log.e("FIREBASE_ERROR", "Gagal ambil data: ${e.message}")
             e.printStackTrace()
             emptyList()
         }
     }
 
     override suspend fun getEventById(id: String): Event? {
+        val uid = getCurrentUserId() ?: return null
+
         return try {
-            val snapshot = eventsCollection.whereEqualTo("id", id).get().await()
-            if (!snapshot.isEmpty) snapshot.documents[0].toObject(Event::class.java) else null
-        } catch (e: Exception) { null }
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(id)
+                .get()
+                .await()
+
+            snapshot.toObject(Event::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     override suspend fun getActivitiesByEventId(eventId: String): List<Activity> {
         return try {
+            // Sementara ambil dari collection global "activities"
             val snapshot = activitiesCollection.whereEqualTo("eventId", eventId).get().await()
             snapshot.toObjects<Activity>()
         } catch (e: Exception) { emptyList() }
