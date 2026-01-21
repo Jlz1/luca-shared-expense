@@ -1338,7 +1338,7 @@ fun ContactCard(
 
                 // Action Buttons (Edit & Delete)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // Edit Button
                     IconButton(
