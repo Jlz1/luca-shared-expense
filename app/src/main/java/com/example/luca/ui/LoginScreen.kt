@@ -29,6 +29,8 @@ import com.example.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 
 // --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
@@ -270,6 +272,8 @@ fun CustomInputForm(
     errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val focusRequester = remember { FocusRequester() }
+
     Column(modifier = modifier) {
         Box(
             modifier = Modifier
@@ -279,6 +283,7 @@ fun CustomInputForm(
                     color = if (errorMessage != null) UIGrey.copy(alpha = 0.9f) else UIGrey,
                     shape = RoundedCornerShape(23.dp)
                 )
+                .clickable { focusRequester.requestFocus() }
                 .then(
                     if (errorMessage != null) {
                         Modifier.background(
@@ -324,7 +329,9 @@ fun CustomInputForm(
                         singleLine = true,
                         visualTransformation = if (isPasswordField && !isPasswordVisible)
                             PasswordVisualTransformation() else VisualTransformation.None,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
                     )
                 }
                 if (isPasswordField) {

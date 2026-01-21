@@ -74,9 +74,15 @@ fun LucaApp() {
                                     2 -> navController.navigate("contacts") { launchSingleTop = true; popUpTo("home") }
                                 }
                             },
-                            onAddClick = { showAddOverlay = true },
-                            onHomeClick = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
-                            onContactsClick = { navController.navigate("contacts") }
+                            onAddClick = { navController.navigate("add_event") },
+                            onHomeClick = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            onContactsClick = {
+                                navController.navigate("contacts")
+                            }
                         )
                     }
                 },
@@ -84,6 +90,7 @@ fun LucaApp() {
                 contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { innerPadding ->
 
+                // --- NAV HOST --
                 // START DESTINATION: Splash (Netral)
                 NavHost(
                     navController = navController,
@@ -157,7 +164,7 @@ fun LucaApp() {
                             viewModel = viewModel,
                             onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
-                            onAddEventClick = { navController.navigate("new_event") }
+                            onAddEventClick = { navController.navigate("add_event") }
                         )
                     }
                     composable("contacts") { ContactsScreen() }
