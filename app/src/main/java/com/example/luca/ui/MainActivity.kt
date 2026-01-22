@@ -91,7 +91,6 @@ fun LucaApp() {
             ) { innerPadding ->
 
                 // --- NAV HOST --
-                // START DESTINATION: Splash (Netral)
                 NavHost(
                     navController = navController,
                     startDestination = "splash",
@@ -103,6 +102,7 @@ fun LucaApp() {
                         LaunchedEffect(Unit) {
                             delay(500)
                             if (auth.currentUser != null) {
+                                // Cek data di DB (bisa diimprove nanti, sementara anggap aman)
                                 navController.navigate("home") { popUpTo("splash") { inclusive = true } }
                             } else {
                                 navController.navigate("greeting") { popUpTo("splash") { inclusive = true } }
@@ -118,6 +118,12 @@ fun LucaApp() {
                         GreetingScreen(
                             onNavigateToLogin = { navController.navigate("login") },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
+
+                            // --- [BARU] INI YANG DITAMBAHKAN ---
+                            // Menghubungkan tombol "Isi Profil" ke rute yang benar
+                            onNavigateToFillProfile = { navController.navigate("fill_profile") },
+                            // ------------------------------------
+
                             onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
                         )
                     }
@@ -131,7 +137,6 @@ fun LucaApp() {
                     composable("sign_up") {
                         SignUpScreen(
                             onBackClick = { navController.popBackStack() },
-                            // PENTING: Mengarah ke Fill Profile
                             onContinueClick = { navController.navigate("fill_profile") }
                         )
                     }
