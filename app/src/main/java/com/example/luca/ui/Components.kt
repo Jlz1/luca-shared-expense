@@ -676,8 +676,8 @@ fun getResourceId(name: String): Int {
 @Composable
 fun UserProfileOverlay(
     onClose: () -> Unit,
-    // Callback mengirim data lengkap: Nama, HP, Deskripsi, List Bank, Avatar
-    onAddContact: (String, String, String, List<BankAccountData>, String) -> Unit,
+    // Callback mengirim data: Nama, HP, List Bank, Avatar (removed description)
+    onAddContact: (String, String, List<BankAccountData>, String) -> Unit,
     // Add optional parameter for editing existing contact
     editContact: Contact? = null,
     onUpdateContact: ((String, String, String, String, List<BankAccountData>, String) -> Unit)? = null
@@ -779,7 +779,7 @@ fun UserProfileOverlay(
                                 onUpdateContact(editContact.id, name, phoneNumber, description, bankAccounts, selectedAvatarName)
                             } else {
                                 // Add new contact
-                                onAddContact(name, phoneNumber, description, bankAccounts, selectedAvatarName)
+                                onAddContact(name, phoneNumber, bankAccounts, selectedAvatarName)
                             }
                         }
                     },
@@ -809,8 +809,6 @@ fun UserProfileOverlay(
 
             Spacer(modifier = Modifier.height(16.dp))
             CustomRoundedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, placeholder = "Phone Number (Optional)", backgroundColor = UIGrey)
-            Spacer(modifier = Modifier.height(16.dp))
-            CustomRoundedTextField(value = description, onValueChange = { description = it }, placeholder = "Description (e.g. Teman Kampus)", backgroundColor = UIGrey)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -1903,9 +1901,9 @@ fun PreviewOverlay() {
         UserProfileOverlay(
             onClose = { println("Overlay closed") },
             // PERBAIKAN DI SINI:
-            // Lambda sekarang harus menerima 5 parameter: name, phone, desc, banks, avatarName
-            onAddContact = { name: String, phone: String, desc: String, banks: List<BankAccountData>, avatarName: String ->
-                println("Contact added: $name, $phone, $desc, $banks, $avatarName")
+            // Lambda sekarang harus menerima 4 parameter: name, phone, banks, avatarName
+            onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String ->
+                println("Contact added: $name, $phone, $banks, $avatarName")
             }
         )
     }

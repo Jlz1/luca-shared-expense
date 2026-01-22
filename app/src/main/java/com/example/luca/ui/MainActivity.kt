@@ -246,8 +246,8 @@ fun LucaApp() {
                             UserProfileOverlay(
                                 onClose = { showAddOverlay = false },
                                 // SEKARANG 'contactsViewModel' SUDAH DIKENALI
-                                onAddContact = { name, phone, desc, banks, avatarName ->
-                                    contactsViewModel.addContact(name, phone, desc, banks, avatarName)
+                                onAddContact = { name, phone, banks, avatarName ->
+                                    contactsViewModel.addContact(name, phone, banks, avatarName)
                                     showAddOverlay = false
                                 }
                             )

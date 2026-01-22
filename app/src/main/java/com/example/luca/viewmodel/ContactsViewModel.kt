@@ -31,19 +31,47 @@ class ContactsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Generate unique contact name by adding number suffix if name already exists
+     * Example: "john" -> "john2", "john2" -> "john3", etc.
+     */
+    private fun generateUniqueContactName(baseName: String, existingContacts: List<Contact>): String {
+        val existingNames = existingContacts.map { it.name.lowercase() }
+
+        // Jika nama belum ada, gunakan nama asli
+        if (!existingNames.contains(baseName.lowercase())) {
+            return baseName
+        }
+
+        // Cari angka tertinggi dengan prefix yang sama
+        var counter = 2
+        var newName: String
+
+        while (true) {
+            newName = "$baseName$counter"
+            if (!existingNames.contains(newName.lowercase())) {
+                return newName
+            }
+            counter++
+        }
+    }
+
     fun addContact(
         name: String,
         phone: String,
-        description: String,
         bankAccounts: List<BankAccountData>,
         avatarName: String = "avatar_1"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
+
+            // Generate unique name if duplicate exists
+            val uniqueName = generateUniqueContactName(name, _contacts.value)
+
             val newContact = Contact(
-                name = name,
+                name = uniqueName,
                 phoneNumber = phone,
-                description = description,
+                description = "", // Always use empty description
                 bankAccounts = bankAccounts,
                 avatarName = avatarName
             )
@@ -66,9 +94,16 @@ class ContactsViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             _isLoading.value = true
+
+            // Filter out current contact untuk cek duplikat hanya dengan contact lain
+            val otherContacts = _contacts.value.filter { it.id != contactId }
+
+            // Generate unique name if duplicate exists (excluding current contact)
+            val uniqueName = generateUniqueContactName(name, otherContacts)
+
             val updatedContact = Contact(
                 id = contactId,
-                name = name,
+                name = uniqueName,
                 phoneNumber = phone,
                 description = description,
                 bankAccounts = bankAccounts,

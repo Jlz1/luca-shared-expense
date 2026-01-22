@@ -233,8 +233,8 @@ fun ContactsScreen(
                 UserProfileOverlay(
                     onClose = { showUserProfileOverlay = false },
                     // PERBAIKAN: ViewModel sudah didefinisikan di parameter fungsi, jadi aman dipanggil
-                    onAddContact = { name, phone, desc, banks, avatarName ->
-                        viewModel.addContact(name, phone, desc, banks, avatarName)
+                    onAddContact = { name, phone, banks, avatarName ->
+                        viewModel.addContact(name, phone, banks, avatarName)
                         showUserProfileOverlay = false
                     }
                 )
@@ -371,7 +371,7 @@ fun ContactsScreen(
             ) {
                 UserProfileOverlay(
                     onClose = { editingContact = null },
-                    onAddContact = { _, _, _, _, _ -> }, // Not used in edit mode
+                    onAddContact = { _, _, _, _ -> }, // Not used in edit mode
                     editContact = editingContact,
                     onUpdateContact = { contactId, name, phone, desc, banks, avatarName ->
                         viewModel.updateContact(contactId, name, phone, desc, banks, avatarName)
