@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -17,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,7 +26,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.viewmodel.ContactsViewModel
 // --- IMPORT MODEL DAN COMPONENTS ---
 import com.example.luca.model.Contact
-import com.example.luca.ui.components.* import com.example.luca.ui.theme.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.luca.ui.theme.*
+import com.example.luca.util.AvatarUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -43,8 +47,8 @@ fun ContactsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedContact by remember { mutableStateOf<Contact?>(null) } // Detail Overlay
 
-    // State Edit & Delete (Placeholder untuk logic masa depan)
-    var showEditOverlay by remember { mutableStateOf(false) }
+    // State Edit & Delete
+    var editingContact by remember { mutableStateOf<Contact?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     // Logic Filter Pencarian
@@ -229,8 +233,8 @@ fun ContactsScreen(
                 UserProfileOverlay(
                     onClose = { showUserProfileOverlay = false },
                     // PERBAIKAN: ViewModel sudah didefinisikan di parameter fungsi, jadi aman dipanggil
-                    onAddContact = { name, phone, desc, banks ->
-                        viewModel.addContact(name, phone, desc, banks)
+                    onAddContact = { name, phone, desc, banks, avatarName ->
+                        viewModel.addContact(name, phone, desc, banks, avatarName)
                         showUserProfileOverlay = false
                     }
                 )
@@ -248,26 +252,28 @@ fun ContactsScreen(
             ) {
                 Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
                     // Mapping Data Model -> UI Component
-                    // Karena ContactCard di Components.kt masih pakai List<BankAccount> UI lokal, kita map manual
                     val uiBankAccounts = selectedContact!!.bankAccounts.map {
-                        // Perhatikan: ini mapping ke class BankAccount UI di Components.kt (jika masih ada)
-                        // atau kita bisa buat ContactCard menerima BankAccountData langsung nanti.
-                        // Untuk sekarang kita anggap ContactCard menerima (String, String, Color)
-                        BankAccount(it.bankName, it.accountNumber, Color(0xFF1f4788)) // Warna dummy bank sementara
+                        BankAccount(
+                            bankName = it.bankName,
+                            accountNumber = it.accountNumber,
+                            bankColor = Color(0xFF1f4788) // Default bank color
+                        )
                     }
 
                     ContactCard(
                         contactName = selectedContact!!.name,
                         phoneNumber = selectedContact!!.phoneNumber,
+                        avatarName = selectedContact!!.avatarName,
                         avatarColor = getRandomAvatarColor(selectedContact!!.name),
                         events = emptyList(), // Event belum ada di database
                         bankAccounts = uiBankAccounts,
                         onEditClicked = {
-                            // TODO: Implement Edit Logic
-                            showEditOverlay = true
+                            // Set contact to edit mode and close detail view
+                            editingContact = selectedContact
+                            selectedContact = null
                         },
                         onDeleteClicked = {
-                            // TODO: Implement Delete Logic
+                            // Show Delete Confirmation Dialog
                             showDeleteConfirmation = true
                         }
                     )
@@ -275,15 +281,104 @@ fun ContactsScreen(
             }
         }
 
-        // --- OVERLAY: EDIT & DELETE (Placeholder agar kode tidak error jika state true) ---
-        if (showEditOverlay) {
-            // Tampilkan UI Edit (bisa copy dari kode sebelumnya jika sudah fix)
-            // Untuk sekarang di-reset biar gak stuck
-            LaunchedEffect(Unit) { showEditOverlay = false }
+        // --- OVERLAY: DELETE CONFIRMATION ---
+        if (showDeleteConfirmation && selectedContact != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showDeleteConfirmation = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = UIWhite),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Hapus Contact?",
+                            style = AppFont.Bold,
+                            fontSize = 20.sp,
+                            color = UIBlack
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Apakah Anda yakin ingin menghapus contact '${selectedContact!!.name}'?",
+                            style = AppFont.Regular,
+                            fontSize = 16.sp,
+                            color = UIDarkGrey,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Cancel Button
+                            Button(
+                                onClick = { showDeleteConfirmation = false },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Batal", color = UIBlack, style = AppFont.SemiBold)
+                            }
+
+                            // Delete Button
+                            Button(
+                                onClick = {
+                                    // Call ViewModel to delete contact
+                                    if (selectedContact!!.id.isNotEmpty()) {
+                                        viewModel.deleteContact(selectedContact!!.id)
+                                    }
+                                    showDeleteConfirmation = false
+                                    selectedContact = null
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Hapus", color = UIWhite, style = AppFont.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
         }
-        if (showDeleteConfirmation) {
-            // Tampilkan UI Delete
-            LaunchedEffect(Unit) { showDeleteConfirmation = false }
+
+        // --- OVERLAY: EDIT CONTACT ---
+        if (editingContact != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                UserProfileOverlay(
+                    onClose = { editingContact = null },
+                    onAddContact = { _, _, _, _, _ -> }, // Not used in edit mode
+                    editContact = editingContact,
+                    onUpdateContact = { contactId, name, phone, desc, banks, avatarName ->
+                        viewModel.updateContact(contactId, name, phone, desc, banks, avatarName)
+                        editingContact = null
+                    }
+                )
+            }
         }
     }
 }
@@ -301,20 +396,35 @@ fun ContactRowItem(
             .clickable { onContactClicked(contact) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar Generated dari Nama
+        // Avatar Display (image or letter)
         Box(
             modifier = Modifier
                 .size(50.dp)
-                .clip(CircleShape)
-                .background(getRandomAvatarColor(contact.name)),
+                .clip(CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = contact.name.take(1).uppercase(),
-                style = AppFont.SemiBold,
-                color = UIWhite,
-                fontSize = 20.sp
-            )
+            if (contact.avatarName.isNotEmpty()) {
+                Image(
+                    painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)),
+                    contentDescription = "Contact Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(getRandomAvatarColor(contact.name)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = contact.name.take(1).uppercase(),
+                        style = AppFont.SemiBold,
+                        color = UIWhite,
+                        fontSize = 20.sp
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {

@@ -35,7 +35,8 @@ class ContactsViewModel : ViewModel() {
         name: String,
         phone: String,
         description: String,
-        bankAccounts: List<BankAccountData>
+        bankAccounts: List<BankAccountData>,
+        avatarName: String = "avatar_1"
     ) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -44,10 +45,48 @@ class ContactsViewModel : ViewModel() {
                 phoneNumber = phone,
                 description = description,
                 bankAccounts = bankAccounts,
-                avatarName = "default" // Bisa dikembangkan logic warnanya nanti di UI
+                avatarName = avatarName
             )
 
             val result = repository.addContact(newContact)
+            if (result.isSuccess) {
+                loadContacts()
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun updateContact(
+        contactId: String,
+        name: String,
+        phone: String,
+        description: String,
+        bankAccounts: List<BankAccountData>,
+        avatarName: String
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val updatedContact = Contact(
+                id = contactId,
+                name = name,
+                phoneNumber = phone,
+                description = description,
+                bankAccounts = bankAccounts,
+                avatarName = avatarName
+            )
+
+            val result = repository.updateContact(contactId, updatedContact)
+            if (result.isSuccess) {
+                loadContacts()
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun deleteContact(contactId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.deleteContact(contactId)
             if (result.isSuccess) {
                 loadContacts()
             }
