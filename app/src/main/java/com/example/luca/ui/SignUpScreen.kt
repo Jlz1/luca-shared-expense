@@ -99,7 +99,12 @@ fun SignUpScreen(
                     Toast.makeText(context, "Akun berhasil dibuat!", Toast.LENGTH_SHORT).show()
                     onContinueClick()
                 } else {
-                    Toast.makeText(context, "Gagal daftar", Toast.LENGTH_LONG).show()
+                    // Cek apakah user sudah terdaftar dengan data lengkap
+                    Toast.makeText(
+                        context,
+                        "Email sudah terdaftar atau password salah. Silakan gunakan Login jika sudah memiliki akun.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
