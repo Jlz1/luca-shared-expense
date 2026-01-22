@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,28 +24,52 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.R
-import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import kotlinx.coroutines.launch
 
 // --- FUNGSI 1: LOGIC WRAPPER ---
 @Composable
 fun GreetingScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToSignUp: () -> Unit,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // Inisialisasi Repository
-    val authRepo = remember { AuthRepository() }
 
     // Web Client ID (Pastikan ini sesuai dengan console firebase kamu)
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
+
+    // Observer Navigasi: Sukses -> Home
+    LaunchedEffect(authViewModel.isSuccess) {
+        if (authViewModel.isSuccess) {
+            Toast.makeText(context, "Welcome Back!", Toast.LENGTH_SHORT).show()
+            authViewModel.resetState()
+            onNavigateToHome()
+        }
+    }
+
+    // Observer Navigasi: User Baru/Hantu -> Sign Up (Fill Profile)
+    LaunchedEffect(authViewModel.isNewUser) {
+        if (authViewModel.isNewUser) {
+            Toast.makeText(context, "Please complete your profile", Toast.LENGTH_SHORT).show()
+            authViewModel.resetState()
+            onNavigateToSignUp()
+        }
+    }
+
+    // Observer Error
+    LaunchedEffect(authViewModel.errorMessage) {
+        authViewModel.errorMessage?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // --- 1. LAUNCHER GOOGLE ---
     val googleLauncher = rememberLauncherForActivityResult(
@@ -58,17 +82,8 @@ fun GreetingScreen(
                 val idToken = account.idToken
 
                 if (idToken != null) {
-                    scope.launch {
-                        // FIX: Menggunakan Result handling (onSuccess/onFailure)
-                        val authResult = authRepo.signInWithGoogle(idToken)
-
-                        authResult.onSuccess {
-                            Toast.makeText(context, "Login Google Berhasil!", Toast.LENGTH_SHORT).show()
-                            onNavigateToHome()
-                        }.onFailure { error ->
-                            Toast.makeText(context, "Gagal: ${error.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    // FIX: Menggunakan ViewModel
+                    authViewModel.googleLogin(idToken)
                 }
             } catch (e: ApiException) {
                 Toast.makeText(context, "Google Error: ${e.statusCode}", Toast.LENGTH_SHORT).show()
@@ -90,18 +105,8 @@ fun GreetingScreen(
     val onXClick: () -> Unit = {
         val activity = context as? Activity
         if (activity != null) {
-            scope.launch {
-                // FIX: Panggil fungsi di Repository, bukan manual di sini
-                // Repository sudah otomatis menangani login & save database
-                val result = authRepo.signInWithTwitter(activity)
-
-                result.onSuccess {
-                    Toast.makeText(context, "Login X Berhasil!", Toast.LENGTH_SHORT).show()
-                    onNavigateToHome()
-                }.onFailure { error ->
-                    Toast.makeText(context, "Login X Gagal: ${error.message}", Toast.LENGTH_LONG).show()
-                }
-            }
+            // FIX: Panggil fungsi di ViewModel
+            authViewModel.twitterLogin(activity)
         } else {
             Toast.makeText(context, "Error: Context bukan Activity", Toast.LENGTH_SHORT).show()
         }
@@ -111,6 +116,14 @@ fun GreetingScreen(
     Box(
         modifier = Modifier.fillMaxSize().background(UIWhite)
     ) {
+        // Loading Indicator
+        if (authViewModel.isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = UIAccentYellow
+            )
+        }
+
         GreetingScreenContent(
             onGoogleClick = onGoogleClick,
             onXClick = onXClick,
