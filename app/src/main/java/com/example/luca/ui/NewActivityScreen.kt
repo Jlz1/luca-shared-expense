@@ -87,12 +87,13 @@ fun AddActivityScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    item { ParticipantItem(name = "You", isYou = true) }
-                    item { ParticipantItem(name = "", isAddButton = true) }
-                }
+                AvatarList(
+                    users = listOf(
+                    ),
+                    avatarSize = 60.dp,
+                    showName = true,
+                    showAddButton = true
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
