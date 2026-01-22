@@ -22,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
@@ -104,32 +105,46 @@ fun SignUpScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(UIWhite)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(UIWhite)) {
         if (isLoading) {
             LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter),
                 color = UIAccentYellow
             )
         }
 
-        Column(modifier = Modifier.fillMaxSize().padding(30.dp)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(30.dp)) {
             // Header Back
             Box(modifier = Modifier.fillMaxWidth()) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
-                    modifier = Modifier.size(29.dp).clickable { onBackClick() }
+                    modifier = Modifier
+                        .size(29.dp)
+                        .clickable { onBackClick() }
                 )
             }
 
             // Content
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)) {
                 Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)) {
                         Text(
                             text = "Welcome to Luca!",
                             style = AppFont.SemiBold,
@@ -140,7 +155,9 @@ fun SignUpScreen(
                         Image(
                             painter = painterResource(id = R.drawable.ic_luca_logo),
                             contentDescription = "Logo",
-                            modifier = Modifier.align(Alignment.CenterEnd).size(34.5.dp, 34.dp)
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .size(34.5.dp, 34.dp)
                         )
                     }
 
@@ -188,7 +205,9 @@ fun SignUpScreen(
                     Button(
                         onClick = handleSignUp,
                         enabled = isFormValid && !isLoading,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         shape = RoundedCornerShape(23.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
@@ -332,6 +351,42 @@ fun SignUpInputForm(
                 fontSize = 12.sp,
                 color = Color.Red.copy(alpha = 0.8f),
                 modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun SignUpScreenPreview() {
+    LucaTheme {
+        // Kita memberikan fungsi kosong {} untuk lambda agar preview bisa tampil
+        SignUpScreen(
+            onBackClick = {},
+            onContinueClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SignUpInputFormPreview() {
+    LucaTheme {
+        Column(modifier = Modifier.padding(20.dp)) {
+            SignUpInputForm(
+                text = "",
+                onValueChange = {},
+                placeholder = "Contoh Email",
+                iconRes = R.drawable.ic_email_form
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            SignUpInputForm(
+                text = "password123",
+                onValueChange = {},
+                placeholder = "Password",
+                iconRes = R.drawable.ic_password_form,
+                isPasswordField = true,
+                errorMessage = "Password terlalu lemah"
             )
         }
     }
