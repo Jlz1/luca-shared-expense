@@ -35,7 +35,7 @@ import com.example.luca.util.AvatarUtils
 @Composable
 fun FillProfileScreen(
     onBackClick: () -> Unit = {},
-    onCreateAccountClick: () -> Unit = {}
+    onCreateAccountClick: (name: String, avatarName: String) -> Unit = { _, _ -> }
 ) {
     var username by remember { mutableStateOf("") }
 
@@ -60,7 +60,7 @@ fun FillProfileScreen(
 
                 result.onSuccess {
                     Toast.makeText(context, "Profile Disimpan!", Toast.LENGTH_SHORT).show()
-                    onCreateAccountClick()
+                    onCreateAccountClick(username, selectedAvatarName)
                 }
 
                 result.onFailure { exception ->
