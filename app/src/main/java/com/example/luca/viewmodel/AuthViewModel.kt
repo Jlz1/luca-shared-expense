@@ -1,5 +1,6 @@
 package com.example.luca.viewmodel
 
+import android.app.Activity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,71 +12,92 @@ import kotlinx.coroutines.launch
 class AuthViewModel : ViewModel() {
     private val repository = AuthRepository()
 
-    // State untuk UI
+    // --- STATE UI ---
     var isLoading by mutableStateOf(false)
         private set
-
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    // Navigasi ke Home
     var isSuccess by mutableStateOf(false)
         private set
 
-    // --- GOOGLE LOGIN ---
-    fun googleLogin(idToken: String) {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+    // Navigasi ke Fill Profile (Khusus Google/X User Baru/Hantu)
+    var isNewUser by mutableStateOf(false)
+        private set
 
-            // Sekarang ini valid karena signInWithGoogle mengembalikan Result<String>
-            val result = repository.signInWithGoogle(idToken)
-
-            result.onSuccess {
-                isSuccess = true
-            }.onFailure { error ->
-                errorMessage = error.message ?: "Google Sign In Gagal"
-            }
-            isLoading = false
-        }
-    }
-
-    // --- REGISTER MANUAL ---
-    fun register(email: String, pass: String, name: String) {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-
-            val result = repository.registerManual(email, pass, name)
-
-            result.onSuccess {
-                isSuccess = true
-            }.onFailure { error ->
-                errorMessage = error.message ?: "Registrasi Gagal"
-            }
-            isLoading = false
-        }
-    }
-
-    // --- LOGIN MANUAL ---
+    // --- 1. LOGIN MANUAL (Dipakai LoginScreen) ---
     fun login(email: String, pass: String) {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
 
-            val result = repository.loginManual(email, pass)
+            // AUTO LOWERCASE EMAIL
+            val cleanEmail = email.trim().lowercase()
+
+            val result = repository.loginManual(cleanEmail, pass)
 
             result.onSuccess {
-                isSuccess = true
+                isSuccess = true // LoginScreen akan baca ini & pindah ke Home
             }.onFailure { error ->
-                errorMessage = error.message ?: "Login failed"
+                errorMessage = error.message
             }
             isLoading = false
         }
     }
 
-    // Reset state agar tidak loop saat navigasi
+    // --- 2. GOOGLE LOGIN ---
+    fun googleLogin(idToken: String) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            val result = repository.signInWithGoogle(idToken)
+            handleSocialResult(result)
+        }
+    }
+
+    // --- 3. TWITTER LOGIN ---
+    fun twitterLogin(activity: Activity) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            val result = repository.signInWithTwitter(activity)
+            handleSocialResult(result)
+        }
+    }
+
+    // Helper untuk handle hasil social login
+    private fun handleSocialResult(result: Result<Pair<Boolean, Boolean>>) {
+        result.onSuccess { (success, isNew) ->
+            if (isNew) {
+                isNewUser = true // Arahkan ke Fill Profile
+            } else {
+                isSuccess = true // Arahkan ke Home
+            }
+        }.onFailure {
+            errorMessage = it.message
+        }
+        isLoading = false
+    }
+
+    // --- 4. UPDATE PROFILE (Dipakai FillProfileScreen) ---
+    fun updateProfile(username: String, avatarName: String) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            val result = repository.updateProfile(username, avatarName)
+            result.onSuccess {
+                isSuccess = true // Setelah isi profil, langsung ke Home
+            }.onFailure {
+                errorMessage = it.message
+            }
+            isLoading = false
+        }
+    }
+
     fun resetState() {
         isSuccess = false
+        isNewUser = false
         errorMessage = null
         isLoading = false
     }
