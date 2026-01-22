@@ -27,6 +27,7 @@ import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import com.example.luca.viewmodel.ContactsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +42,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LucaApp() {
+    // =================================================================
+    // 1. DEKLARASI VIEWMODEL DI SINI (SCOPE TERATAS LUCAAPP)
+    // =================================================================
+    // Baris ini PENTING agar 'contactsViewModel' dikenali di seluruh fungsi ini
+    val contactsViewModel: ContactsViewModel = viewModel()
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
@@ -102,7 +109,6 @@ fun LucaApp() {
                         LaunchedEffect(Unit) {
                             delay(500)
                             if (auth.currentUser != null) {
-                                // Cek data di DB (bisa diimprove nanti, sementara anggap aman)
                                 navController.navigate("home") { popUpTo("splash") { inclusive = true } }
                             } else {
                                 navController.navigate("greeting") { popUpTo("splash") { inclusive = true } }
@@ -118,12 +124,7 @@ fun LucaApp() {
                         GreetingScreen(
                             onNavigateToLogin = { navController.navigate("login") },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
-
-                            // --- [BARU] INI YANG DITAMBAHKAN ---
-                            // Menghubungkan tombol "Isi Profil" ke rute yang benar
                             onNavigateToFillProfile = { navController.navigate("fill_profile") },
-                            // ------------------------------------
-
                             onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
                         )
                     }
@@ -195,10 +196,21 @@ fun LucaApp() {
                     }
                 }
 
+                // --- GLOBAL OVERLAY ADD CONTACT ---
                 if (showAddOverlay) {
-                    Dialog(onDismissRequest = { showAddOverlay = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                    Dialog(
+                        onDismissRequest = { showAddOverlay = false },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            UserProfileOverlay(onClose = { showAddOverlay = false }, onAddContact = {})
+                            UserProfileOverlay(
+                                onClose = { showAddOverlay = false },
+                                // SEKARANG 'contactsViewModel' SUDAH DIKENALI
+                                onAddContact = { name, phone, desc, banks ->
+                                    contactsViewModel.addContact(name, phone, desc, banks)
+                                    showAddOverlay = false
+                                }
+                            )
                         }
                     }
                 }

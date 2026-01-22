@@ -110,7 +110,10 @@ import java.util.Locale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
-import androidx.compose.ui.platform.LocalContext
+import com.example.luca.model.BankAccountData
+import com.example.luca.util.BankUtils
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.verticalScroll
 
 // Header State Definition
 enum class HeaderState(
@@ -664,39 +667,28 @@ fun getResourceId(name: String): Int {
     )
 }
 
-// Add Contact Overlay
 @Composable
 fun UserProfileOverlay(
     onClose: () -> Unit,
-    onAddContact: () -> Unit,
+    // Callback mengirim data lengkap: Nama, HP, Deskripsi, List Bank
+    onAddContact: (String, String, String, List<BankAccountData>) -> Unit,
 ) {
-    // --- STATE FIELDS ---
+    // State Input
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
 
-    // --- STATE BANK ---
-    var bankAccounts by remember { mutableStateOf<List<BankAccount>>(emptyList()) }
+    // State Bank & Dialog
+    var bankAccounts by remember { mutableStateOf<List<BankAccountData>>(emptyList()) }
     var showBankDialog by remember { mutableStateOf(false) }
+
+    // Dialog state variables
     var selectedBank by remember { mutableStateOf("") }
     var accountNumber by remember { mutableStateOf("") }
-    val bankList = listOf("BRI", "BCA", "BNI", "Mandiri")
 
-    // --- STATE AVATAR (BARU) ---
-    var selectedAvatar by remember { mutableStateOf<Int?>(null) } // Menyimpan Res ID gambar
+    // State Avatar
     var showAvatarDialog by remember { mutableStateOf(false) }
 
-    // TODO: Masukkan resource ID gambar avatar Anda di sini (Pastikan file ada di res/drawable)
-    // Contoh: listOf(R.drawable.avatar_boy, R.drawable.avatar_girl, ...)
-    // Untuk sementara saya gunakan list kosong atau integer dummy agar tidak error saat dicopy
-//    val avatarList = listOf(
-//        // R.drawable.ic_avatar_1,
-//        // R.drawable.ic_avatar_2,
-//        // R.drawable.ic_avatar_3,
-//        // R.drawable.ic_avatar_4
-//        // Masukkan data dummy jika belum ada gambar, atau hapus list ini jika R.drawable sudah siap
-//    )
-
-    // Card Utama
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
@@ -704,133 +696,82 @@ fun UserProfileOverlay(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
+            .wrapContentHeight() // Fix error wrapContentHeight
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(all = 20.dp)
+            modifier = Modifier
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState()) // Fix error verticalScroll
         ) {
-
             // --- HEADER ---
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Close Button
-                IconButton(
-                    onClick = onClose,  // TODO: logic close button
-                    modifier = Modifier.align(Alignment.TopStart)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        modifier = Modifier.size(32.dp),
-                        tint = UIBlack
-                    )
+                IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart)) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(32.dp), tint = UIBlack)
                 }
 
-                // --- FOTO PROFIL (MODIFIED) ---
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(135.dp)
+                        .size(100.dp)
                         .clip(CircleShape)
                         .background(UIGrey)
                         .align(Alignment.Center)
-                        .clickable {
-                            // TODO: Logic Membuka dialog pemilihan avatar
-                            showAvatarDialog = true
-                        }
+                        .clickable { showAvatarDialog = true }
                 ) {
-                    if (selectedAvatar != null) {
-                        // Jika avatar sudah dipilih, tampilkan Image
-                        Image(
-                            painter = painterResource(id = selectedAvatar!!),
-                            contentDescription = "Selected Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // Jika belum ada, tampilkan Icon Kamera
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Upload Photo",
-                            tint = UIDarkGrey,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
+                    Icon(Icons.Default.CameraAlt, "Upload", tint = UIDarkGrey, modifier = Modifier.size(32.dp))
                 }
 
-                // Check Button
+                // TOMBOL SAVE (CHECK)
                 IconButton(
-                    onClick = onAddContact, //Todo: logic add contact
+                    onClick = {
+                        // Fix error Argument type mismatch: Kirim data ke parent
+                        onAddContact(name, phoneNumber, description, bankAccounts)
+                    },
                     modifier = Modifier.align(Alignment.TopEnd)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Add Contact",
-                        modifier = Modifier.size(32.dp),
-                        tint = UIBlack
-                    )
+                    Icon(Icons.Default.Check, "Save", modifier = Modifier.size(32.dp), tint = UIBlack)
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- INPUT FIELDS ---
-            CustomRoundedTextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = "Name",
-                backgroundColor = UIGrey
-            )
-
+            // INPUT FIELDS
+            CustomRoundedTextField(value = name, onValueChange = { name = it }, placeholder = "Name", backgroundColor = UIGrey)
             Spacer(modifier = Modifier.height(16.dp))
-
-            CustomRoundedTextField(
-                value = phoneNumber,
-                onValueChange = { phoneNumber = it },
-                placeholder = "Phone Number (Optional)",
-                backgroundColor = UIGrey
-            )
+            CustomRoundedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, placeholder = "Phone Number (Optional)", backgroundColor = UIGrey)
+            Spacer(modifier = Modifier.height(16.dp))
+            CustomRoundedTextField(value = description, onValueChange = { description = it }, placeholder = "Description (e.g. Teman Kampus)", backgroundColor = UIGrey)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BANK ACCOUNTS ---
-            Text(
-                text = "Bank Accounts",
-                fontSize = 18.sp,
-                style = AppFont.Bold,
-                color = UIBlack
-            )
-
+            // BANK ACCOUNTS SECTION
+            Text("Bank Accounts", fontSize = 18.sp, style = AppFont.Bold, color = UIBlack)
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Add Bank Button
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(50.dp)
                     .clip(CircleShape)
                     .background(UIAccentYellow)
-                    .clickable { showBankDialog = true }  // TODO: logic show list bank
+                    .clickable { showBankDialog = true }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Bank Account",
-                    tint = Color.Black,
-                    modifier = Modifier.size(32.dp)
-                )
+                Icon(Icons.Default.Add, "Add Bank", tint = Color.Black, modifier = Modifier.size(24.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // List Bank Accounts
+            // LIST BANK ITEMS
             if (bankAccounts.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     bankAccounts.forEach { account ->
+                        // Panggil Component BankAccountItem (Pastikan kode di bawah dicopy juga)
                         BankAccountItem(
                             bankName = account.bankName,
                             accountNumber = account.accountNumber,
-                            onDelete = {
-                                bankAccounts = bankAccounts.filter { it != account }
-                            }
+                            bankLogoName = account.bankLogo,
+                            onDelete = { bankAccounts = bankAccounts - account }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
@@ -839,13 +780,11 @@ fun UserProfileOverlay(
         }
     }
 
-    // --- DIALOG TAMBAH BANK ---
+    // --- DIALOG PILIH BANK ---
     if (showBankDialog) {
-        // ... (Kode Dialog Bank Anda Tetap Sama)
-        // Saya persingkat di sini agar fokus ke perubahan Avatar,
-        // tapi pastikan kode dialog bank Anda tetap ada di sini.
+        // Fix error "No value passed for parameter bankList":
+        // Kita HAPUS parameter bankList dari panggilan ini, karena sudah ada di dalam fungsi BankDialogOverlay
         BankDialogOverlay(
-            bankList = bankList,
             selectedBank = selectedBank,
             onBankSelected = { selectedBank = it },
             accountNumber = accountNumber,
@@ -857,7 +796,10 @@ fun UserProfileOverlay(
             },
             onAdd = {
                 if (selectedBank.isNotEmpty() && accountNumber.isNotEmpty()) {
-                    bankAccounts = bankAccounts + BankAccount(selectedBank, accountNumber)
+                    val logoName = BankUtils.generateLogoFileName(selectedBank)
+                    val newBank = BankAccountData(selectedBank, accountNumber, logoName)
+                    bankAccounts = bankAccounts + newBank
+
                     showBankDialog = false
                     selectedBank = ""
                     accountNumber = ""
@@ -865,102 +807,11 @@ fun UserProfileOverlay(
             }
         )
     }
-
-    // --- DIALOG PILIH AVATAR (BARU) ---
-    if (showAvatarDialog) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { showAvatarDialog = false },
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = UIWhite),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .padding(16.dp)
-                    .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Choose Avatar",
-                        style = AppFont.Bold,
-                        fontSize = 18.sp,
-                        color = UIBlack,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Grid Avatar
-                    // Pastikan avatarList tidak kosong agar UI muncul
-//                    if (avatarList.isNotEmpty()) {
-//                        LazyVerticalGrid(
-//                            columns = GridCells.Fixed(3), // 3 kolom
-//                            verticalArrangement = Arrangement.spacedBy(16.dp),
-//                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-//                            modifier = Modifier.heightIn(max = 300.dp) // Batasi tinggi
-//                        ) {
-//                            items(avatarList) { avatarResId ->
-//                                Box(
-//                                    contentAlignment = Alignment.Center,
-//                                    modifier = Modifier
-//                                        .size(70.dp)
-//                                        .clip(CircleShape)
-//                                        .background(if (selectedAvatar == avatarResId) UIAccentYellow else UIGrey)
-//                                        .clickable {
-//                                            selectedAvatar = avatarResId
-//                                            showAvatarDialog = false
-//                                        }
-//                                        .padding(4.dp) // Padding border effect
-//                                ) {
-//                                    Image(
-//                                        painter = painterResource(id = avatarResId),
-//                                        contentDescription = "Avatar",
-//                                        contentScale = ContentScale.Crop,
-//                                        modifier = Modifier
-//                                            .fillMaxSize()
-//                                            .clip(CircleShape)
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    } else {
-//                        // Fallback jika belum ada list gambar di kode
-//
-//                    }
-                    Text("No avatars available yet.", color = UIDarkGrey)
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Tombol Cancel / Remove Photo
-                    Button(
-                        onClick = {
-                            selectedAvatar = null // Hapus foto
-                            showAvatarDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Remove Photo", color = Color.Black, style = AppFont.Medium)
-                    }
-                }
-            }
-        }
-    }
 }
 
-// Helper Composable untuk mempersingkat kode utama (Opsional, hanya untuk kerapihan)
 @Composable
 fun BankDialogOverlay(
-    bankList: List<String>,
+    // HAPUS parameter bankList dari sini, kita ambil dari Utils di dalam
     selectedBank: String,
     onBankSelected: (String) -> Unit,
     accountNumber: String,
@@ -968,6 +819,9 @@ fun BankDialogOverlay(
     onDismiss: () -> Unit,
     onAdd: () -> Unit
 ) {
+    // Ambil list bank langsung dari Utils
+    val bankList = BankUtils.availableBanks
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -984,30 +838,26 @@ fun BankDialogOverlay(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("Add Bank Account", fontSize = 18.sp, color = UIBlack, modifier = Modifier.padding(bottom = 16.dp))
-                Text("Select Bank", fontSize = 14.sp, color = UIBlack, modifier = Modifier.padding(bottom = 12.dp))
 
+                // Scrollable Bank Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     bankList.forEach { bank ->
-                        // Asumsikan BankButton sudah Anda buat sebelumnya
-                        // BankButton(bankName = bank, isSelected = selectedBank == bank, onClick = { onBankSelected(bank) })
-                        // Placeholder button sederhana:
                         Button(
                             onClick = { onBankSelected(bank) },
-                            colors = ButtonDefaults.buttonColors(containerColor = if(selectedBank == bank) UIAccentYellow else UIGrey)
-                        ) { Text(bank, color = UIBlack) }
+                            colors = ButtonDefaults.buttonColors(containerColor = if(selectedBank == bank) UIAccentYellow else UIGrey),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(bank, color = if(selectedBank == bank) UIBlack else UIDarkGrey)
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                CustomRoundedTextField(
-                    value = accountNumber,
-                    onValueChange = onAccountNumberChanged,
-                    placeholder = "Account Number",
-                    backgroundColor = UIGrey
-                )
+                CustomRoundedTextField(value = accountNumber, onValueChange = onAccountNumberChanged, placeholder = "Account Number", backgroundColor = UIGrey)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1046,60 +896,6 @@ fun BankButton(
             style = AppFont.Medium,
             fontSize = 12.sp
         )
-    }
-}
-
-// Komponen untuk menampilkan item bank account yang sudah ditambahkan
-@Composable
-fun BankAccountItem(
-    bankName: String,
-    accountNumber: String,
-    onDelete: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = UIGrey),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = bankName,
-                    style = AppFont.SemiBold,
-                    fontSize = 14.sp,
-                    color = UIBlack
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = accountNumber,
-                    style = AppFont.Medium,
-                    fontSize = 12.sp,
-                    color = UIDarkGrey
-                )
-            }
-
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Delete",
-                    tint = UIDarkGrey,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
     }
 }
 
@@ -1267,17 +1063,6 @@ private fun AddAvatarButton(
 // More Helper Functions
 private fun calculateFontSize(avatarSize: Dp): androidx.compose.ui.unit.TextUnit {
     return (avatarSize.value * 0.25).sp
-}
-
-private fun getRandomAvatarColor(name: String): Color {
-    val colors = listOf(
-        Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFF45B7D1),
-        Color(0xFFFFA07A), Color(0xFF98D8C8), Color(0xFFF7B731),
-        Color(0xFFEE5A6F), Color(0xFF786FA6), Color(0xFFEA8685),
-        Color(0xFF63CDDA)
-    )
-    val index = kotlin.math.abs(name.hashCode()) % colors.size
-    return colors[index]
 }
 
 // Bank Account Data Class
@@ -1882,6 +1667,50 @@ fun SearchBarModify(
     }
 }
 
+@Composable
+fun BankAccountItem(
+    bankName: String,
+    accountNumber: String,
+    bankLogoName: String,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    val logoResId = remember(bankLogoName) {
+        context.resources.getIdentifier(bankLogoName, "drawable", context.packageName)
+    }
+    val finalLogoId = if (logoResId != 0) logoResId else R.drawable.ic_launcher_foreground
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = UIGrey),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = finalLogoId),
+                contentDescription = bankName,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White)
+                    .padding(4.dp),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = bankName, style = AppFont.SemiBold, fontSize = 14.sp, color = UIBlack)
+                Text(text = accountNumber, style = AppFont.Medium, fontSize = 12.sp, color = UIDarkGrey)
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.Close, "Delete", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 fun ComponentsPreview(){
@@ -1896,20 +1725,20 @@ fun ComponentsPreview(){
 @Preview(showBackground = true, backgroundColor = 0xFF888888)
 @Composable
 fun PreviewOverlay() {
-    // Ceritanya background gelap biar keliatan kaya overlay
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         UserProfileOverlay(
             onClose = { println("Overlay closed") },
-            onAddContact = { println("Contact added") }
-
+            // PERBAIKAN DI SINI:
+            // Lambda sekarang harus menerima 4 parameter: name, phone, desc, banks
+            onAddContact = { name, phone, desc, banks ->
+                println("Contact added: $name, $phone, $desc, $banks")
+            }
         )
     }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable
