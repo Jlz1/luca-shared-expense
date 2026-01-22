@@ -143,16 +143,22 @@ fun LucaApp() {
                     composable("fill_profile") {
                         FillProfileScreen(
                             onBackClick = { navController.popBackStack() },
-                            onCreateAccountClick = { navController.navigate("final_signup") }
+                            onCreateAccountClick = { name, avatarName ->
+                                navController.navigate("final_signup/$name/$avatarName")
+                            }
                         )
                     }
                     composable("final_login") {
-                        val name = FirebaseAuth.getInstance().currentUser?.displayName ?: "User"
-                        FinalScreen(name = name, onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } })
+                        FinalScreen(onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } })
                     }
-                    composable("final_signup") {
-                        val name = FirebaseAuth.getInstance().currentUser?.displayName ?: "Crew"
-                        FinalSignUpScreen(name = name, onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } })
+                    composable("final_signup/{name}/{avatarName}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name") ?: "Crew"
+                        val avatarName = backStackEntry.arguments?.getString("avatarName") ?: "avatar_1"
+                        FinalSignUpScreen(
+                            name = name,
+                            avatarName = avatarName,
+                            onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
+                        )
                     }
 
                     // 3. MAIN APP

@@ -26,11 +26,13 @@ import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
+import com.example.luca.util.AvatarUtils
 import kotlinx.coroutines.delay
 
 @Composable
 fun FinalSignUpScreen(
     name: String = "Benita",
+    avatarName: String = "avatar_1",
     onNavigateToHome: () -> Unit = {}
 ) {
     // Delay 1.5 detik lalu navigasi ke Home
@@ -63,7 +65,7 @@ fun FinalSignUpScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

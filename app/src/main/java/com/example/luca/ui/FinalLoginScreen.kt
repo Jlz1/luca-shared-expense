@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,15 +30,37 @@ import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
+import com.example.luca.util.AvatarUtils
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun FinalScreen(
-    name: String = "Benita",
     onNavigateToHome: () -> Unit = {}
 ) {
-    // Delay 1.5 detik lalu navigasi ke Home
+    var name by remember { mutableStateOf("User") }
+    var avatarName by remember { mutableStateOf("avatar_1") }
+
+    // Ambil data user dari Firestore lalu navigasi ke Home
     LaunchedEffect(Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        currentUser?.let { user ->
+            try {
+                val doc = FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(user.uid)
+                    .get()
+                    .await()
+
+                name = doc.getString("username") ?: user.displayName ?: "User"
+                avatarName = doc.getString("avatarName") ?: "avatar_1"
+            } catch (e: Exception) {
+                name = user.displayName ?: "User"
+            }
+        }
+
         delay(1500L)
         onNavigateToHome()
     }
@@ -64,7 +89,7 @@ fun FinalScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -89,6 +114,6 @@ fun FinalScreen(
 @Composable
 fun FinalScreenPreview() {
     LucaTheme {
-        FinalScreen(name = "Benita")
+        FinalScreen()
     }
 }
