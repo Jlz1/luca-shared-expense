@@ -30,6 +30,9 @@ import coil.compose.AsyncImage
 import com.example.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.AddEventViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // ==========================================
 // 1. STATEFUL COMPOSABLE (HASIL GABUNGAN)
@@ -88,6 +91,7 @@ fun AddScreen(
 // ==========================================
 // 2. STATELESS COMPOSABLE (TAMPILAN MURNI SI A)
 // ==========================================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScreenContent(
     title: String,
@@ -107,6 +111,35 @@ fun AddScreenContent(
     // State lokal untuk Dialog Popup (Ini murni UI interaction, jadi tetap di sini)
     var showDialog by remember { mutableStateOf(false) }
     var newParticipantName by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    // --- LOGIKA DIALOG ---
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            // Ganti 'convertMillisToDate' dengan nama helper function kamu
+                            onDateChange(convertMillisToDate(millis))
+                        }
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().background(UIBackground)
@@ -232,10 +265,30 @@ fun AddScreenContent(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    InputSection(
-                        label = "Date", value = date, placeholder = "Event Date",
-                        testTag = "input_date", onValueChange = onDateChange
-                    )
+                    // Kita bungkus pakai Box agar area ini bisa di-klik untuk buka kalender
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        InputSection(
+                            label = "Date",
+                            value = date,
+                            placeholder = "Event Date",
+                            testTag = "input_date",
+                            onValueChange = {} // Dikosongkan agar user tidak mengetik manual
+                            // Jika InputSection kamu support parameter 'readOnly = true', tambahkan di sini.
+                            // Jika InputSection kamu support parameter 'trailingIcon', tambahkan Icon Calendar di sini.
+                        )
+
+                        // Overlay Transparan: Ini trik agar saat diklik, yang merespon adalah Box ini (buka kalender),
+                        // bukan TextField (buka keyboard).
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize() // Ukurannya mengikuti InputSection
+                                .clickable { showDatePicker = true } // Trigger kalender
+                        )
+                    }
+//                    InputSection(
+//                        label = "Date", value = date, placeholder = "Event Date",
+//                        testTag = "input_date", onValueChange = onDateChange
+//                    )
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // --- PARTICIPANTS LIST ---
@@ -291,6 +344,12 @@ fun AddScreenContent(
             }
         }
     }
+}
+
+// Helper function untuk format tanggal
+fun convertMillisToDate(millis: Long): String {
+    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    return formatter.format(Date(millis))
 }
 
 // Preview khusus tampilan (Pakai dummy data)
