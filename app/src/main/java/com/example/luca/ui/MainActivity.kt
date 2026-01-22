@@ -18,12 +18,15 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.viewmodel.AuthViewModel
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -43,6 +46,9 @@ class MainActivity : ComponentActivity() {
 fun LucaApp() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    // --- SHARED VIEWMODEL (PENTING: Agar data OTP tidak hilang saat navigasi) ---
+    val authViewModel: AuthViewModel = viewModel()
 
     // --- STATE MANAGEMENT ---
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -102,7 +108,6 @@ fun LucaApp() {
                         LaunchedEffect(Unit) {
                             delay(500)
                             if (auth.currentUser != null) {
-                                // Cek data di DB (bisa diimprove nanti, sementara anggap aman)
                                 navController.navigate("home") { popUpTo("splash") { inclusive = true } }
                             } else {
                                 navController.navigate("greeting") { popUpTo("splash") { inclusive = true } }
@@ -118,12 +123,7 @@ fun LucaApp() {
                         GreetingScreen(
                             onNavigateToLogin = { navController.navigate("login") },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
-
-                            // --- [BARU] INI YANG DITAMBAHKAN ---
-                            // Menghubungkan tombol "Isi Profil" ke rute yang benar
                             onNavigateToFillProfile = { navController.navigate("fill_profile") },
-                            // ------------------------------------
-
                             onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
                         )
                     }
@@ -134,12 +134,40 @@ fun LucaApp() {
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
+
+                    // --- UPDATE: SIGN UP DENGAN OTP ---
                     composable("sign_up") {
                         SignUpScreen(
+                            authViewModel = authViewModel, // Kirim ViewModel Shared
                             onBackClick = { navController.popBackStack() },
-                            onContinueClick = { navController.navigate("fill_profile") }
+                            onNavigateToOtp = { email ->
+                                // Navigasi ke Layar OTP membawa Email
+                                navController.navigate("otp_screen/$email")
+                            }
                         )
                     }
+
+                    // --- BARU: LAYAR OTP ---
+                    composable(
+                        route = "otp_screen/{email}",
+                        arguments = listOf(navArgument("email") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val email = backStackEntry.arguments?.getString("email") ?: ""
+
+                        OtpScreen(
+                            emailTujuan = email,
+                            authViewModel = authViewModel, // Pakai ViewModel yang sama agar kodenya valid
+                            onBackClick = { navController.popBackStack() },
+                            onVerificationSuccess = {
+                                // Jika sukses OTP -> Lanjut ke Fill Profile
+                                // Hapus history sign up agar user gak bisa back ke OTP
+                                navController.navigate("fill_profile") {
+                                    popUpTo("greeting") { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+
                     composable("fill_profile") {
                         FillProfileScreen(
                             onBackClick = { navController.popBackStack() },
