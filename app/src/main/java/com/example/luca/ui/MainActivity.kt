@@ -30,6 +30,7 @@ import com.example.luca.viewmodel.AuthViewModel
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import com.example.luca.viewmodel.ContactsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +45,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LucaApp() {
+    // =================================================================
+    // 1. DEKLARASI VIEWMODEL DI SINI (SCOPE TERATAS LUCAAPP)
+    // =================================================================
+    // Baris ini PENTING agar 'contactsViewModel' dikenali di seluruh fungsi ini
+    val contactsViewModel: ContactsViewModel = viewModel()
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
@@ -229,10 +236,21 @@ fun LucaApp() {
                     }
                 }
 
+                // --- GLOBAL OVERLAY ADD CONTACT ---
                 if (showAddOverlay) {
-                    Dialog(onDismissRequest = { showAddOverlay = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                    Dialog(
+                        onDismissRequest = { showAddOverlay = false },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            UserProfileOverlay(onClose = { showAddOverlay = false }, onAddContact = {})
+                            UserProfileOverlay(
+                                onClose = { showAddOverlay = false },
+                                // SEKARANG 'contactsViewModel' SUDAH DIKENALI
+                                onAddContact = { name, phone, desc, banks ->
+                                    contactsViewModel.addContact(name, phone, desc, banks)
+                                    showAddOverlay = false
+                                }
+                            )
                         }
                     }
                 }
