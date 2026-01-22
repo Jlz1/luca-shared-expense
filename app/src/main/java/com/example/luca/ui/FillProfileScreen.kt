@@ -73,147 +73,176 @@ fun FillProfileScreen(
         }
     }
 
-    // --- UI UTAMA ---
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(UIWhite)
-    ) {
-        Column(
+    FillProfileScreenContent(
+        username = username,
+        onUsernameChange = { username = it },
+        selectedAvatarName = selectedAvatarName,
+        showAvatarDialog = showAvatarDialog,
+        onShowAvatarDialog = { showAvatarDialog = true },
+        onDismissAvatarDialog = { showAvatarDialog = false },
+        onAvatarSelected = { selectedAvatarName = it },
+        isLoading = isLoading,
+        onBackClick = onBackClick,
+        onCreateAccountClick = handleCreateAccount
+    )
+}
+
+// --- STATELESS COMPOSABLE (Pure UI) ---
+@Composable
+fun FillProfileScreenContent(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    selectedAvatarName: String,
+    showAvatarDialog: Boolean,
+    onShowAvatarDialog: () -> Unit,
+    onDismissAvatarDialog: () -> Unit,
+    onAvatarSelected: (String) -> Unit,
+    isLoading: Boolean,
+    onBackClick: () -> Unit,
+    onCreateAccountClick: () -> Unit
+) {
+    Scaffold(
+        containerColor = UIWhite
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(UIWhite)
+                .padding(paddingValues)
         ) {
-            // Header: Back Icon
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_back),
-                    contentDescription = "Back",
-                    tint = UIBlack,
-                    modifier = Modifier
-                        .size(29.dp)
-                        .clickable { onBackClick() }
-                )
-            }
-
-            // Scrollable Content
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize()
+                    .padding(30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(60.dp))
-
-                Text(
-                    text = "What’s your name?",
-                    style = AppFont.SemiBold,
-                    fontSize = 28.sp,
-                    color = UIBlack
-                )
-                Text(
-                    text = "We want to know you more!",
-                    style = AppFont.Medium,
-                    fontSize = 14.sp,
-                    color = UIBlack.copy(alpha = 0.6f)
-                )
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // --- AREA FOTO PROFIL (KLIK UNTUK GANTI) ---
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(CircleShape)
-                        .clickable { showAvatarDialog = true }, // Munculkan Dialog saat diklik
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Tampilkan gambar berdasarkan String selectedAvatarName (Ambil dari Local)
-                    Image(
-                        painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
-                        contentDescription = "Selected Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    // Overlay transparan + Icon Kamera
-                    Box(
+                // Header: Back Icon
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_back),
+                        contentDescription = "Back",
+                        tint = UIBlack,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.1f))
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_camera_form),
-                        contentDescription = "Edit",
-                        modifier = Modifier.size(32.dp)
+                            .size(29.dp)
+                            .clickable { onBackClick() }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(15.dp))
-
-                Text(
-                    text = "Tap to change avatar",
-                    style = AppFont.Medium,
-                    fontSize = 12.sp,
-                    color = UIAccentYellow
-                )
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Input Username
-                ProfileInputForm(
-                    text = username,
-                    onValueChange = { username = it },
-                    placeholder = "Username",
-                    iconRes = R.drawable.ic_user_form, // Pastikan icon ini ada di drawable
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(30.dp))
-
-                // Tombol Create
-                Button(
-                    onClick = handleCreateAccount,
-                    enabled = !isLoading,
+                // Scrollable Content
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(23.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = UIAccentYellow,
-                        contentColor = UIBlack
-                    ),
-                    contentPadding = PaddingValues(0.dp)
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = UIBlack,
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
+                    Spacer(modifier = Modifier.height(60.dp))
+
+                    Text(
+                        text = "What's your name?",
+                        style = AppFont.SemiBold,
+                        fontSize = 28.sp,
+                        color = UIBlack
+                    )
+                    Text(
+                        text = "We want to know you more!",
+                        style = AppFont.Medium,
+                        fontSize = 14.sp,
+                        color = UIBlack.copy(alpha = 0.6f)
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // --- AREA FOTO PROFIL (KLIK UNTUK GANTI) ---
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape)
+                            .clickable { onShowAvatarDialog() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
+                            contentDescription = "Selected Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
-                    } else {
-                        Text(
-                            text = "Create Account",
-                            style = AppFont.Medium,
-                            fontSize = 14.sp,
-                            color = UIBlack
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.1f))
                         )
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_camera_form),
+                            contentDescription = "Edit",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(15.dp))
+
+                    Text(
+                        text = "Tap to change avatar",
+                        style = AppFont.Medium,
+                        fontSize = 12.sp,
+                        color = UIAccentYellow
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // Input Username
+                    ProfileInputForm(
+                        text = username,
+                        onValueChange = onUsernameChange,
+                        placeholder = "Username",
+                        iconRes = R.drawable.ic_user_form,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    // Tombol Create
+                    Button(
+                        onClick = onCreateAccountClick,
+                        enabled = !isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(23.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = UIAccentYellow,
+                            contentColor = UIBlack
+                        ),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = UIBlack,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Create Account",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIBlack
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // --- PANGGIL OVERLAY DI SINI ---
-        if (showAvatarDialog) {
-            AvatarSelectionOverlay(
-                currentSelection = selectedAvatarName,
-                onDismiss = { showAvatarDialog = false },
-                onAvatarSelected = { newName ->
-                    selectedAvatarName = newName
-                    // Dialog otomatis tertutup di dalam komponen overlay
-                }
-            )
+            // --- PANGGIL OVERLAY DI SINI ---
+            if (showAvatarDialog) {
+                AvatarSelectionOverlay(
+                    currentSelection = selectedAvatarName,
+                    onDismiss = onDismissAvatarDialog,
+                    onAvatarSelected = { newName ->
+                        onAvatarSelected(newName)
+                    }
+                )
+            }
         }
     }
 }
@@ -277,6 +306,17 @@ fun ProfileInputForm(
 @Composable
 fun FillProfileScreenPreview() {
     LucaTheme {
-        FillProfileScreen()
+        FillProfileScreenContent(
+            username = "",
+            onUsernameChange = {},
+            selectedAvatarName = AvatarUtils.avatars[0].first,
+            showAvatarDialog = false,
+            onShowAvatarDialog = {},
+            onDismissAvatarDialog = {},
+            onAvatarSelected = {},
+            isLoading = false,
+            onBackClick = {},
+            onCreateAccountClick = {}
+        )
     }
 }

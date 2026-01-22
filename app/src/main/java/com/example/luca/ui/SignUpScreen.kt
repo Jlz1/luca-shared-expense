@@ -30,6 +30,7 @@ import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
 import kotlinx.coroutines.launch
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SignUpScreen(
@@ -105,149 +106,25 @@ fun SignUpScreen(
         }
     }
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(UIWhite)) {
-        if (isLoading) {
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter),
-                color = UIAccentYellow
-            )
-        }
-
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(30.dp)) {
-            // Header Back
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_back),
-                    contentDescription = "Back",
-                    tint = UIBlack,
-                    modifier = Modifier
-                        .size(29.dp)
-                        .clickable { onBackClick() }
-                )
-            }
-
-            // Content
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)) {
-                        Text(
-                            text = "Welcome to Luca!",
-                            style = AppFont.SemiBold,
-                            fontSize = 28.sp,
-                            color = UIBlack,
-                            modifier = Modifier.align(Alignment.CenterStart)
-                        )
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_luca_logo),
-                            contentDescription = "Logo",
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .size(34.5.dp, 34.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "Splitting bills made easy.",
-                        style = AppFont.Medium,
-                        fontSize = 14.sp,
-                        color = UIBlack.copy(alpha = 0.6f)
-                    )
-
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    SignUpInputForm(
-                        text = email,
-                        onValueChange = onEmailChangeWithValidation,
-                        placeholder = "Email Address",
-                        iconRes = R.drawable.ic_email_form,
-                        errorMessage = emailError
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
-                    SignUpInputForm(
-                        text = password,
-                        onValueChange = onPasswordChangeWithValidation,
-                        placeholder = "Password",
-                        iconRes = R.drawable.ic_password_form,
-                        isPasswordField = true,
-                        isPasswordVisible = isPasswordVisible,
-                        onVisibilityChange = { isPasswordVisible = !isPasswordVisible },
-                        errorMessage = passwordError
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
-                    SignUpInputForm(
-                        text = confirmPassword,
-                        onValueChange = onConfirmPasswordChangeWithValidation,
-                        placeholder = "Confirm Password",
-                        iconRes = R.drawable.ic_password_form,
-                        isPasswordField = true,
-                        isPasswordVisible = isConfirmPasswordVisible,
-                        onVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible },
-                        errorMessage = confirmPasswordError
-                    )
-
-                    Spacer(modifier = Modifier.height(40.dp))
-
-                    Button(
-                        onClick = handleSignUp,
-                        enabled = isFormValid && !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(23.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = UIAccentYellow,
-                            contentColor = UIBlack,
-                            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
-                            disabledContentColor = UIBlack.copy(alpha = 0.5f)
-                        ),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = UIBlack,
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                "Continue",
-                                style = AppFont.Medium,
-                                fontSize = 14.sp,
-                                color = UIBlack,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Footer
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Privacy Policy   ·   Terms of Service",
-                    style = AppFont.SemiBold,
-                    fontSize = 12.sp,
-                    color = UIBlack.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
+    SignUpScreenContent(
+        email = email,
+        password = password,
+        confirmPassword = confirmPassword,
+        emailError = emailError,
+        passwordError = passwordError,
+        confirmPasswordError = confirmPasswordError,
+        isPasswordVisible = isPasswordVisible,
+        isConfirmPasswordVisible = isConfirmPasswordVisible,
+        isLoading = isLoading,
+        isFormValid = isFormValid,
+        onEmailChange = onEmailChangeWithValidation,
+        onPasswordChange = onPasswordChangeWithValidation,
+        onConfirmPasswordChange = onConfirmPasswordChangeWithValidation,
+        onPasswordVisibilityChange = { isPasswordVisible = !isPasswordVisible },
+        onConfirmPasswordVisibilityChange = { isConfirmPasswordVisible = !isConfirmPasswordVisible },
+        onBackClick = onBackClick,
+        onSignUpClick = handleSignUp
+    )
 }
 
 @Composable
@@ -356,38 +233,201 @@ fun SignUpInputForm(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 fun SignUpScreenPreview() {
-    LucaTheme {
-        // Kita memberikan fungsi kosong {} untuk lambda agar preview bisa tampil
-        SignUpScreen(
-            onBackClick = {},
-            onContinueClick = {}
-        )
-    }
+    // Preview content tanpa dependency yang menyebabkan render issues
+    SignUpScreenContent(
+        email = "",
+        password = "",
+        confirmPassword = "",
+        emailError = null,
+        passwordError = null,
+        confirmPasswordError = null,
+        isPasswordVisible = false,
+        isConfirmPasswordVisible = false,
+        isLoading = false,
+        isFormValid = false,
+        onEmailChange = {},
+        onPasswordChange = {},
+        onConfirmPasswordChange = {},
+        onPasswordVisibilityChange = {},
+        onConfirmPasswordVisibilityChange = {},
+        onBackClick = {},
+        onSignUpClick = {}
+    )
 }
 
-@Preview(showBackground = true)
 @Composable
-fun SignUpInputFormPreview() {
-    LucaTheme {
-        Column(modifier = Modifier.padding(20.dp)) {
-            SignUpInputForm(
-                text = "",
-                onValueChange = {},
-                placeholder = "Contoh Email",
-                iconRes = R.drawable.ic_email_form
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            SignUpInputForm(
-                text = "password123",
-                onValueChange = {},
-                placeholder = "Password",
-                iconRes = R.drawable.ic_password_form,
-                isPasswordField = true,
-                errorMessage = "Password terlalu lemah"
-            )
+fun SignUpScreenContent(
+    email: String,
+    password: String,
+    confirmPassword: String,
+    emailError: String?,
+    passwordError: String?,
+    confirmPasswordError: String?,
+    isPasswordVisible: Boolean,
+    isConfirmPasswordVisible: Boolean,
+    isLoading: Boolean,
+    isFormValid: Boolean,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
+    onPasswordVisibilityChange: () -> Unit,
+    onConfirmPasswordVisibilityChange: () -> Unit,
+    onBackClick: () -> Unit,
+    onSignUpClick: () -> Unit
+) {
+    Scaffold(
+        containerColor = UIWhite
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(UIWhite)
+                .padding(paddingValues)
+        ) {
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter),
+                    color = UIAccentYellow
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(all = 30.dp)
+            ) {
+                // Header Back - sama seperti LoginScreen
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_back),
+                        contentDescription = "Back",
+                        tint = UIBlack,
+                        modifier = Modifier
+                            .size(29.dp)
+                            .clickable { onBackClick() }
+                    )
+                }
+
+                // Content
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+                            Text(
+                                text = "Welcome to Luca!",
+                                style = AppFont.SemiBold,
+                                fontSize = 28.sp,
+                                color = UIBlack,
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_luca_logo),
+                                contentDescription = "Logo",
+                                modifier = Modifier.align(Alignment.CenterEnd).size(34.5.dp, 34.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "Splitting bills made easy.",
+                            style = AppFont.Medium,
+                            fontSize = 14.sp,
+                            color = UIBlack.copy(alpha = 0.6f)
+                        )
+
+                        Spacer(modifier = Modifier.height(30.dp))
+
+                        SignUpInputForm(
+                            text = email,
+                            onValueChange = onEmailChange,
+                            placeholder = "Email Address",
+                            iconRes = R.drawable.ic_email_form,
+                            errorMessage = emailError
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+                        SignUpInputForm(
+                            text = password,
+                            onValueChange = onPasswordChange,
+                            placeholder = "Password",
+                            iconRes = R.drawable.ic_password_form,
+                            isPasswordField = true,
+                            isPasswordVisible = isPasswordVisible,
+                            onVisibilityChange = onPasswordVisibilityChange,
+                            errorMessage = passwordError
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+                        SignUpInputForm(
+                            text = confirmPassword,
+                            onValueChange = onConfirmPasswordChange,
+                            placeholder = "Confirm Password",
+                            iconRes = R.drawable.ic_password_form,
+                            isPasswordField = true,
+                            isPasswordVisible = isConfirmPasswordVisible,
+                            onVisibilityChange = onConfirmPasswordVisibilityChange,
+                            errorMessage = confirmPasswordError
+                        )
+
+                        Spacer(modifier = Modifier.height(40.dp))
+
+                        Button(
+                            onClick = onSignUpClick,
+                            enabled = isFormValid && !isLoading,
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(23.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIAccentYellow,
+                                contentColor = UIBlack,
+                                disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f),
+                                disabledContentColor = UIBlack.copy(alpha = 0.5f)
+                            ),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = UIBlack,
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    "Continue",
+                                    style = AppFont.Medium,
+                                    fontSize = 14.sp,
+                                    color = UIBlack,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Footer
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Privacy Policy   ·   Terms of Service",
+                        style = AppFont.SemiBold,
+                        fontSize = 12.sp,
+                        color = UIBlack.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }
+
+
