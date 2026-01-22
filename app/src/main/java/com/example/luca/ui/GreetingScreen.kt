@@ -36,17 +36,18 @@ import com.google.android.gms.common.api.ApiException
 @Composable
 fun GreetingScreen(
     onNavigateToLogin: () -> Unit,
-    onNavigateToSignUp: () -> Unit,
+    onNavigateToSignUp: () -> Unit,         // Arah: Form Email/Password (User Manual)
+    onNavigateToFillProfile: () -> Unit,    // Arah: Form Username/Avatar (User Google/X) -> PENTING!
     onNavigateToHome: () -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Web Client ID (Pastikan ini sesuai dengan console firebase kamu)
+    // Web Client ID
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
 
-    // Observer Navigasi: Sukses -> Home
+    // Observer 1: User Lama & Sukses -> Langsung Home
     LaunchedEffect(authViewModel.isSuccess) {
         if (authViewModel.isSuccess) {
             Toast.makeText(context, "Welcome Back!", Toast.LENGTH_SHORT).show()
@@ -55,23 +56,24 @@ fun GreetingScreen(
         }
     }
 
-    // Observer Navigasi: User Baru/Hantu -> Sign Up (Fill Profile)
+    // Observer 2: User Baru / Hantu -> ISI PROFILE (Bukan Sign Up Email)
     LaunchedEffect(authViewModel.isNewUser) {
         if (authViewModel.isNewUser) {
-            Toast.makeText(context, "Please complete your profile", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Lengkapi profilmu dulu", Toast.LENGTH_SHORT).show()
             authViewModel.resetState()
-            onNavigateToSignUp()
+            // INI KUNCINYA: Jangan ke SignUp, tapi ke FillProfile
+            onNavigateToFillProfile()
         }
     }
 
-    // Observer Error
+    // Observer 3: Error
     LaunchedEffect(authViewModel.errorMessage) {
         authViewModel.errorMessage?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
         }
     }
 
-    // --- 1. LAUNCHER GOOGLE ---
+    // --- LAUNCHER GOOGLE ---
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -80,9 +82,7 @@ fun GreetingScreen(
             try {
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account.idToken
-
                 if (idToken != null) {
-                    // FIX: Menggunakan ViewModel
                     authViewModel.googleLogin(idToken)
                 }
             } catch (e: ApiException) {
@@ -101,22 +101,17 @@ fun GreetingScreen(
         googleLauncher.launch(client.signInIntent)
     }
 
-    // --- 2. HANDLE X (TWITTER) CLICK ---
+    // Handle X (Twitter) Click
     val onXClick: () -> Unit = {
         val activity = context as? Activity
         if (activity != null) {
-            // FIX: Panggil fungsi di ViewModel
             authViewModel.twitterLogin(activity)
         } else {
             Toast.makeText(context, "Error: Context bukan Activity", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Pass state and callbacks to UI Content
-    Box(
-        modifier = Modifier.fillMaxSize().background(UIWhite)
-    ) {
-        // Loading Indicator
+    Box(modifier = Modifier.fillMaxSize().background(UIWhite)) {
         if (authViewModel.isLoading) {
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
@@ -133,7 +128,7 @@ fun GreetingScreen(
     }
 }
 
-// --- FUNGSI 2: UI CONTENT (TIDAK ADA PERUBAHAN) ---
+// --- UI CONTENT (TETAP SAMA) ---
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
