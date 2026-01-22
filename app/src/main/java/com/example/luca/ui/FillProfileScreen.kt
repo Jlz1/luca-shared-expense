@@ -39,8 +39,8 @@ fun FillProfileScreen(
 ) {
     var username by remember { mutableStateOf("") }
 
-    // Default Avatar (Pilih avatar_1 saat pertama buka)
-    var selectedAvatarName by remember { mutableStateOf(AvatarUtils.avatars[0].first) }
+    // Default Avatar (Kosong, tampilkan placeholder abu-abu dengan icon camera)
+    var selectedAvatarName by remember { mutableStateOf("") }
 
     // State untuk kontrol muncul/tidaknya overlay dialog
     var showAvatarDialog by remember { mutableStateOf(false) }
@@ -157,26 +157,26 @@ fun FillProfileScreenContent(
                         modifier = Modifier
                             .size(140.dp)
                             .clip(CircleShape)
+                            .background(UIGrey)
                             .clickable { onShowAvatarDialog() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
-                            contentDescription = "Selected Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.1f))
-                        )
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_camera_form),
-                            contentDescription = "Edit",
-                            modifier = Modifier.size(32.dp)
-                        )
+                        if (selectedAvatarName.isNotEmpty()) {
+                            // Tampilkan avatar yang dipilih
+                            Image(
+                                painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
+                                contentDescription = "Selected Avatar",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            // Tampilkan icon camera saat belum pilih avatar
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_camera_form),
+                                contentDescription = "Edit",
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(15.dp))
@@ -309,7 +309,7 @@ fun FillProfileScreenPreview() {
         FillProfileScreenContent(
             username = "",
             onUsernameChange = {},
-            selectedAvatarName = AvatarUtils.avatars[0].first,
+            selectedAvatarName = "",
             showAvatarDialog = false,
             onShowAvatarDialog = {},
             onDismissAvatarDialog = {},
