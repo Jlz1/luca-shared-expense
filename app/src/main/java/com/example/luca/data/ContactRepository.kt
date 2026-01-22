@@ -41,4 +41,39 @@ class ContactRepository {
             emptyList()
         }
     }
+
+    // Update Contact
+    suspend fun updateContact(contactId: String, contact: Contact): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+
+        return try {
+            val finalContact = contact.copy(id = contactId, userId = uid)
+            db.collection("users")
+                .document(uid)
+                .collection("contacts")
+                .document(contactId)
+                .set(finalContact)
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Delete Contact
+    suspend fun deleteContact(contactId: String): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+
+        return try {
+            db.collection("users")
+                .document(uid)
+                .collection("contacts")
+                .document(contactId)
+                .delete()
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -76,6 +76,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -98,6 +100,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.luca.R
 import com.example.luca.ui.theme.AppFont
+import com.example.luca.ui.components.AvatarSelectionOverlay
+import com.example.luca.util.AvatarUtils
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
 import com.example.luca.ui.theme.UIBlack
@@ -111,6 +115,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
 import com.example.luca.model.BankAccountData
+import com.example.luca.model.Contact
 import com.example.luca.util.BankUtils
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.verticalScroll
@@ -125,8 +130,7 @@ enum class HeaderState(
     NEW_EVENT("New Event", true, false), // State 2: Back + No Logo
     NEW_ACTIVITY("New Activity", true, false),
     DETAILS("Activity Details", true, false),
-    EDIT_ACTIVITY("Edit Activity", true, false),
-    SUMMARY("Summary", true, false)
+    EDIT_ACTIVITY("Edit Activity", true, false)
 }
 
 // Header Section
@@ -415,6 +419,7 @@ fun InputSection(
 }
 
 // Add Participant Item
+@Suppress("unused")
 @Composable
 fun ParticipantItem(
     name: String,
@@ -493,7 +498,7 @@ fun StackedAvatarRow(
     // ... existing logic for overflow ...
     val isOverflow = avatars.size > maxVisible
     val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
-    val remainingCount = avatars.size - visibleCount
+    // val remainingCount = avatars.size - visibleCount // TODO: Use for overflow count display
 
     Row(
         horizontalArrangement = Arrangement.spacedBy((spacing).dp),
@@ -515,7 +520,7 @@ fun StackedAvatarRow(
 
         // ... existing logic for counter ...
         if (isOverflow) {
-            // ... (keep existing code)
+            // TODO: Show overflow indicator (+N more)
         }
     }
 }
@@ -656,6 +661,7 @@ fun EventCard(
 }
 
 // Helper untuk mendapatkan ID drawable avatar berdasarkan nama
+@Suppress("unused")
 @SuppressLint("LocalContextResourcesRead")
 @Composable
 fun getResourceId(name: String): Int {
@@ -670,24 +676,40 @@ fun getResourceId(name: String): Int {
 @Composable
 fun UserProfileOverlay(
     onClose: () -> Unit,
-    // Callback mengirim data lengkap: Nama, HP, Deskripsi, List Bank
-    onAddContact: (String, String, String, List<BankAccountData>) -> Unit,
+    // Callback mengirim data: Nama, HP, List Bank, Avatar (removed description)
+    onAddContact: (String, String, List<BankAccountData>, String) -> Unit,
+    // Add optional parameter for editing existing contact
+    editContact: Contact? = null,
+    onUpdateContact: ((String, String, String, String, List<BankAccountData>, String) -> Unit)? = null
 ) {
-    // State Input
-    var name by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    // State Input - Pre-fill if editing
+    var name by remember { mutableStateOf(editContact?.name ?: "") }
+    var phoneNumber by remember { mutableStateOf(editContact?.phoneNumber ?: "") }
+    var description by remember { mutableStateOf(editContact?.description ?: "") }
 
-    // State Bank & Dialog
-    var bankAccounts by remember { mutableStateOf<List<BankAccountData>>(emptyList()) }
+    // State Bank & Dialog - Pre-fill if editing
+    var bankAccounts by remember { mutableStateOf<List<BankAccountData>>(editContact?.bankAccounts ?: emptyList()) }
     var showBankDialog by remember { mutableStateOf(false) }
+    var bankFullError by remember { mutableStateOf(false) }
 
     // Dialog state variables
     var selectedBank by remember { mutableStateOf("") }
     var accountNumber by remember { mutableStateOf("") }
 
-    // State Avatar
+    // State Avatar - Pre-fill if editing
     var showAvatarDialog by remember { mutableStateOf(false) }
+    var selectedAvatarName by remember { mutableStateOf(editContact?.avatarName ?: "") }
+
+    // State Validation Error
+    var showNameError by remember { mutableStateOf(false) }
+
+    // Auto-hide bank full error after 3 seconds
+    LaunchedEffect(bankFullError) {
+        if (bankFullError) {
+            delay(3000) // 3 seconds
+            bankFullError = false
+        }
+    }
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -711,22 +733,55 @@ fun UserProfileOverlay(
                 }
 
                 Box(
-                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(UIGrey)
-                        .align(Alignment.Center)
                         .clickable { showAvatarDialog = true }
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, "Upload", tint = UIDarkGrey, modifier = Modifier.size(32.dp))
+                    if (selectedAvatarName.isNotEmpty()) {
+                        // Show selected avatar without camera overlay
+                        Image(
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
+                            contentDescription = "Selected Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Show camera icon with grey background
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(UIGrey),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                "Select Avatar",
+                                tint = UIDarkGrey,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
                 }
 
                 // TOMBOL SAVE (CHECK)
                 IconButton(
                     onClick = {
-                        // Fix error Argument type mismatch: Kirim data ke parent
-                        onAddContact(name, phoneNumber, description, bankAccounts)
+                        // Validasi: Nama harus diisi
+                        if (name.isBlank()) {
+                            showNameError = true
+                        } else {
+                            // Check if editing or adding
+                            if (editContact != null && onUpdateContact != null) {
+                                // Update existing contact
+                                onUpdateContact(editContact.id, name, phoneNumber, description, bankAccounts, selectedAvatarName)
+                            } else {
+                                // Add new contact
+                                onAddContact(name, phoneNumber, bankAccounts, selectedAvatarName)
+                            }
+                        }
                     },
                     modifier = Modifier.align(Alignment.TopEnd)
                 ) {
@@ -737,11 +792,23 @@ fun UserProfileOverlay(
             Spacer(modifier = Modifier.height(24.dp))
 
             // INPUT FIELDS
-            CustomRoundedTextField(value = name, onValueChange = { name = it }, placeholder = "Name", backgroundColor = UIGrey)
+            CustomRoundedTextField(value = name, onValueChange = { name = it; showNameError = false }, placeholder = "Name", backgroundColor = UIGrey)
+
+            // Error Message for Name
+            if (showNameError) {
+                Text(
+                    text = "Nama contact harus diisi",
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    style = AppFont.Regular,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, start = 8.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
             CustomRoundedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, placeholder = "Phone Number (Optional)", backgroundColor = UIGrey)
-            Spacer(modifier = Modifier.height(16.dp))
-            CustomRoundedTextField(value = description, onValueChange = { description = it }, placeholder = "Description (e.g. Teman Kampus)", backgroundColor = UIGrey)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -754,8 +821,14 @@ fun UserProfileOverlay(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .background(UIAccentYellow)
-                    .clickable { showBankDialog = true }
+                    .background(if (bankAccounts.size >= 3) UIGrey else UIAccentYellow)
+                    .clickable(enabled = bankAccounts.size < 3) {
+                        if (bankAccounts.size < 3) {
+                            showBankDialog = true
+                        } else {
+                            bankFullError = true
+                        }
+                    }
             ) {
                 Icon(Icons.Default.Add, "Add Bank", tint = Color.Black, modifier = Modifier.size(24.dp))
             }
@@ -777,6 +850,19 @@ fun UserProfileOverlay(
                     }
                 }
             }
+
+            // Error Message for Bank Account Full
+            if (bankFullError) {
+                Text(
+                    text = "Bank account is full",
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    style = AppFont.Regular,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, start = 8.dp)
+                )
+            }
         }
     }
 
@@ -793,18 +879,35 @@ fun UserProfileOverlay(
                 showBankDialog = false
                 selectedBank = ""
                 accountNumber = ""
+                bankFullError = false
             },
             onAdd = {
                 if (selectedBank.isNotEmpty() && accountNumber.isNotEmpty()) {
-                    val logoName = BankUtils.generateLogoFileName(selectedBank)
-                    val newBank = BankAccountData(selectedBank, accountNumber, logoName)
-                    bankAccounts = bankAccounts + newBank
+                    // Check if bank account limit (max 3) has been reached
+                    if (bankAccounts.size >= 3) {
+                        bankFullError = true
+                    } else {
+                        val logoName = BankUtils.generateLogoFileName(selectedBank)
+                        val newBank = BankAccountData(selectedBank, accountNumber, logoName)
+                        bankAccounts = bankAccounts + newBank
 
-                    showBankDialog = false
-                    selectedBank = ""
-                    accountNumber = ""
+                        showBankDialog = false
+                        selectedBank = ""
+                        accountNumber = ""
+                    }
                 }
-            }
+            },
+            bankAccountCount = bankAccounts.size,
+            bankFullError = bankFullError
+        )
+    }
+
+    // --- DIALOG PILIH AVATAR ---
+    if (showAvatarDialog) {
+        AvatarSelectionOverlay(
+            currentSelection = selectedAvatarName,
+            onAvatarSelected = { selectedAvatarName = it },
+            onDismiss = { showAvatarDialog = false }
         )
     }
 }
@@ -817,10 +920,13 @@ fun BankDialogOverlay(
     accountNumber: String,
     onAccountNumberChanged: (String) -> Unit,
     onDismiss: () -> Unit,
-    onAdd: () -> Unit
+    onAdd: () -> Unit,
+    bankAccountCount: Int = 0,
+    bankFullError: Boolean = false
 ) {
     // Ambil list bank langsung dari Utils
     val bankList = BankUtils.availableBanks
+    val isAtMaxCapacity = bankAccountCount >= 3
 
     Box(
         modifier = Modifier
@@ -839,6 +945,19 @@ fun BankDialogOverlay(
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("Add Bank Account", fontSize = 18.sp, color = UIBlack, modifier = Modifier.padding(bottom = 16.dp))
 
+                // Error Message for Bank Account Full
+                if (bankFullError) {
+                    Text(
+                        text = "Bank account is full",
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        style = AppFont.Regular,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    )
+                }
+
                 // Scrollable Bank Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -849,7 +968,8 @@ fun BankDialogOverlay(
                             onClick = { onBankSelected(bank) },
                             colors = ButtonDefaults.buttonColors(containerColor = if(selectedBank == bank) UIAccentYellow else UIGrey),
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            enabled = !isAtMaxCapacity
                         ) {
                             Text(bank, color = if(selectedBank == bank) UIBlack else UIDarkGrey)
                         }
@@ -857,14 +977,14 @@ fun BankDialogOverlay(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                CustomRoundedTextField(value = accountNumber, onValueChange = onAccountNumberChanged, placeholder = "Account Number", backgroundColor = UIGrey)
+                CustomRoundedTextField(value = accountNumber, onValueChange = onAccountNumberChanged, placeholder = "Account Number", backgroundColor = UIGrey, enabled = !isAtMaxCapacity)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = UIGrey), modifier = Modifier.weight(1f)) {
                         Text("Cancel", color = Color.Black)
                     }
-                    Button(onClick = onAdd, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow), modifier = Modifier.weight(1f)) {
+                    Button(onClick = onAdd, colors = ButtonDefaults.buttonColors(containerColor = if(isAtMaxCapacity) UIGrey else UIAccentYellow), modifier = Modifier.weight(1f), enabled = !isAtMaxCapacity) {
                         Text("Add", color = Color.Black)
                     }
                 }
@@ -874,6 +994,7 @@ fun BankDialogOverlay(
 }
 
 // Komponen untuk button pilihan bank
+@Suppress("unused")
 @Composable
 fun BankButton(
     bankName: String,
@@ -905,12 +1026,14 @@ fun CustomRoundedTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    backgroundColor: Color
+    backgroundColor: Color,
+    enabled: Boolean = true
 ) {
     TextField(
         value = value,
         onValueChange = onValueChange,
         placeholder = { Text(text = placeholder, color = Color.Gray) },
+        enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp), // Padding kiri kanan biar ga nempel pinggir
@@ -1081,7 +1204,8 @@ fun ContactCard(
     modifier: Modifier = Modifier,
     contactName: String,
     phoneNumber: String,
-    avatarColor: Color = Color(0xFF5FBDAC), // Default teal color dari gambar
+    avatarName: String = "avatar_1", // Avatar name dari database
+    avatarColor: Color = Color(0xFF5FBDAC), // Default teal color jika avatar tidak ada
     events: List<String> = emptyList(),
     bankAccounts: List<BankAccount> = emptyList(),
     maxHeight: Dp? = null, // Ukuran maksimal tinggi card
@@ -1113,13 +1237,36 @@ fun ContactCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar (Circular placeholder)
+                // Avatar (Display actual avatar image or fallback to color)
                 Box(
                     modifier = Modifier
                         .size(avatarSize)
-                        .clip(CircleShape)
-                        .background(avatarColor)
-                )
+                        .clip(CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (avatarName.isNotEmpty() && avatarName != "avatar_1") {
+                        Image(
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
+                            contentDescription = "Contact Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(avatarColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = contactName.take(1).uppercase(),
+                                color = UIWhite,
+                                fontSize = (avatarSize.value * 0.4).sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
 
                 // Action Buttons (Edit & Delete)
                 Row(
@@ -1211,20 +1358,40 @@ private fun BankAccountRow(bankAccount: BankAccount) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Bank Icon/Logo Placeholder
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(bankAccount.bankColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = bankAccount.bankName.take(3).uppercase(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = UIWhite
+        // Bank Logo
+        val logoResId = when (bankAccount.bankName.lowercase().trim()) {
+            "bca" -> R.drawable.bank_logo_bca
+            "bri" -> R.drawable.bank_logo_bri
+            "bni" -> R.drawable.bank_logo_bni
+            "blu" -> R.drawable.bank_logo_blu
+            "mandiri" -> R.drawable.bank_logo_mandiri
+            else -> null
+        }
+
+        if (logoResId != null) {
+            Image(
+                painter = painterResource(id = logoResId),
+                contentDescription = "${bankAccount.bankName} Logo",
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
+        } else {
+            // Fallback jika logo tidak ditemukan
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(bankAccount.bankColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = bankAccount.bankName.take(3).uppercase(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = UIWhite
+                )
+            }
         }
 
         // Account Number
@@ -1548,6 +1715,8 @@ fun SearchBarModify(
             // TODO: nanti logic taro sini
             // Log atau logic internal bisa ditambahkan di sini
             // println("Searching in: $databaseLabel")
+            @Suppress("UNUSED_EXPRESSION")
+            databaseLabel // Placeholder to avoid empty body warning
         }
 
         if (readOnly) {
@@ -1732,9 +1901,9 @@ fun PreviewOverlay() {
         UserProfileOverlay(
             onClose = { println("Overlay closed") },
             // PERBAIKAN DI SINI:
-            // Lambda sekarang harus menerima 4 parameter: name, phone, desc, banks
-            onAddContact = { name, phone, desc, banks ->
-                println("Contact added: $name, $phone, $desc, $banks")
+            // Lambda sekarang harus menerima 4 parameter: name, phone, banks, avatarName
+            onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String ->
+                println("Contact added: $name, $phone, $banks, $avatarName")
             }
         )
     }

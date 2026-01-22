@@ -6,6 +6,6 @@ object BankUtils {
     )
 
     fun generateLogoFileName(bankName: String): String {
-        return "logo_${bankName.lowercase()}"
+        return "bank_logo_${bankName.lowercase()}"
     }
 }
