@@ -30,7 +30,6 @@ import com.example.luca.data.AuthRepository
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
 import kotlinx.coroutines.launch
-import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SignUpScreen(
