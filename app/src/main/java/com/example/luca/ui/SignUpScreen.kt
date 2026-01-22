@@ -26,22 +26,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
-import com.example.luca.data.AuthRepository
+// import com.example.luca.data.AuthRepository
+import com.example.luca.viewmodel.AuthViewModel
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
-import kotlinx.coroutines.launch
 
 @Composable
 fun SignUpScreen(
+    authViewModel: AuthViewModel, // UPDATE: Kita butuh ViewModel untuk OTP
     onBackClick: () -> Unit,
-    onContinueClick: () -> Unit
+    onNavigateToOtp: (String) -> Unit // UPDATE: Callback pindah ke layar OTP
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val authRepo = remember { AuthRepository() }
-    var isLoading by remember { mutableStateOf(false) }
 
     // State Form
+    var name by remember { mutableStateOf("") } // BARU: Input Nama
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -49,12 +48,35 @@ fun SignUpScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    // Error states for validation
+    // Error states
+    var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
-    // Validate on input change with sanitization
+    // --- OBSERVER (CCTV OTP) ---
+    // Kalau ViewModel bilang "OTP Terkirim", kita pindah layar
+    LaunchedEffect(authViewModel.otpSentStatus) {
+        if (authViewModel.otpSentStatus) {
+            Toast.makeText(context, "Kode OTP dikirim ke email!", Toast.LENGTH_SHORT).show()
+            onNavigateToOtp(email)
+            authViewModel.otpSentStatus = false
+        }
+    }
+
+    // Kalau ada error (misal koneksi putus)
+    LaunchedEffect(authViewModel.errorMessage) {
+        authViewModel.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // --- VALIDASI ---
+    val onNameChange: (String) -> Unit = { input ->
+        name = input
+        nameError = if (input.isBlank()) "Nama wajib diisi" else null
+    }
+
     val onEmailChangeWithValidation: (String) -> Unit = { input ->
         val sanitized = ValidationUtils.sanitizeInput(input)
         email = sanitized
@@ -78,49 +100,39 @@ fun SignUpScreen(
         }
     }
 
-    // Check if form is valid for enabling button
-    val isFormValid = emailError == null && passwordError == null && confirmPasswordError == null &&
+    // Cek Form Valid (Tambah cek Nama)
+    val isFormValid = name.isNotBlank() && emailError == null && passwordError == null && confirmPasswordError == null &&
             email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
             ValidationUtils.isEmailValid(email) && ValidationUtils.isPasswordValid(password) &&
             password == confirmPassword
 
     val handleSignUp: () -> Unit = {
+        // Validasi Akhir
+        if (name.isBlank()) nameError = "Nama wajib diisi"
         emailError = ValidationUtils.getEmailError(email)
         passwordError = ValidationUtils.getPasswordError(password)
         confirmPasswordError = if (confirmPassword != password) "Password tidak cocok" else null
 
-        if (emailError == null && passwordError == null && confirmPasswordError == null) {
-            isLoading = true
-            scope.launch {
-                val success = authRepo.signUpManual(email, password)
-                isLoading = false
-
-                if (success) {
-                    Toast.makeText(context, "Akun berhasil dibuat!", Toast.LENGTH_SHORT).show()
-                    onContinueClick()
-                } else {
-                    // Cek apakah user sudah terdaftar dengan data lengkap
-                    Toast.makeText(
-                        context,
-                        "Email sudah terdaftar atau password salah. Silakan gunakan Login jika sudah memiliki akun.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
+        if (emailError == null && passwordError == null && confirmPasswordError == null && nameError == null) {
+            // ACTION: Panggil fungsi OTP di ViewModel
+            authViewModel.startSignUpProcess(name, email, password)
         }
     }
 
     SignUpScreenContent(
+        name = name,
         email = email,
         password = password,
         confirmPassword = confirmPassword,
+        nameError = nameError,
         emailError = emailError,
         passwordError = passwordError,
         confirmPasswordError = confirmPasswordError,
         isPasswordVisible = isPasswordVisible,
         isConfirmPasswordVisible = isConfirmPasswordVisible,
-        isLoading = isLoading,
+        isLoading = authViewModel.isLoading, // Ambil status loading dari VM
         isFormValid = isFormValid,
+        onNameChange = onNameChange,
         onEmailChange = onEmailChangeWithValidation,
         onPasswordChange = onPasswordChangeWithValidation,
         onConfirmPasswordChange = onConfirmPasswordChangeWithValidation,
@@ -131,6 +143,7 @@ fun SignUpScreen(
     )
 }
 
+// --- SignUpInputForm KAMU TIDAK SAYA UBAH SAMA SEKALI (Tetap Estetik) ---
 @Composable
 fun SignUpInputForm(
     text: String,
@@ -170,9 +183,7 @@ fun SignUpInputForm(
 
                 Spacer(modifier = Modifier.width(12.dp))
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     BasicTextField(
@@ -186,14 +197,9 @@ fun SignUpInputForm(
                         singleLine = true,
                         visualTransformation = if (isPasswordField && !isPasswordVisible)
                             PasswordVisualTransformation() else VisualTransformation.None,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .focusRequester(focusRequester),
+                        modifier = Modifier.fillMaxSize().focusRequester(focusRequester),
                         decorationBox = { innerTextField ->
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
                                 if (text.isEmpty()) {
                                     Text(
                                         text = placeholder,
@@ -237,36 +243,14 @@ fun SignUpInputForm(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = false)
-@Composable
-fun SignUpScreenPreview() {
-    // Preview content tanpa dependency yang menyebabkan render issues
-    SignUpScreenContent(
-        email = "",
-        password = "",
-        confirmPassword = "",
-        emailError = null,
-        passwordError = null,
-        confirmPasswordError = null,
-        isPasswordVisible = false,
-        isConfirmPasswordVisible = false,
-        isLoading = false,
-        isFormValid = false,
-        onEmailChange = {},
-        onPasswordChange = {},
-        onConfirmPasswordChange = {},
-        onPasswordVisibilityChange = {},
-        onConfirmPasswordVisibilityChange = {},
-        onBackClick = {},
-        onSignUpClick = {}
-    )
-}
-
+// UPDATE PARAMETER CONTENT
 @Composable
 fun SignUpScreenContent(
+    name: String,
     email: String,
     password: String,
     confirmPassword: String,
+    nameError: String?,
     emailError: String?,
     passwordError: String?,
     confirmPasswordError: String?,
@@ -274,6 +258,7 @@ fun SignUpScreenContent(
     isConfirmPasswordVisible: Boolean,
     isLoading: Boolean,
     isFormValid: Boolean,
+    onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
@@ -282,53 +267,34 @@ fun SignUpScreenContent(
     onBackClick: () -> Unit,
     onSignUpClick: () -> Unit
 ) {
-    Scaffold(
-        containerColor = UIWhite
-    ) { paddingValues ->
+    Scaffold(containerColor = UIWhite) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(UIWhite)
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize().background(UIWhite).padding(paddingValues)
         ) {
             if (isLoading) {
                 LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter),
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
                     color = UIAccentYellow
                 )
             }
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(all = 30.dp)
+                modifier = Modifier.fillMaxSize().padding(all = 30.dp)
             ) {
-                // Header Back - sama seperti LoginScreen
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                // Header Back
+                Box(modifier = Modifier.fillMaxWidth()) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_arrow_back),
                         contentDescription = "Back",
                         tint = UIBlack,
-                        modifier = Modifier
-                            .size(29.dp)
-                            .clickable { onBackClick() }
+                        modifier = Modifier.size(29.dp).clickable { onBackClick() }
                     )
                 }
 
                 // Content
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.Center
                     ) {
                         Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
@@ -355,6 +321,19 @@ fun SignUpScreenContent(
 
                         Spacer(modifier = Modifier.height(30.dp))
 
+                        // --- NEW: INPUT NAME ---
+                        // Menggunakan style SignUpInputForm yang kamu buat
+                        SignUpInputForm(
+                            text = name,
+                            onValueChange = onNameChange,
+                            placeholder = "Full Name",
+                            // Saya pinjam icon email dulu, nanti kamu bisa ganti icon user
+                            iconRes = R.drawable.ic_email_form,
+                            errorMessage = nameError
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        // --- EMAIL ---
                         SignUpInputForm(
                             text = email,
                             onValueChange = onEmailChange,
@@ -363,6 +342,8 @@ fun SignUpScreenContent(
                             errorMessage = emailError
                         )
                         Spacer(modifier = Modifier.height(15.dp))
+
+                        // --- PASSWORD ---
                         SignUpInputForm(
                             text = password,
                             onValueChange = onPasswordChange,
@@ -374,6 +355,8 @@ fun SignUpScreenContent(
                             errorMessage = passwordError
                         )
                         Spacer(modifier = Modifier.height(15.dp))
+
+                        // --- CONFIRM PASSWORD ---
                         SignUpInputForm(
                             text = confirmPassword,
                             onValueChange = onConfirmPasswordChange,
@@ -387,6 +370,7 @@ fun SignUpScreenContent(
 
                         Spacer(modifier = Modifier.height(40.dp))
 
+                        // --- BUTTON ---
                         Button(
                             onClick = onSignUpClick,
                             enabled = isFormValid && !isLoading,
@@ -401,19 +385,9 @@ fun SignUpScreenContent(
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             if (isLoading) {
-                                CircularProgressIndicator(
-                                    color = UIBlack,
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
+                                CircularProgressIndicator(color = UIBlack, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                             } else {
-                                Text(
-                                    "Continue",
-                                    style = AppFont.Medium,
-                                    fontSize = 14.sp,
-                                    color = UIBlack,
-                                    textAlign = TextAlign.Center
-                                )
+                                Text("Continue", style = AppFont.Medium, fontSize = 14.sp, color = UIBlack)
                             }
                         }
                     }
@@ -433,5 +407,3 @@ fun SignUpScreenContent(
         }
     }
 }
-
-
