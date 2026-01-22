@@ -109,7 +109,7 @@ fun AddScreenContent(
     var newParticipantName by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize().background(UIBackground)
     ) {
         HeaderSection(
             currentState = HeaderState.NEW_EVENT,
@@ -178,8 +178,8 @@ fun AddScreenContent(
                     } else {
                         Surface(
                             modifier = Modifier.fillMaxSize(),
-                            color = UIGrey,
-                            shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+                            color = UIDarkGrey,
+//                            shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -294,7 +294,7 @@ fun AddScreenContent(
 }
 
 // Preview khusus tampilan (Pakai dummy data)
-@Preview(showBackground = true)
+@Preview(showBackground = false)
 @Composable
 fun AddScreenPreview() {
     LucaTheme {

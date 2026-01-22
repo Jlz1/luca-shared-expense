@@ -108,12 +108,16 @@ fun GreetingScreen(
     }
 
     // Pass state and callbacks to UI Content
-    GreetingScreenContent(
-        onGoogleClick = onGoogleClick,
-        onXClick = onXClick,
-        onSignUpClick = onNavigateToSignUp,
-        onLoginClick = onNavigateToLogin
-    )
+    Box(
+        modifier = Modifier.fillMaxSize().background(UIWhite)
+    ) {
+        GreetingScreenContent(
+            onGoogleClick = onGoogleClick,
+            onXClick = onXClick,
+            onSignUpClick = onNavigateToSignUp,
+            onLoginClick = onNavigateToLogin
+        )
+    }
 }
 
 // --- FUNGSI 2: UI CONTENT (TIDAK ADA PERUBAHAN) ---
@@ -127,8 +131,8 @@ fun GreetingScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(all = 30.dp)
-            .background(UIWhite),
+            .background(UIWhite)
+            .padding(all = 30.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(40.dp))
@@ -286,7 +290,7 @@ fun SocialButton(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = false)
 @Composable
 fun GreetingScreenPreview() {
     LucaTheme {
