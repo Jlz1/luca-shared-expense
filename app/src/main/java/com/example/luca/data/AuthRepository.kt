@@ -21,6 +21,36 @@ class AuthRepository {
             // Data disimpan nanti saat di FillProfileScreen.
             true
         } catch (e: Exception) {
+            // Jika email sudah terdaftar, coba sign in untuk cek apakah user hantu
+            if (e.message?.contains("already in use", true) == true ||
+                e.message?.contains("email-already-in-use", true) == true) {
+                try {
+                    // Coba sign in dengan kredensial yang sama
+                    val result = auth.signInWithEmailAndPassword(email, pass).await()
+                    val user = result.user
+
+                    if (user != null) {
+                        // Cek apakah data ada di Firestore
+                        val doc = db.collection("users").document(user.uid).get().await()
+                        if (!doc.exists()) {
+                            // User ada di Auth tapi tidak ada di DB (User Hantu)
+                            // Biarkan user lanjut ke Fill Profile
+                            return true
+                        } else {
+                            // User sudah lengkap, tidak bisa sign up lagi
+                            auth.signOut()
+                            return false
+                        }
+                    } else {
+                        return false
+                    }
+                } catch (signInError: Exception) {
+                    // Jika sign in gagal (password salah), tetap return false
+                    signInError.printStackTrace()
+                    return false
+                }
+            }
+
             e.printStackTrace()
             false
         }
