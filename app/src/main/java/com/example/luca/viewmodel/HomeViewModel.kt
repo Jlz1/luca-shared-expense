@@ -5,22 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.example.luca.data.LucaRepository
 import com.example.luca.model.Event
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
 
-    // --- STATE UTAMA ---
-
-    // 1. Daftar Event
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events = _events.asStateFlow()
 
-    // 2. Search Query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // 3. Loading State (Default true agar loading muncul saat pertama buka)
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
@@ -28,21 +24,13 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         loadEvents()
     }
 
-    // --- LOGIC ---
-
-    fun loadEvents() {
+    private fun loadEvents() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            try {
-                // UPDATE: Tidak perlu pass userId, repo cari sendiri
-                val eventList = repository.getAllEvents()
+            // Menggunakan Flow untuk Realtime Update
+            repository.getEventsFlow().collect { eventList ->
                 _events.value = eventList
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _events.value = emptyList()
-            } finally {
-                // Loading selesai (sukses/gagal)
                 _isLoading.value = false
             }
         }
@@ -52,7 +40,6 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    // Logic filtering (Search)
     fun getFilteredEvents(): List<Event> {
         val query = _searchQuery.value
         val currentEvents = _events.value
@@ -60,7 +47,6 @@ class HomeViewModel(private val repository: LucaRepository) : ViewModel() {
         return if (query.isEmpty()) {
             currentEvents
         } else {
-            // Filter berdasarkan judul (Title), ignoreCase = huruf besar/kecil dianggap sama
             currentEvents.filter { it.title.contains(query, ignoreCase = true) }
         }
     }
