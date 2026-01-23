@@ -5,21 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.data.LucaRepository
+import com.example.luca.model.BankAccountData
+import com.example.luca.model.Contact
 import com.example.luca.model.Event
-import com.google.firebase.auth.FirebaseAuth
+import com.example.luca.model.ParticipantData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 class AddEventViewModel : ViewModel() {
-    // Repository & Auth Init
     private val repository: LucaRepository = LucaFirebaseRepository()
-    private val auth = FirebaseAuth.getInstance()
 
-    // --- STATE ---
-
-    // State Input
+    // --- STATE INPUT ---
     private val _title = MutableStateFlow("")
     val title = _title.asStateFlow()
 
@@ -29,77 +26,127 @@ class AddEventViewModel : ViewModel() {
     private val _date = MutableStateFlow("")
     val date = _date.asStateFlow()
 
-    // State Gambar
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri = _selectedImageUri.asStateFlow()
 
-    // State Partisipan (List Nama)
-    private val _participants = MutableStateFlow<List<String>>(emptyList())
-    val participants = _participants.asStateFlow()
+    // --- STATE PARTICIPANTS ---
 
-    // State Status
+    private val _availableContacts = MutableStateFlow<List<Contact>>(emptyList())
+    val availableContacts = _availableContacts.asStateFlow()
+
+    private val _selectedParticipants = MutableStateFlow<List<Contact>>(emptyList())
+    val selectedParticipants = _selectedParticipants.asStateFlow()
+
+    // Loading & Success
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
     private val _isSuccess = MutableStateFlow(false)
     val isSuccess = _isSuccess.asStateFlow()
 
-    // --- EVENTS / ACTIONS ---
+    init {
+        // Load data awal
+        fetchContacts()
+        fetchCurrentUser() // <--- BARU: Load user sendiri sebagai default participant
+    }
 
+    // Fungsi untuk mengambil profile user yang sedang login
+    private fun fetchCurrentUser() {
+        viewModelScope.launch {
+            val userContact = repository.getCurrentUserAsContact()
+            if (userContact != null) {
+                // Tambahkan user sendiri ke list selected participants
+                // Kita gunakan toMutableList agar aman
+                val currentList = _selectedParticipants.value.toMutableList()
+                // Cek agar tidak duplikat (safety check)
+                if (currentList.none { it.id == userContact.id }) {
+                    currentList.add(0, userContact) // Tambah di paling depan
+                    _selectedParticipants.value = currentList
+                }
+            }
+        }
+    }
+
+    private fun fetchContacts() {
+        viewModelScope.launch {
+            repository.getContactsFlow().collect { contacts ->
+                _availableContacts.value = contacts
+            }
+        }
+    }
+
+    // Input Actions
     fun onTitleChange(newTitle: String) { _title.value = newTitle }
     fun onLocationChange(newLocation: String) { _location.value = newLocation }
     fun onDateChange(newDate: String) { _date.value = newDate }
     fun onImageSelected(uri: Uri?) { _selectedImageUri.value = uri }
 
-    fun addParticipant(name: String) {
-        if (name.isNotBlank()) {
-            _participants.value = _participants.value + name
+    // Participant Actions
+    fun updateSelectedParticipants(newSelection: List<Contact>) {
+        // PERBAIKAN LOGIC:
+        // Saat user memilih teman dari Overlay, kita harus pastikan User Sendiri (Host)
+        // tidak hilang dari list.
+
+        viewModelScope.launch {
+            val host = repository.getCurrentUserAsContact()
+
+            val finalList = if (host != null) {
+                // Ambil semua yang dipilih user, tapi filter host lama biar ga dobel
+                val selectionWithoutHost = newSelection.filter { it.id != host.id }
+                // Gabungkan: [Host] + [Pilihan User]
+                listOf(host) + selectionWithoutHost
+            } else {
+                newSelection
+            }
+
+            _selectedParticipants.value = finalList
+        }
+    }
+
+    fun addNewContact(name: String, phone: String, avatarName: String, banks: List<BankAccountData>) {
+        viewModelScope.launch {
+            val newContact = Contact(
+                name = name,
+                phoneNumber = phone,
+                avatarName = avatarName,
+                bankAccounts = banks,
+                description = ""
+            )
+            repository.addContact(newContact)
         }
     }
 
     fun saveEvent() {
-        // Validasi sederhana
-        if (_title.value.isEmpty()) return
+        if (_title.value.isBlank()) return
 
         viewModelScope.launch {
             _isLoading.value = true
 
-            // 1. Cek User Login (Hanya untuk memastikan user tidak null)
-            val currentUser = auth.currentUser
-
-            if (currentUser != null) {
-                // (userId tidak perlu diambil disini untuk dikirim ke repo, karena repo ambil sendiri)
-
-                // 2. Upload Gambar (Jika User memilih gambar)
-                var imageUrl = ""
-                val currentUri = _selectedImageUri.value
-
-                // Proses upload hanya jika ada gambar
-                if (currentUri != null) {
-                    val uploadedUrl = repository.uploadEventImage(currentUri)
-                    if (uploadedUrl != null) imageUrl = uploadedUrl
-                }
-
-                // 3. Buat Objek Event
-                val newEvent = Event(
-                    id = UUID.randomUUID().toString(),
-                    title = _title.value,
-                    location = _location.value,
-                    date = _date.value,
-                    imageUrl = imageUrl,
-                    participantAvatars = _participants.value
-                )
-
-                // 4. FIX: Panggil createEvent CUKUP dengan object event saja
-                // Repository akan otomatis mendeteksi userId di dalamnya
-                val success = repository.createEvent(newEvent)
-
-                _isSuccess.value = success
-            } else {
-                // User belum login
-                _isSuccess.value = false
+            var imageUrl = ""
+            val currentUri = _selectedImageUri.value
+            if (currentUri != null) {
+                imageUrl = repository.uploadEventImage(currentUri) ?: ""
             }
 
+            val participantsData = _selectedParticipants.value.map { contact ->
+                ParticipantData(
+                    name = contact.name,
+                    avatarName = contact.avatarName
+                )
+            }
+
+            val newEvent = Event(
+                id = "",
+                title = _title.value,
+                location = _location.value,
+                date = _date.value,
+                imageUrl = imageUrl,
+                participants = participantsData
+            )
+
+            val result = repository.createEvent(newEvent)
+
+            _isSuccess.value = result.isSuccess
             _isLoading.value = false
         }
     }
@@ -109,8 +156,10 @@ class AddEventViewModel : ViewModel() {
         _location.value = ""
         _date.value = ""
         _selectedImageUri.value = null
-        _participants.value = emptyList()
+        _selectedParticipants.value = emptyList()
         _isSuccess.value = false
         _isLoading.value = false
+        // Reload user sendiri setelah reset
+        fetchCurrentUser()
     }
 }
