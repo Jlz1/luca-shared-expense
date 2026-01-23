@@ -46,7 +46,8 @@ fun HomeScreen(
     ),
     onNavigateToDetail: (String) -> Unit = {},
     onContactsClick: () -> Unit = {},
-    onAddEventClick: () -> Unit = {}
+    onAddEventClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
 ) {
     // Collect State dari ViewModel
     val allEvents by viewModel.events.collectAsState()
@@ -77,7 +78,8 @@ fun HomeScreen(
         filteredEvents = filteredEvents,
         listState = listState,
         onEventClick = onNavigateToDetail,
-        onAddEventClick = onAddEventClick
+        onAddEventClick = onAddEventClick,
+        onMenuClick = onMenuClick
     )
 }
 
@@ -90,7 +92,8 @@ fun HomeScreenContent(
     filteredEvents: List<Event>,
     listState: LazyListState,
     onEventClick: (String) -> Unit,
-    onAddEventClick: () -> Unit
+    onAddEventClick: () -> Unit,
+    onMenuClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -100,7 +103,7 @@ fun HomeScreenContent(
     ) {
 
         // 1. HEADER SECTION
-        HeaderSection()
+        HeaderSection(onLeftIconClick = onMenuClick)
 
         // 2. SEARCH BAR AREA
         Box(

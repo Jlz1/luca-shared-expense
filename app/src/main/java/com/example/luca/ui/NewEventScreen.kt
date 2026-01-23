@@ -29,12 +29,13 @@ import com.example.luca.ui.theme.*
 fun NewEventScreen(
     onCloseClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
-    onAddActivityClick: () -> Unit = {}
+    onAddActivityClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize().background(UIWhite)
     ) {
-        HeaderSection()
+        HeaderSection(onLeftIconClick = onMenuClick)
         Box(
             modifier = Modifier
                 .fillMaxSize()

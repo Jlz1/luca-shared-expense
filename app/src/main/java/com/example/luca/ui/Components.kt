@@ -1574,13 +1574,15 @@ fun formatRupiah(price: Long): String {
 // Sidebar Layout
 @Composable
 fun SidebarContent(
-    onCloseClick: () -> Unit = {} // Placeholder untuk aksi tutup sidebar
+    onCloseClick: () -> Unit = {}, // Placeholder untuk aksi tutup sidebar
+    onDashboardClick: () -> Unit = {} // Callback untuk Dashboard
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth(0.7f)
+            .fillMaxHeight()
             .background(Color.White)
-            .padding(horizontal = 24.dp, vertical = 24.dp) // Padding keseluruhan
+            .padding(horizontal = 14.dp, vertical = 24.dp) // Padding keseluruhan
     ) {
 
         // --- HEADER (Logo, Nama App, Tombol Back) ---
@@ -1628,7 +1630,7 @@ fun SidebarContent(
 
         // --- MENU ITEMS ---
         // List menu
-        SidebarMenuItem(icon = Icons.Outlined.Home, text = "Dashboard") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.Outlined.Home, text = "Dashboard") { onDashboardClick() }
         SidebarMenuItem(icon = Icons.Outlined.Person, text = "Account") { /* Placeholder Click */ }
         SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") { /* Placeholder Click */ }
         SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") { /* Placeholder Click */ }

@@ -14,7 +14,9 @@ import com.example.luca.ui.theme.UIBackground
 // import com.example.luca.ui.components.HeaderSection
 
 @Composable
-fun TemplateScreen() {
+fun TemplateScreen(
+    onMenuClick: () -> Unit = {}
+) {
     // 1. HAPUS SCAFFOLD
     // Gunakan Column sebagai container utama
     Column(
@@ -25,7 +27,7 @@ fun TemplateScreen() {
     ) {
 
         // 2. HEADER SECTION (Ditaruh manual di paling atas)
-        HeaderSection()
+        HeaderSection(onLeftIconClick = onMenuClick)
 
         // 3. KONTEN UTAMA
         Box(
