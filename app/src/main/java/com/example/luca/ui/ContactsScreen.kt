@@ -36,7 +36,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ContactsScreen(
     // PERBAIKAN 1: Deklarasikan ViewModel di sini agar tidak error "Unresolved reference"
-    viewModel: ContactsViewModel = viewModel()
+    viewModel: ContactsViewModel = viewModel(),
+    onMenuClick: () -> Unit = {}
 ) {
     // 2. DATA DARI FIREBASE (Ganti Dummy Data)
     val realContacts by viewModel.contacts.collectAsState()
@@ -93,7 +94,7 @@ fun ContactsScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header Component
-            HeaderSection()
+            HeaderSection(onLeftIconClick = onMenuClick)
 
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                 Spacer(modifier = Modifier.height(16.dp))

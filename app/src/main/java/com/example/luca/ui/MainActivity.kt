@@ -236,7 +236,11 @@ fun LucaApp() {
                             onMenuClick = { scope.launch { drawerState.open() } }
                         )
                     }
-                    composable("contacts") { ContactsScreen() }
+                    composable("contacts") {
+                        ContactsScreen(
+                            onMenuClick = { scope.launch { drawerState.open() } }
+                        )
+                    }
                     composable("scan") {} // CameraScreen
 
                     // 4. DETAILS & ADD
@@ -255,7 +259,12 @@ fun LucaApp() {
                     composable("edit_activity") { NewActivityEditScreen(onBackClick = { navController.popBackStack() }) }
                     composable("add_event") { AddScreen(onNavigateBack = { navController.popBackStack() }) }
                     composable("new_event") {
-                        NewEventScreen(onCloseClick = { navController.popBackStack() }, onEditClick = { navController.navigate("add_event") }, onAddActivityClick = { navController.navigate("new_activity") })
+                        NewEventScreen(
+                            onCloseClick = { navController.popBackStack() },
+                            onEditClick = { navController.navigate("add_event") },
+                            onAddActivityClick = { navController.navigate("new_activity") },
+                            onMenuClick = { scope.launch { drawerState.open() } }
+                        )
                     }
                 }
 
