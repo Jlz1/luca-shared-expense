@@ -26,10 +26,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIWhite
 import com.example.luca.viewmodel.AuthViewModel
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.luca.viewmodel.ContactsViewModel
 
 class MainActivity : ComponentActivity() {
@@ -53,6 +55,7 @@ fun LucaApp() {
 
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     // --- SHARED VIEWMODEL (PENTING: Agar data OTP tidak hilang saat navigasi) ---
     val authViewModel: AuthViewModel = viewModel()
@@ -72,8 +75,27 @@ fun LucaApp() {
     LucaTheme {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            gesturesEnabled = showBottomBar,
-            drawerContent = { ModalDrawerSheet { SidebarContent(onCloseClick = {}) } }
+            gesturesEnabled = false,
+            drawerContent = {
+                ModalDrawerSheet(drawerContainerColor = UIWhite) {
+                    SidebarContent(
+                        onCloseClick = {
+                            scope.launch { drawerState.close() }
+                        },
+                        onDashboardClick = {
+                            scope.launch {
+                                drawerState.close()
+                                // Jika tidak di home, navigate ke home
+                                if (currentRoute != "home") {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
         ) {
             Scaffold(
                 floatingActionButton = {
@@ -210,7 +232,8 @@ fun LucaApp() {
                             viewModel = viewModel,
                             onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
                             onContactsClick = { navController.navigate("contacts") },
-                            onAddEventClick = { navController.navigate("add_event") }
+                            onAddEventClick = { navController.navigate("add_event") },
+                            onMenuClick = { scope.launch { drawerState.open() } }
                         )
                     }
                     composable("contacts") { ContactsScreen() }
