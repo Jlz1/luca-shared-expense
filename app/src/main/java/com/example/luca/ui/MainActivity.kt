@@ -48,82 +48,265 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LucaApp() {
+    // =================================================================
+    // 1. GLOBAL VIEWMODELS
+    // =================================================================
     val contactsViewModel: ContactsViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // --- STATE MANAGEMENT ---
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in listOf("home", "contacts", "scan")
-    val currentTab = when (currentRoute) { "scan" -> 0; "contacts" -> 2; else -> 1 }
+    val mainTabs = listOf("home", "contacts", "scan")
+    val showBottomBar = currentRoute in mainTabs
+    val currentTab = when (currentRoute) {
+        "scan" -> 0
+        "contacts" -> 2
+        else -> 1
+    }
     var showAddOverlay by remember { mutableStateOf(false) }
 
     LucaTheme {
-        ModalNavigationDrawer(drawerState = drawerState, gesturesEnabled = false, drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = UIWhite) {
-                SidebarContent(onCloseClick = { scope.launch { drawerState.close() } }, onDashboardClick = { scope.launch { drawerState.close(); if (currentRoute != "home") navController.navigate("home") { popUpTo("home") { inclusive = true } } } })
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = false,
+            drawerContent = {
+                ModalDrawerSheet(drawerContainerColor = UIWhite) {
+                    SidebarContent(
+                        onCloseClick = {
+                            scope.launch { drawerState.close() }
+                        },
+                        onDashboardClick = {
+                            scope.launch {
+                                drawerState.close()
+                                if (currentRoute != "home") {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            }
+                        },
+                        // --- FITUR LOGOUT (DARI KODE KAMU) ---
+                        onLogoutClick = {
+                            scope.launch {
+                                drawerState.close()
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate("greeting") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        }
+                    )
+                }
             }
-        }) {
+        ) {
             Scaffold(
                 floatingActionButton = {
-                    if (showBottomBar) FloatingNavbar(selectedIndex = currentTab, onItemSelected = { index -> when (index) { 0 -> navController.navigate("scan"); 1 -> navController.navigate("home"); 2 -> navController.navigate("contacts") } }, onAddClick = { navController.navigate("add_event") }, onHomeClick = { navController.navigate("home") }, onContactsClick = { navController.navigate("contacts") })
+                    if (showBottomBar) {
+                        FloatingNavbar(
+                            selectedIndex = currentTab,
+                            onItemSelected = { index ->
+                                when (index) {
+                                    0 -> navController.navigate("scan") { launchSingleTop = true; popUpTo("home") }
+                                    1 -> navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                                    2 -> navController.navigate("contacts") { launchSingleTop = true; popUpTo("home") }
+                                }
+                            },
+                            onAddClick = { navController.navigate("add_event") },
+                            onHomeClick = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            onContactsClick = {
+                                navController.navigate("contacts")
+                            }
+                        )
+                    }
                 },
-                floatingActionButtonPosition = FabPosition.Center, contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                floatingActionButtonPosition = FabPosition.Center,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { innerPadding ->
-                NavHost(navController = navController, startDestination = "splash", modifier = Modifier.padding(innerPadding)) {
+
+                // --- NAV HOST --
+                NavHost(
+                    navController = navController,
+                    startDestination = "splash",
+                    modifier = Modifier.padding(innerPadding)
+                ) {
+                    // 1. SPLASH SCREEN
                     composable("splash") {
                         val auth = FirebaseAuth.getInstance()
-                        LaunchedEffect(Unit) { delay(500); if (auth.currentUser != null) navController.navigate("home") else navController.navigate("greeting") }
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                        LaunchedEffect(Unit) {
+                            delay(500)
+                            if (auth.currentUser != null) {
+                                navController.navigate("home") { popUpTo("splash") { inclusive = true } }
+                            } else {
+                                navController.navigate("greeting") { popUpTo("splash") { inclusive = true } }
+                            }
+                        }
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
-                    composable("greeting") { GreetingScreen({ navController.navigate("login") }, { navController.navigate("sign_up") }, { navController.navigate("fill_profile") }, { navController.navigate("home") }) }
-                    composable("login") { LoginScreen({ navController.navigate("final_login") }, { navController.navigate("sign_up") }, { navController.popBackStack() }) }
-                    composable("sign_up") { SignUpScreen(authViewModel, { navController.popBackStack() }, { email -> navController.navigate("otp_screen/$email") }) }
-                    composable("otp_screen/{email}", arguments = listOf(navArgument("email") { type = NavType.StringType })) {
-                        val email = it.arguments?.getString("email") ?: ""
-                        OtpScreen(email, authViewModel, { navController.popBackStack() }, { navController.navigate("fill_profile") })
-                    }
-                    composable("fill_profile") { FillProfileScreen({ navController.popBackStack() }, { name, avatar -> navController.navigate("final_signup/$name/$avatar") }) }
-                    composable("final_login") { FinalScreen { navController.navigate("home") } }
-                    composable("final_signup/{name}/{avatarName}") { FinalSignUpScreen(it.arguments?.getString("name") ?: "Crew", it.arguments?.getString("avatarName") ?: "avatar_1") { navController.navigate("home") } }
 
-                    composable("home") {
-                        val context = LocalContext.current.applicationContext
-                        val repository = remember { LucaFirebaseRepository(context) }
-                        val viewModel: HomeViewModel = viewModel(factory = object : ViewModelProvider.Factory { override fun <T : ViewModel> create(modelClass: Class<T>): T = HomeViewModel(repository) as T })
-                        HomeScreen(viewModel, { id -> navController.navigate("detailed_event/$id") }, { navController.navigate("contacts") }, { navController.navigate("add_event") }, { scope.launch { drawerState.open() } })
+                    // 2. AUTH FLOW
+                    composable("greeting") {
+                        GreetingScreen(
+                            onNavigateToLogin = { navController.navigate("login") },
+                            onNavigateToSignUp = { navController.navigate("sign_up") },
+                            onNavigateToFillProfile = { navController.navigate("fill_profile") },
+                            onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
+                        )
                     }
-                    composable("contacts") { ContactsScreen { scope.launch { drawerState.open() } } }
-                    composable("scan") {}
-
-                    // --- DETAIL EVENT (UPDATED) ---
-                    composable("detailed_event/{eventId}") { backStackEntry ->
-                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-                        DetailedEventScreen(
-                            eventId,
+                    composable("login") {
+                        LoginScreen(
+                            onNavigateToHome = { navController.navigate("final_login") { popUpTo("greeting") { inclusive = true } } },
+                            onNavigateToSignUp = { navController.navigate("sign_up") },
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("sign_up") {
+                        SignUpScreen(
+                            authViewModel = authViewModel,
                             onBackClick = { navController.popBackStack() },
-                            onMenuClick = { scope.launch { drawerState.open() } }, // [BARU] Buka sidebar
-                            onNavigateToAddActivity = { navController.navigate("new_activity") },
-                            onNavigateToEditEvent = { id -> navController.navigate("add_event?eventId=$id") }
+                            onNavigateToOtp = { email -> navController.navigate("otp_screen/$email") }
+                        )
+                    }
+                    composable(
+                        route = "otp_screen/{email}",
+                        arguments = listOf(navArgument("email") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val email = backStackEntry.arguments?.getString("email") ?: ""
+                        OtpScreen(
+                            emailTujuan = email,
+                            authViewModel = authViewModel,
+                            onBackClick = { navController.popBackStack() },
+                            onVerificationSuccess = {
+                                navController.navigate("fill_profile") { popUpTo("greeting") { inclusive = false } }
+                            }
+                        )
+                    }
+                    composable("fill_profile") {
+                        FillProfileScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onCreateAccountClick = { name, avatarName ->
+                                navController.navigate("final_signup/$name/$avatarName")
+                            }
+                        )
+                    }
+                    composable("final_login") {
+                        FinalScreen(onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } })
+                    }
+                    composable("final_signup/{name}/{avatarName}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name") ?: "Crew"
+                        val avatarName = backStackEntry.arguments?.getString("avatarName") ?: "avatar_1"
+                        FinalSignUpScreen(
+                            name = name,
+                            avatarName = avatarName,
+                            onNavigateToHome = { navController.navigate("home") { popUpTo("greeting") { inclusive = true } } }
                         )
                     }
 
-                    composable("add_event?eventId={eventId}", arguments = listOf(navArgument("eventId") { nullable = true })) { backStackEntry ->
-                        val eventId = backStackEntry.arguments?.getString("eventId")
-                        AddScreen(onNavigateBack = { navController.popBackStack() }, eventId = eventId)
+                    // 3. MAIN APP
+                    composable("home") {
+                        // [FIX] Tambahkan context agar Repository bisa kompres gambar
+                        val context = LocalContext.current.applicationContext
+                        val repository = remember { LucaFirebaseRepository(context) }
+
+                        val viewModel: HomeViewModel = viewModel(
+                            factory = object : ViewModelProvider.Factory {
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                                    return HomeViewModel(repository) as T
+                                }
+                            }
+                        )
+                        HomeScreen(
+                            viewModel = viewModel,
+                            onNavigateToDetail = { eventId -> navController.navigate("detailed_event/$eventId") },
+                            onContactsClick = { navController.navigate("contacts") },
+                            onAddEventClick = { navController.navigate("add_event") },
+                            onMenuClick = { scope.launch { drawerState.open() } }
+                        )
+                    }
+                    composable("contacts") {
+                        ContactsScreen(
+                            onMenuClick = { scope.launch { drawerState.open() } }
+                        )
+                    }
+                    composable("scan") {}
+
+                    // --- 4. DETAILS & ADD (BAGIAN KRUSIAL YANG DIPERBAIKI) ---
+
+                    // Route Detail: Harus menerima eventId
+                    composable("detailed_event/{eventId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+
+                        DetailedEventScreen(
+                            eventId = eventId,
+                            onBackClick = { navController.popBackStack() },
+                            // [UPDATE] Membuka Sidebar (Hamburger)
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onNavigateToAddActivity = { navController.navigate("new_activity") },
+                            // [UPDATE] Tombol Edit -> Ke AddScreen dengan ID
+                            onNavigateToEditEvent = { id ->
+                                navController.navigate("add_event?eventId=$id")
+                            }
+                        )
                     }
 
-                    composable("new_activity") { AddActivityScreen({ navController.popBackStack() }, { navController.navigate("new_activity_2") }) }
-                    composable("new_activity_2") { AddActivityScreen2({ navController.popBackStack() }, { navController.navigate("edit_activity") }) }
-                    composable("edit_activity") { NewActivityEditScreen { navController.popBackStack() } }
-                    composable("new_event") { NewEventScreen({ navController.popBackStack() }, { navController.navigate("add_event") }, { navController.navigate("new_activity") }, { scope.launch { drawerState.open() } }) }
+                    // Route Add/Edit: Harus menerima optional eventId
+                    composable(
+                        route = "add_event?eventId={eventId}",
+                        arguments = listOf(navArgument("eventId") { nullable = true })
+                    ) { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId")
+                        AddScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            eventId = eventId // Kirim ID ke layar (null = Create, ada isi = Edit)
+                        )
+                    }
+
+                    // --- 5. ACTIVITIES & OTHERS ---
+                    composable("detailed_activity") {
+                        DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
+                    }
+                    composable("new_activity") {
+                        AddActivityScreen(onBackClick = { navController.popBackStack() }, onContinueClick = { navController.navigate("new_activity_2") })
+                    }
+                    composable("new_activity_2") {
+                        AddActivityScreen2(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
+                    }
+                    composable("edit_activity") { NewActivityEditScreen(onBackClick = { navController.popBackStack() }) }
+
+                    composable("new_event") {
+                        NewEventScreen(
+                            onCloseClick = { navController.popBackStack() },
+                            onEditClick = { navController.navigate("add_event") },
+                            onAddActivityClick = { navController.navigate("new_activity") },
+                            onMenuClick = { scope.launch { drawerState.open() } }
+                        )
+                    }
                 }
 
+                // --- GLOBAL OVERLAY ADD CONTACT ---
                 if (showAddOverlay) {
-                    Dialog(onDismissRequest = { showAddOverlay = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                    Dialog(
+                        onDismissRequest = { showAddOverlay = false },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            UserProfileOverlay({ showAddOverlay = false }, { name, phone, banks, avatar -> contactsViewModel.addContact(name, phone, banks, avatar); showAddOverlay = false })
+                            UserProfileOverlay(
+                                onClose = { showAddOverlay = false },
+                                onAddContact = { name, phone, banks, avatarName ->
+                                    contactsViewModel.addContact(name, phone, banks, avatarName)
+                                    showAddOverlay = false
+                                }
+                            )
                         }
                     }
                 }

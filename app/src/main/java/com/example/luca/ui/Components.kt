@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -61,7 +62,7 @@ import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.Locale
 
-// --- DATA CLASSES ---
+// --- DATA CLASSES (DEFINISI TUNGGAL) ---
 
 data class UserData(
     val name: String,
@@ -82,7 +83,6 @@ data class ReceiptItem(
     val members: List<Color> = emptyList()
 )
 
-// [UPDATE] Menambahkan EDIT_EVENT
 enum class HeaderState(
     val title: String,
     val showLeftIconAsBack: Boolean,
@@ -90,13 +90,13 @@ enum class HeaderState(
 ) {
     HOME("Luca", false, true),
     NEW_EVENT("New Event", true, false),
-    EDIT_EVENT("Editing Event", true, false), // <--- BARU
+    EDIT_EVENT("Editing Event", true, false),
     NEW_ACTIVITY("New Activity", true, false),
     DETAILS("Activity Details", true, false),
     EDIT_ACTIVITY("Edit Activity", true, false)
 }
 
-// --- HELPER FUNCTIONS ---
+// --- HELPER FUNCTIONS (PRIVATE) ---
 
 private fun calculateFontSizeHelper(avatarSize: Dp): TextUnit {
     return (avatarSize.value * 0.25).sp
@@ -135,6 +135,7 @@ fun HeaderSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // KIRI: Icon (Hamburger / Back)
             Box(
                 modifier = Modifier.fillMaxHeight().width(50.dp),
                 contentAlignment = Alignment.Center,
@@ -154,6 +155,7 @@ fun HeaderSection(
                 }
             }
 
+            // TENGAH: Title
             AnimatedContent(
                 targetState = currentState.title,
                 label = "TitleAnim"
@@ -170,6 +172,7 @@ fun HeaderSection(
                 )
             }
 
+            // KANAN: Logo (Jika ada)
             Box(
                 modifier = Modifier.fillMaxHeight().width(50.dp),
                 contentAlignment = Alignment.Center,
@@ -179,6 +182,7 @@ fun HeaderSection(
                     enter = scaleIn() + fadeIn(),
                     exit = scaleOut() + fadeOut()
                 ) {
+                    // Logo ukurannya dinormalkan menjadi 30.dp
                     Image(
                         painter = painterResource(id = R.drawable.ic_luca_logo),
                         contentDescription = "Logo",
@@ -646,7 +650,13 @@ fun UserProfileOverlay(
             CustomRoundedTextField(value = name, onValueChange = { name = it; showNameError = false }, placeholder = "Name", backgroundColor = UIGrey)
 
             if (showNameError) {
-                Text("Nama contact harus diisi", color = Color.Red, fontSize = 12.sp, style = AppFont.Regular, modifier = Modifier.fillMaxWidth().padding(top = 4.dp, start = 8.dp))
+                Text(
+                    text = "Nama contact harus diisi",
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    style = AppFont.Regular,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, start = 8.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -659,9 +669,7 @@ fun UserProfileOverlay(
 
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
+                modifier = Modifier.size(50.dp).clip(CircleShape)
                     .background(if (bankAccounts.size >= 3) UIGrey else UIAccentYellow)
                     .clickable(enabled = bankAccounts.size < 3) {
                         if (bankAccounts.size < 3) {
@@ -751,18 +759,14 @@ fun BankDialogOverlay(
     val isAtMaxCapacity = bankAccountCount >= 3
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
+        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f))
             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = UIWhite),
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
+            modifier = Modifier.fillMaxWidth(0.85f).clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("Add Bank Account", fontSize = 18.sp, color = UIBlack, modifier = Modifier.padding(bottom = 16.dp))
@@ -814,18 +818,11 @@ fun BankButton(
 ) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) UIAccentYellow else UIGrey
-        ),
+        colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) UIAccentYellow else UIGrey),
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier.padding(4.dp).height(40.dp)
     ) {
-        Text(
-            text = bankName,
-            color = if (isSelected) Color.Black else UIDarkGrey,
-            style = AppFont.Medium,
-            fontSize = 12.sp
-        )
+        Text(text = bankName, color = if (isSelected) Color.Black else UIDarkGrey, style = AppFont.Medium, fontSize = 12.sp)
     }
 }
 
@@ -870,26 +867,16 @@ fun AvatarList(
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
         items(users) { user ->
-            AvatarListItem(
-                user = user,
-                avatarSize = avatarSize,
-                showName = showName,
-                onClick = { onAvatarClick(user) }
-            )
+            AvatarListItem(user, avatarSize, showName) { onAvatarClick(user) }
         }
         if (showAddButton) {
             item {
-                AddAvatarButton(
-                    avatarSize = avatarSize,
-                    showName = showName,
-                    onClick = onAddClick
-                )
+                AddAvatarButton(avatarSize, showName, onAddClick)
             }
         }
     }
 }
 
-// Renamed to avoid collision
 @Composable
 private fun AvatarListItem(
     user: UserData,
@@ -897,27 +884,11 @@ private fun AvatarListItem(
     showName: Boolean,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(avatarSize).clickable { onClick() }
-    ) {
-        Box(
-            modifier = Modifier.size(avatarSize).clip(CircleShape).background(user.avatarColor ?: generateRandomColorHelper(user.name)),
-            contentAlignment = Alignment.Center
-        ) {}
-
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(avatarSize).clickable { onClick() }) {
+        Box(modifier = Modifier.size(avatarSize).clip(CircleShape).background(user.avatarColor ?: generateRandomColorHelper(user.name)), contentAlignment = Alignment.Center) {}
         if (showName) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = if (user.isCurrentUser) "You" else user.name,
-                color = Color.Black,
-                fontSize = calculateFontSizeHelper(avatarSize),
-                fontWeight = FontWeight.Normal,
-                fontFamily = FontFamily.Default,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(text = if (user.isCurrentUser) "You" else user.name, color = Color.Black, fontSize = calculateFontSizeHelper(avatarSize), fontWeight = FontWeight.Normal, fontFamily = FontFamily.Default, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -928,17 +899,10 @@ private fun AddAvatarButton(
     showName: Boolean,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(avatarSize).clickable { onClick() }
-    ) {
-        Box(
-            modifier = Modifier.size(avatarSize).clip(CircleShape).background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(avatarSize).clickable { onClick() }) {
+        Box(modifier = Modifier.size(avatarSize).clip(CircleShape).background(Color.LightGray), contentAlignment = Alignment.Center) {
             Icon(imageVector = Icons.Default.Add, contentDescription = "Add User", tint = Color.DarkGray, modifier = Modifier.size(avatarSize * 0.4f))
         }
-
         if (showName) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = "", fontSize = calculateFontSizeHelper(avatarSize), maxLines = 1)
@@ -966,48 +930,22 @@ fun ContactCard(
     onDeleteClicked: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .let { if (maxHeight != null) it.heightIn(max = maxHeight) else it }
-            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        modifier = modifier.fillMaxWidth().let { if (maxHeight != null) it.heightIn(max = maxHeight) else it }.padding(horizontal = horizontalPadding, vertical = verticalPadding),
         shape = RoundedCornerShape(cornerRadius),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(innerPadding)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(avatarSize).clip(CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(innerPadding)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(avatarSize).clip(CircleShape), contentAlignment = Alignment.Center) {
                     if (avatarName.isNotEmpty() && avatarName != "avatar_1") {
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
-                            contentDescription = "Contact Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        Image(painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)), contentDescription = "Contact Avatar", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize().background(avatarColor),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = contactName.take(1).uppercase(),
-                                color = UIWhite,
-                                fontSize = (avatarSize.value * 0.4).sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(modifier = Modifier.fillMaxSize().background(avatarColor), contentAlignment = Alignment.Center) {
+                            Text(text = contactName.take(1).uppercase(), color = UIWhite, fontSize = (avatarSize.value * 0.4).sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
-
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     IconButton(onClick = onEditClicked, modifier = Modifier.size(48.dp).background(UIAccentYellow, CircleShape)) {
                         Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Contact", tint = Color.Black, modifier = Modifier.size(24.dp))
@@ -1017,19 +955,15 @@ fun ContactCard(
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(20.dp))
-
             Text(text = contactName, style = AppFont.Bold, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = phoneNumber, style = AppFont.Medium, fontSize = 18.sp, color = UIDarkGrey)
-
             if (events.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
                 val eventsText = formatEventsText(events)
                 Text(text = "Events: $eventsText", fontSize = 16.sp, style = AppFont.Medium, color = Color.Black, lineHeight = 24.sp)
             }
-
             if (bankAccounts.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
                 bankAccounts.forEach { bankAccount ->
@@ -1044,15 +978,7 @@ fun ContactCard(
 @Composable
 private fun BankAccountRow(bankAccount: BankAccount) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        val logoResId = when (bankAccount.bankName.lowercase().trim()) {
-            "bca" -> R.drawable.bank_logo_bca
-            "bri" -> R.drawable.bank_logo_bri
-            "bni" -> R.drawable.bank_logo_bni
-            "blu" -> R.drawable.bank_logo_blu
-            "mandiri" -> R.drawable.bank_logo_mandiri
-            else -> null
-        }
-
+        val logoResId = when (bankAccount.bankName.lowercase().trim()) { "bca" -> R.drawable.bank_logo_bca; "bri" -> R.drawable.bank_logo_bri; "bni" -> R.drawable.bank_logo_bni; "blu" -> R.drawable.bank_logo_blu; "mandiri" -> R.drawable.bank_logo_mandiri; else -> null }
         if (logoResId != null) {
             Image(painter = painterResource(id = logoResId), contentDescription = "${bankAccount.bankName} Logo", modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)))
         } else {
@@ -1129,24 +1055,45 @@ fun formatRupiah(price: Long): String {
     return formatter.format(price)
 }
 
+// Sidebar Layout
 @Composable
-fun SidebarContent(onCloseClick: () -> Unit = {}, onDashboardClick: () -> Unit = {}) {
+fun SidebarContent(onCloseClick: () -> Unit = {}, onDashboardClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            containerColor = UIWhite,
+            shape = RoundedCornerShape(24.dp),
+            icon = { Box(modifier = Modifier.size(72.dp).background(UIAccentYellow.copy(alpha = 0.15f), CircleShape), contentAlignment = Alignment.Center) { Icon(imageVector = Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = "Logout", tint = UIAccentYellow, modifier = Modifier.size(32.dp)) } },
+            title = { Text(text = "Keluar Akun?", style = AppFont.Bold, fontSize = 20.sp, color = UIBlack, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "Kamu harus login ulang untuk mengakses data Luca.", color = UIDarkGrey, fontSize = 14.sp, textAlign = TextAlign.Center, lineHeight = 20.sp)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        Button(onClick = { showLogoutDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = UIGrey, contentColor = UIBlack), shape = RoundedCornerShape(50.dp), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "No", style = AppFont.SemiBold, fontSize = 14.sp) }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(onClick = { showLogoutDialog = false; onLogoutClick() }, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack), shape = RoundedCornerShape(50), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "Yes", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
     Column(modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight().background(Color.White).padding(horizontal = 14.dp, vertical = 24.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp)) {
-            Box(modifier = Modifier.size(30.dp).clip(CircleShape)) {
-                Image(painter = painterResource(R.drawable.ic_luca_logo), contentDescription = "Logo", modifier = Modifier.fillMaxSize())
-            }
+            Box(modifier = Modifier.size(30.dp).clip(CircleShape)) { Image(painter = painterResource(R.drawable.ic_luca_logo), contentDescription = "Logo", modifier = Modifier.fillMaxSize()) }
             Spacer(modifier = Modifier.width(12.dp))
             Text(text = "Luca", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onCloseClick) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close Sidebar", tint = Color.Black, modifier = Modifier.size(28.dp))
-            }
+            IconButton(onClick = onCloseClick) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close Sidebar", tint = Color.Black, modifier = Modifier.size(28.dp)) }
         }
         SidebarMenuItem(icon = Icons.Outlined.Home, text = "Dashboard") { onDashboardClick() }
         SidebarMenuItem(icon = Icons.Outlined.Person, text = "Account") {}
         SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") {}
         SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") {}
+        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.ExitToApp, text = "Log Out") { showLogoutDialog = true }
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") {}
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
@@ -1176,14 +1123,7 @@ fun SearchBarModify(
     databaseLabel: String? = null
 ) {
     var internalSearchQuery by remember { mutableStateOf(initialQuery) }
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50.dp),
-        color = UIWhite,
-        shadowElevation = 2.dp,
-        onClick = if (readOnly) { onSearchClick } else { {} }
-    ) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(50.dp), color = UIWhite, shadowElevation = 2.dp, onClick = if (readOnly) { onSearchClick } else { {} }) {
         if (readOnly) {
             Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = UIDarkGrey, modifier = Modifier.size(20.dp))
@@ -1193,10 +1133,7 @@ fun SearchBarModify(
         } else {
             BasicTextField(
                 value = internalSearchQuery,
-                onValueChange = { newQuery ->
-                    internalSearchQuery = newQuery
-                    onSearchQueryChange(newQuery)
-                },
+                onValueChange = { newQuery -> internalSearchQuery = newQuery; onSearchQueryChange(newQuery) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 singleLine = true,
                 textStyle = AppFont.Regular.copy(fontSize = 16.sp, color = UIBlack),
@@ -1205,12 +1142,7 @@ fun SearchBarModify(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = UIDarkGrey, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (internalSearchQuery.isEmpty()) {
-                                Text(text = placeholder, style = AppFont.Regular, fontSize = 16.sp, color = UIDarkGrey)
-                            }
-                            innerTextField()
-                        }
+                        Box(contentAlignment = Alignment.CenterStart) { if (internalSearchQuery.isEmpty()) Text(text = placeholder, style = AppFont.Regular, fontSize = 16.sp, color = UIDarkGrey); innerTextField() }
                     }
                 }
             )
@@ -1226,22 +1158,14 @@ fun BankAccountItem(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
-    val logoResId = remember(bankLogoName) {
-        context.resources.getIdentifier(bankLogoName, "drawable", context.packageName)
-    }
+    val logoResId = remember(bankLogoName) { context.resources.getIdentifier(bankLogoName, "drawable", context.packageName) }
     val finalLogoId = if (logoResId != 0) logoResId else R.drawable.ic_launcher_foreground
-
     Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = UIGrey), modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(painter = painterResource(id = finalLogoId), contentDescription = bankName, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).padding(4.dp), contentScale = ContentScale.Fit)
             Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = bankName, style = AppFont.SemiBold, fontSize = 14.sp, color = UIBlack)
-                Text(text = accountNumber, style = AppFont.Medium, fontSize = 12.sp, color = UIDarkGrey)
-            }
-            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Close, "Delete", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
-            }
+            Column(modifier = Modifier.weight(1f)) { Text(text = bankName, style = AppFont.SemiBold, fontSize = 14.sp, color = UIBlack); Text(text = accountNumber, style = AppFont.Medium, fontSize = 12.sp, color = UIDarkGrey) }
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Close, "Delete", tint = UIDarkGrey, modifier = Modifier.size(16.dp)) }
         }
     }
 }
@@ -1253,30 +1177,14 @@ fun AvatarSelectionOverlay(
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier.fillMaxWidth().background(UIWhite, shape = RoundedCornerShape(16.dp)).padding(20.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth().background(UIWhite, shape = RoundedCornerShape(16.dp)).padding(20.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "Select an Avatar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
                 Spacer(modifier = Modifier.height(20.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.height(300.dp)
-                ) {
+                LazyVerticalGrid(columns = GridCells.Fixed(4), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(300.dp)) {
                     items(AvatarUtils.avatars) { (name, resId) ->
                         val isSelected = name == currentSelection
-                        Box(
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(CircleShape)
-                                .border(width = if (isSelected) 3.dp else 0.dp, color = if (isSelected) UIAccentYellow else Color.Transparent, shape = CircleShape)
-                                .clickable {
-                                    onAvatarSelected(name)
-                                    onDismiss()
-                                }
-                        ) {
+                        Box(modifier = Modifier.aspectRatio(1f).clip(CircleShape).border(width = if (isSelected) 3.dp else 0.dp, color = if (isSelected) UIAccentYellow else Color.Transparent, shape = CircleShape).clickable { onAvatarSelected(name); onDismiss() }) {
                             Image(painter = painterResource(id = resId), contentDescription = name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                         }
                     }
@@ -1286,10 +1194,6 @@ fun AvatarSelectionOverlay(
     }
 }
 
-// ==========================================
-// CONTACT SELECTION OVERLAY & ITEMS
-// ==========================================
-
 @Composable
 fun ContactSelectionOverlay(
     availableContacts: List<Contact>,
@@ -1298,70 +1202,23 @@ fun ContactSelectionOverlay(
     onConfirm: (List<Contact>) -> Unit,
     onAddNewContact: () -> Unit
 ) {
-    // Local state untuk tracking seleksi sementara
     var currentSelection by remember { mutableStateOf(selectedContacts) }
-
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = UIWhite),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .heightIn(max = 600.dp)
-    ) {
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = UIWhite), modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(max = 600.dp)) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "Select Participants",
-                style = AppFont.Bold,
-                fontSize = 18.sp,
-                color = UIBlack
-            )
+            Text(text = "Select Participants", style = AppFont.Bold, fontSize = 18.sp, color = UIBlack)
             Spacer(modifier = Modifier.height(16.dp))
-
-            if (availableContacts.isEmpty()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("No contacts available", color = UIDarkGrey)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+            if (availableContacts.isEmpty()) { Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { Text("No contacts available", color = UIDarkGrey) } } else {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(availableContacts) { contact ->
                         val isSelected = currentSelection.any { it.name == contact.name }
-
-                        ContactSelectionItem(
-                            contact = contact,
-                            isSelected = isSelected,
-                            onClick = {
-                                if (isSelected) {
-                                    currentSelection = currentSelection.filter { it.name != contact.name }
-                                } else {
-                                    currentSelection = currentSelection + contact
-                                }
-                            }
-                        )
+                        ContactSelectionItem(contact = contact, isSelected = isSelected, onClick = { if (isSelected) currentSelection = currentSelection.filter { it.name != contact.name } else currentSelection = currentSelection + contact })
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Row(modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = onAddNewContact,
-                    colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
-                ) {
-                    Text("New Contact", color = UIBlack)
-                }
-                Button(
-                    onClick = { onConfirm(currentSelection) },
-                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
-                    modifier = Modifier.weight(1f).padding(start = 8.dp)
-                ) {
-                    Text("Done", color = UIBlack)
-                }
+                Button(onClick = onAddNewContact, colors = ButtonDefaults.buttonColors(containerColor = UIGrey), modifier = Modifier.weight(1f).padding(end = 8.dp)) { Text("New Contact", color = UIBlack) }
+                Button(onClick = { onConfirm(currentSelection) }, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow), modifier = Modifier.weight(1f).padding(start = 8.dp)) { Text("Done", color = UIBlack) }
             }
         }
     }
@@ -1373,53 +1230,11 @@ fun ContactSelectionItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .background(
-                if (isSelected) UIAccentYellow.copy(alpha = 0.1f) else Color.Transparent,
-                RoundedCornerShape(12.dp)
-            )
-            .border(
-                width = if (isSelected) 2.dp else 0.dp,
-                color = if (isSelected) UIAccentYellow else Color.Transparent,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(40.dp).clip(CircleShape)
-        )
+    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.background(if (isSelected) UIAccentYellow.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(12.dp)).border(width = if (isSelected) 2.dp else 0.dp, color = if (isSelected) UIAccentYellow else Color.Transparent, shape = RoundedCornerShape(12.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Image(painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(40.dp).clip(CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
-
-        Text(
-            text = contact.name,
-            style = AppFont.Medium,
-            fontSize = 14.sp,
-            color = UIBlack,
-            modifier = Modifier.weight(1f)
-        )
-
-        if (isSelected) {
-            Icon(
-                Icons.Default.CheckCircle,
-                contentDescription = "Selected",
-                tint = UIAccentYellow,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            Icon(
-                Icons.Default.AddCircleOutline,
-                contentDescription = "Select",
-                tint = UIDarkGrey,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        Text(text = contact.name, style = AppFont.Medium, fontSize = 14.sp, color = UIBlack, modifier = Modifier.weight(1f))
+        if (isSelected) Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = UIAccentYellow, modifier = Modifier.size(24.dp)) else Icon(Icons.Default.AddCircleOutline, contentDescription = "Select", tint = UIDarkGrey, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -1429,28 +1244,16 @@ fun ContactSelectionItem(
 
 @Preview
 @Composable
-fun ComponentsPreview(){
+fun ComponentsPreview() {
     LucaTheme {
-        Column(modifier = Modifier.background(UIWhite).padding(16.dp)) {
-            PrimaryButton(text = "Test Button", onClick = {})
-        }
+        Column(modifier = Modifier.background(UIWhite).padding(16.dp)) { PrimaryButton(text = "Test Button", onClick = {}) }
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF888888)
 @Composable
 fun PreviewOverlay() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        UserProfileOverlay(
-            onClose = { println("Overlay closed") },
-            onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String ->
-                println("Contact added: $name, $phone, $banks, $avatarName")
-            }
-        )
-    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { UserProfileOverlay(onClose = { println("Overlay closed") }, onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String -> println("Contact added: $name, $phone, $banks, $avatarName") }) }
 }
 
 @Preview(showBackground = true)
@@ -1459,16 +1262,7 @@ fun AvatarListPreview() {
     Column(modifier = Modifier.padding(16.dp)) {
         Text("Preview: With Add Button")
         Spacer(modifier = Modifier.height(10.dp))
-        AvatarList(
-            users = listOf(
-                UserData("You", true, Color(0xFFFF8C42)),
-                UserData("Jeremy E"),
-                UserData("Steven K")
-            ),
-            avatarSize = 60.dp,
-            showName = true,
-            showAddButton = true
-        )
+        AvatarList(users = listOf(UserData("You", true, Color(0xFFFF8C42)), UserData("Jeremy E"), UserData("Steven K")), avatarSize = 60.dp, showName = true, showAddButton = true)
     }
 }
 
@@ -1476,18 +1270,6 @@ fun AvatarListPreview() {
 @Composable
 fun ContactCardPreview() {
     LucaTheme {
-        ContactCard(
-            contactName = "Aldi Faustinus",
-            phoneNumber = "+62 834 2464 3255",
-            avatarColor = Color(0xFF5FBDAC),
-            maxHeight = 600.dp,
-            horizontalPadding = 5.dp,
-            verticalPadding = 5.dp,
-            events = listOf("Bali", "Dinner"),
-            bankAccounts = listOf(
-                BankAccount("BCA", "5436774334", Color(0xFF0066CC)),
-                BankAccount("BRI", "0023421568394593", Color(0xFF003D82))
-            )
-        )
+        ContactCard(contactName = "Aldi Faustinus", phoneNumber = "+62 834 2464 3255", avatarColor = Color(0xFF5FBDAC), maxHeight = 600.dp, horizontalPadding = 5.dp, verticalPadding = 5.dp, events = listOf("Bali", "Dinner"), bankAccounts = listOf(BankAccount("BCA", "5436774334", Color(0xFF0066CC)), BankAccount("BRI", "0023421568394593", Color(0xFF003D82))))
     }
 }
