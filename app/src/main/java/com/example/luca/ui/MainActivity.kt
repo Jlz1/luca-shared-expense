@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
@@ -48,17 +49,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LucaApp() {
     // =================================================================
-    // 1. DEKLARASI VIEWMODEL DI SINI (SCOPE TERATAS LUCAAPP)
+    // 1. GLOBAL VIEWMODELS
     // =================================================================
-    // Baris ini PENTING agar 'contactsViewModel' dikenali di seluruh fungsi ini
     val contactsViewModel: ContactsViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
 
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    // --- SHARED VIEWMODEL (PENTING: Agar data OTP tidak hilang saat navigasi) ---
-    val authViewModel: AuthViewModel = viewModel()
 
     // --- STATE MANAGEMENT ---
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -85,7 +83,6 @@ fun LucaApp() {
                         onDashboardClick = {
                             scope.launch {
                                 drawerState.close()
-                                // Jika tidak di home, navigate ke home
                                 if (currentRoute != "home") {
                                     navController.navigate("home") {
                                         popUpTo("home") { inclusive = true }
@@ -93,12 +90,11 @@ fun LucaApp() {
                                 }
                             }
                         },
+                        // --- FITUR LOGOUT (DARI KODE KAMU) ---
                         onLogoutClick = {
                             scope.launch {
                                 drawerState.close()
-                                // Sign out dari Firebase
                                 FirebaseAuth.getInstance().signOut()
-                                // Navigate ke greeting screen dan clear back stack
                                 navController.navigate("greeting") {
                                     popUpTo(0) { inclusive = true }
                                 }
@@ -174,40 +170,27 @@ fun LucaApp() {
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
-
-                    // --- UPDATE: SIGN UP DENGAN OTP ---
                     composable("sign_up") {
                         SignUpScreen(
-                            authViewModel = authViewModel, // Kirim ViewModel Shared
+                            authViewModel = authViewModel,
                             onBackClick = { navController.popBackStack() },
-                            onNavigateToOtp = { email ->
-                                // Navigasi ke Layar OTP membawa Email
-                                navController.navigate("otp_screen/$email")
-                            }
+                            onNavigateToOtp = { email -> navController.navigate("otp_screen/$email") }
                         )
                     }
-
-                    // --- BARU: LAYAR OTP ---
                     composable(
                         route = "otp_screen/{email}",
                         arguments = listOf(navArgument("email") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val email = backStackEntry.arguments?.getString("email") ?: ""
-
                         OtpScreen(
                             emailTujuan = email,
-                            authViewModel = authViewModel, // Pakai ViewModel yang sama agar kodenya valid
+                            authViewModel = authViewModel,
                             onBackClick = { navController.popBackStack() },
                             onVerificationSuccess = {
-                                // Jika sukses OTP -> Lanjut ke Fill Profile
-                                // Hapus history sign up agar user gak bisa back ke OTP
-                                navController.navigate("fill_profile") {
-                                    popUpTo("greeting") { inclusive = false }
-                                }
+                                navController.navigate("fill_profile") { popUpTo("greeting") { inclusive = false } }
                             }
                         )
                     }
-
                     composable("fill_profile") {
                         FillProfileScreen(
                             onBackClick = { navController.popBackStack() },
@@ -231,7 +214,10 @@ fun LucaApp() {
 
                     // 3. MAIN APP
                     composable("home") {
-                        val repository = remember { LucaFirebaseRepository() }
+                        // [FIX] Tambahkan context agar Repository bisa kompres gambar
+                        val context = LocalContext.current.applicationContext
+                        val repository = remember { LucaFirebaseRepository(context) }
+
                         val viewModel: HomeViewModel = viewModel(
                             factory = object : ViewModelProvider.Factory {
                                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -241,7 +227,7 @@ fun LucaApp() {
                         )
                         HomeScreen(
                             viewModel = viewModel,
-                            onNavigateToDetail = { eventId -> navController.navigate("detailed_event") },
+                            onNavigateToDetail = { eventId -> navController.navigate("detailed_event/$eventId") },
                             onContactsClick = { navController.navigate("contacts") },
                             onAddEventClick = { navController.navigate("add_event") },
                             onMenuClick = { scope.launch { drawerState.open() } }
@@ -252,12 +238,40 @@ fun LucaApp() {
                             onMenuClick = { scope.launch { drawerState.open() } }
                         )
                     }
-                    composable("scan") {} // CameraScreen
+                    composable("scan") {}
 
-                    // 4. DETAILS & ADD
-                    composable("detailed_event") {
-                        NewEventScreen(onCloseClick = { navController.popBackStack() }, onAddActivityClick = { navController.navigate("new_activity") })
+                    // --- 4. DETAILS & ADD (BAGIAN KRUSIAL YANG DIPERBAIKI) ---
+
+                    // Route Detail: Harus menerima eventId
+                    composable("detailed_event/{eventId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+
+                        DetailedEventScreen(
+                            eventId = eventId,
+                            onBackClick = { navController.popBackStack() },
+                            // [UPDATE] Membuka Sidebar (Hamburger)
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            onNavigateToAddActivity = { navController.navigate("new_activity") },
+                            // [UPDATE] Tombol Edit -> Ke AddScreen dengan ID
+                            onNavigateToEditEvent = { id ->
+                                navController.navigate("add_event?eventId=$id")
+                            }
+                        )
                     }
+
+                    // Route Add/Edit: Harus menerima optional eventId
+                    composable(
+                        route = "add_event?eventId={eventId}",
+                        arguments = listOf(navArgument("eventId") { nullable = true })
+                    ) { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId")
+                        AddScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            eventId = eventId // Kirim ID ke layar (null = Create, ada isi = Edit)
+                        )
+                    }
+
+                    // --- 5. ACTIVITIES & OTHERS ---
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
                     }
@@ -268,7 +282,7 @@ fun LucaApp() {
                         AddActivityScreen2(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
                     }
                     composable("edit_activity") { NewActivityEditScreen(onBackClick = { navController.popBackStack() }) }
-                    composable("add_event") { AddScreen(onNavigateBack = { navController.popBackStack() }) }
+
                     composable("new_event") {
                         NewEventScreen(
                             onCloseClick = { navController.popBackStack() },
@@ -288,7 +302,6 @@ fun LucaApp() {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             UserProfileOverlay(
                                 onClose = { showAddOverlay = false },
-                                // SEKARANG 'contactsViewModel' SUDAH DIKENALI
                                 onAddContact = { name, phone, banks, avatarName ->
                                     contactsViewModel.addContact(name, phone, banks, avatarName)
                                     showAddOverlay = false

@@ -1,7 +1,8 @@
 package com.example.luca.viewmodel
 
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.data.LucaRepository
@@ -13,8 +14,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AddEventViewModel : ViewModel() {
-    private val repository: LucaRepository = LucaFirebaseRepository()
+class AddEventViewModel(application: Application) : AndroidViewModel(application) {
+    // Menggunakan Application Context untuk Repository (diperlukan untuk kompresi gambar/resource)
+    private val repository: LucaRepository = LucaFirebaseRepository(application.applicationContext)
+
+    // --- VARIABEL UNTUK MODE EDIT ---
+    private var currentEventId: String? = null // Jika null = Create, Jika ada isi = Edit
+    private var existingImageUrl: String = ""  // Menyimpan URL foto lama
 
     // --- STATE INPUT ---
     private val _title = MutableStateFlow("")
@@ -30,7 +36,6 @@ class AddEventViewModel : ViewModel() {
     val selectedImageUri = _selectedImageUri.asStateFlow()
 
     // --- STATE PARTICIPANTS ---
-
     private val _availableContacts = MutableStateFlow<List<Contact>>(emptyList())
     val availableContacts = _availableContacts.asStateFlow()
 
@@ -47,20 +52,62 @@ class AddEventViewModel : ViewModel() {
     init {
         // Load data awal
         fetchContacts()
-        fetchCurrentUser() // <--- BARU: Load user sendiri sebagai default participant
     }
 
-    // Fungsi untuk mengambil profile user yang sedang login
-    private fun fetchCurrentUser() {
+    // --- FUNGSI LOAD DATA UNTUK EDIT ---
+    fun loadEventForEdit(eventId: String) {
+        // Cegah reload jika ID sama
+        if (currentEventId == eventId) return
+
+        currentEventId = eventId
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            val event = repository.getEventById(eventId)
+            if (event != null) {
+                // 1. Isi Form Input
+                _title.value = event.title
+                _location.value = event.location
+                _date.value = event.date
+                existingImageUrl = event.imageUrl // Simpan URL lama
+
+                // 2. Isi Preview Gambar (Parse URL ke Uri)
+                if (event.imageUrl.isNotEmpty()) {
+                    _selectedImageUri.value = Uri.parse(event.imageUrl)
+                }
+
+                // 3. Mapping Participants (Dari ParticipantData -> Contact)
+                val mappedParticipants = event.participants.map { p ->
+                    Contact(
+                        id = "", // ID tidak krusial untuk display list
+                        userId = "",
+                        name = p.name,
+                        avatarName = p.avatarName,
+                        description = "Participant"
+                    )
+                }
+                _selectedParticipants.value = mappedParticipants
+
+            } else {
+                // Jika event tidak ketemu, fallback ke mode create (load user sendiri)
+                fetchCurrentUser()
+            }
+            _isLoading.value = false
+        }
+    }
+
+    // Fungsi untuk mengambil profile user yang sedang login (Dipanggil jika Mode Create)
+    fun fetchCurrentUser() {
+        // Jangan timpa participant jika kita sedang dalam mode edit
+        if (currentEventId != null) return
+
         viewModelScope.launch {
             val userContact = repository.getCurrentUserAsContact()
             if (userContact != null) {
-                // Tambahkan user sendiri ke list selected participants
-                // Kita gunakan toMutableList agar aman
                 val currentList = _selectedParticipants.value.toMutableList()
-                // Cek agar tidak duplikat (safety check)
-                if (currentList.none { it.id == userContact.id }) {
-                    currentList.add(0, userContact) // Tambah di paling depan
+                // Cek agar tidak duplikat
+                if (currentList.none { it.name == userContact.name }) {
+                    currentList.add(0, userContact)
                     _selectedParticipants.value = currentList
                 }
             }
@@ -83,24 +130,7 @@ class AddEventViewModel : ViewModel() {
 
     // Participant Actions
     fun updateSelectedParticipants(newSelection: List<Contact>) {
-        // PERBAIKAN LOGIC:
-        // Saat user memilih teman dari Overlay, kita harus pastikan User Sendiri (Host)
-        // tidak hilang dari list.
-
-        viewModelScope.launch {
-            val host = repository.getCurrentUserAsContact()
-
-            val finalList = if (host != null) {
-                // Ambil semua yang dipilih user, tapi filter host lama biar ga dobel
-                val selectionWithoutHost = newSelection.filter { it.id != host.id }
-                // Gabungkan: [Host] + [Pilihan User]
-                listOf(host) + selectionWithoutHost
-            } else {
-                newSelection
-            }
-
-            _selectedParticipants.value = finalList
-        }
+        _selectedParticipants.value = newSelection
     }
 
     fun addNewContact(name: String, phone: String, avatarName: String, banks: List<BankAccountData>) {
@@ -122,7 +152,16 @@ class AddEventViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            val localImageUrl = _selectedImageUri.value?.toString() ?: ""
+            // LOGIK IMAGE UPDATE
+            var finalImageUrl = existingImageUrl
+            val currentUri = _selectedImageUri.value
+
+            if (currentUri != null && currentUri.toString() != existingImageUrl) {
+                val uploadedUrl = repository.uploadEventImage(currentUri)
+                if (uploadedUrl != null) {
+                    finalImageUrl = uploadedUrl
+                }
+            }
 
             val participantsData = _selectedParticipants.value.map { contact ->
                 ParticipantData(
@@ -132,14 +171,15 @@ class AddEventViewModel : ViewModel() {
             }
 
             val newEvent = Event(
-                id = "",
+                id = currentEventId ?: "", // PENTING: Pakai ID lama jika edit, kosong jika baru
                 title = _title.value,
                 location = _location.value,
                 date = _date.value,
-                imageUrl = localImageUrl,
+                imageUrl = finalImageUrl,
                 participants = participantsData
             )
 
+            // Repository createEvent menghandle 'set' data (Create or Update)
             val result = repository.createEvent(newEvent)
 
             _isSuccess.value = result.isSuccess
@@ -153,9 +193,11 @@ class AddEventViewModel : ViewModel() {
         _date.value = ""
         _selectedImageUri.value = null
         _selectedParticipants.value = emptyList()
+        currentEventId = null // Reset ID ke mode create
+        existingImageUrl = ""
         _isSuccess.value = false
         _isLoading.value = false
-        // Reload user sendiri setelah reset
+        // Reload user sendiri setelah reset (siap untuk create baru)
         fetchCurrentUser()
     }
 }
