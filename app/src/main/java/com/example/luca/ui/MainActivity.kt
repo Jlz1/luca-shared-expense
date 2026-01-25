@@ -92,6 +92,17 @@ fun LucaApp() {
                                     }
                                 }
                             }
+                        },
+                        onLogoutClick = {
+                            scope.launch {
+                                drawerState.close()
+                                // Sign out dari Firebase
+                                FirebaseAuth.getInstance().signOut()
+                                // Navigate ke greeting screen dan clear back stack
+                                navController.navigate("greeting") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         }
                     )
                 }

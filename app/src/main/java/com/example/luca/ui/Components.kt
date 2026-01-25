@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
@@ -68,6 +70,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
@@ -104,6 +108,7 @@ import com.example.luca.ui.components.AvatarSelectionOverlay
 import com.example.luca.util.AvatarUtils
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentYellow
+import com.example.luca.ui.theme.UIAccentRed
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIGrey
@@ -119,6 +124,7 @@ import com.example.luca.model.Contact
 import com.example.luca.util.BankUtils
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.ExitToApp
 
 // Header State Definition
 enum class HeaderState(
@@ -1575,8 +1581,118 @@ fun formatRupiah(price: Long): String {
 @Composable
 fun SidebarContent(
     onCloseClick: () -> Unit = {}, // Placeholder untuk aksi tutup sidebar
-    onDashboardClick: () -> Unit = {} // Callback untuk Dashboard
+    onDashboardClick: () -> Unit = {}, // Callback untuk Dashboard
+    onLogoutClick: () -> Unit = {} // Callback untuk Logout
 ) {
+    // State untuk menampilkan dialog konfirmasi logout
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Dialog Konfirmasi Logout
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            containerColor = UIWhite,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .background(UIAccentYellow.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = UIAccentYellow,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Keluar Akun?",
+                    style = AppFont.Bold, // Pastikan pakai font app kamu
+                    fontSize = 20.sp,     // Sedikit lebih besar untuk emphasis
+                    color = UIBlack,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Kamu harus login ulang untuk mengakses data Luca.",
+                        color = UIDarkGrey,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Buttons centered
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // No Button
+                        Button(
+                            onClick = { showLogoutDialog = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIGrey,
+                                contentColor = UIBlack
+                            ),
+                            shape = RoundedCornerShape(50.dp),
+                            elevation = ButtonDefaults.buttonElevation(0.dp),
+                            modifier = Modifier
+                                .height(48.dp)
+                                .weight(1f)
+                        ) {
+                            Text(
+                                text = "No",
+                                style = AppFont.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Yes Button - dengan interaksi warna kuning saat pressed
+//                        val interactionSource = remember { MutableInteractionSource() }
+//                        val isPressed by interactionSource.collectIsPressedAsState()
+
+                        Button(
+                            onClick = {
+                                showLogoutDialog = false
+                                onLogoutClick()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIAccentYellow,
+                                contentColor = UIBlack // Text hitam di atas kuning (High Contrast)
+                            ),
+                            shape = RoundedCornerShape(50), // Bentuk Pill/Kapsul
+                            elevation = ButtonDefaults.buttonElevation(0.dp),
+                            modifier = Modifier
+                                .height(48.dp)
+                                .weight(1f) // Biar lebar proporsional
+                        ) {
+                            Text(
+                                text = "Yes",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth(0.7f)
@@ -1634,6 +1750,7 @@ fun SidebarContent(
         SidebarMenuItem(icon = Icons.Outlined.Person, text = "Account") { /* Placeholder Click */ }
         SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") { /* Placeholder Click */ }
         SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") { /* Placeholder Click */ }
+        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.ExitToApp, text = "Log Out") { showLogoutDialog = true }
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") { /* Placeholder Click */ }
 
         // --- SPACER PENDORONG ---
@@ -2143,16 +2260,107 @@ fun ComponentsPreviewStv(){
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun PreviewLogoutDialog() {
+    LucaTheme {
+        AlertDialog(
+            onDismissRequest = { },
+            containerColor = UIWhite,
+            shape = RoundedCornerShape(20.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(UIAccentYellow.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = UIAccentYellow,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Logout Akun?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = UIBlack,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Apakah yakin ingin logout?",
+                        color = UIDarkGrey,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
 
+                    Spacer(modifier = Modifier.height(24.dp))
 
+                    // Buttons centered
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // No Button
+                        Button(
+                            onClick = { },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIGrey,
+                                contentColor = UIBlack
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .height(44.dp)
+                                .width(100.dp)
+                        ) {
+                            Text(
+                                text = "No",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
 
+                        Spacer(modifier = Modifier.width(16.dp))
 
+                        // Yes Button
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
 
-
-
-
-
-
-
-
-
+                        Button(
+                            onClick = { },
+                            interactionSource = interactionSource,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isPressed) UIAccentYellow else UIGrey,
+                                contentColor = if (isPressed) UIWhite else UIBlack
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .height(44.dp)
+                                .width(100.dp)
+                        ) {
+                            Text(
+                                text = "Yes",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
+}
