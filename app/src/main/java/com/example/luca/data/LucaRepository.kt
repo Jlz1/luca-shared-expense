@@ -1,5 +1,8 @@
 package com.example.luca.data
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import com.example.luca.model.Activity
 import com.example.luca.model.Contact
@@ -12,6 +15,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 interface LucaRepository {
@@ -26,15 +30,19 @@ interface LucaRepository {
     fun getContactsFlow(): Flow<List<Contact>>
     suspend fun addContact(contact: Contact): Result<Boolean>
 
-    // --- BARU: Get Current User Profile ---
+    // Get Current User Profile
     suspend fun getCurrentUserAsContact(): Contact?
 
-    // Legacy
+    // Legacy / Details
     suspend fun getEventById(id: String): Event?
     suspend fun getActivitiesByEventId(eventId: String): List<Activity>
+
+    suspend fun deleteEvent(eventId: String): Result<Boolean>
 }
 
-class LucaFirebaseRepository : LucaRepository {
+// Konstruktor menerima Context untuk keperluan kompresi gambar
+class LucaFirebaseRepository(private val context: Context? = null) : LucaRepository {
+
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -42,24 +50,21 @@ class LucaFirebaseRepository : LucaRepository {
     private val currentUserId: String?
         get() = auth.currentUser?.uid
 
-    // --- IMPLEMENTASI BARU: AMBIL PROFILE SENDIRI ---
+    // --- IMPLEMENTASI ---
+
     override suspend fun getCurrentUserAsContact(): Contact? {
         val uid = currentUserId ?: return null
         return try {
-            // Ambil data dari users/{uid}
             val snapshot = db.collection("users").document(uid).get().await()
-
-            // Ambil username & avatar (Fallback ke default jika null)
             val name = snapshot.getString("username") ?: auth.currentUser?.displayName ?: "Me"
             val avatar = snapshot.getString("avatarName") ?: "avatar_1"
 
-            // Kemas sebagai Contact agar kompatibel dengan list participant
             Contact(
-                id = uid,       // ID User sendiri
-                userId = uid,   // Owner ID
+                id = uid,
+                userId = uid,
                 name = name,
                 avatarName = avatar,
-                description = "Host" // Penanda bahwa ini host
+                description = "Host"
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -67,10 +72,10 @@ class LucaFirebaseRepository : LucaRepository {
         }
     }
 
-    // --- EVENTS ---
     override suspend fun createEvent(event: Event): Result<Boolean> {
         val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
         return try {
+            // Jika ID kosong, buat dokumen baru. Jika tidak, pakai ID lama (Update).
             val docRef = if (event.id.isEmpty()) {
                 db.collection("users").document(uid).collection("events").document()
             } else {
@@ -98,12 +103,30 @@ class LucaFirebaseRepository : LucaRepository {
         return try {
             val fileName = UUID.randomUUID().toString()
             val ref = storage.reference.child("images/events/$fileName.jpg")
-            ref.putFile(imageUri).await()
+
+            // Jika Context ada, lakukan kompresi
+            if (context != null) {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+
+                val baos = ByteArrayOutputStream()
+                // Kompres ke JPEG kualitas 50%
+                originalBitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos)
+                val data = baos.toByteArray()
+
+                ref.putBytes(data).await()
+            } else {
+                // Fallback jika context null (Upload file mentah)
+                ref.putFile(imageUri).await()
+            }
+
             ref.downloadUrl.await().toString()
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
-    // --- CONTACTS ---
     override fun getContactsFlow(): Flow<List<Contact>> = callbackFlow {
         val uid = currentUserId ?: run { close(); return@callbackFlow }
         val subscription = db.collection("users").document(uid).collection("contacts")
@@ -124,7 +147,33 @@ class LucaFirebaseRepository : LucaRepository {
         } catch (e: Exception) { Result.failure(e) }
     }
 
-    // Legacy Stubs
-    override suspend fun getEventById(id: String): Event? = null
+    override suspend fun getEventById(id: String): Event? {
+        val uid = currentUserId ?: return null
+        return try {
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(id)
+                .get()
+                .await()
+            snapshot.toObject(Event::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     override suspend fun getActivitiesByEventId(eventId: String): List<Activity> = emptyList()
+
+    override suspend fun deleteEvent(eventId: String): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+        return try {
+            db.collection("users").document(uid).collection("events").document(eventId)
+                .delete()
+                .await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

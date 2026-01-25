@@ -5,10 +5,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll // PENTING: Import scroll horizontal
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -44,40 +43,28 @@ import java.util.Locale
 @Composable
 fun AddScreen(
     viewModel: AddEventViewModel = viewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    eventId: String? = null // TERIMA EVENT ID
 ) {
+    // TRIGGER LOAD DATA
+    LaunchedEffect(eventId) {
+        if (eventId != null && eventId.isNotBlank()) {
+            viewModel.loadEventForEdit(eventId)
+        } else {
+            viewModel.fetchCurrentUser()
+        }
+    }
+
     val title by viewModel.title.collectAsState()
     val location by viewModel.location.collectAsState()
     val date by viewModel.date.collectAsState()
     val selectedImageUri by viewModel.selectedImageUri.collectAsState()
-
-    // DATA DARI VIEWMODEL
     val availableContacts by viewModel.availableContacts.collectAsState()
-    val selectedParticipants by viewModel.selectedParticipants.collectAsState()
-
+    val selectedParticipants by viewModel.selectedParticipants.collectAsState() // DATA PESERTA YG SUDAH IKUT
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
 
-    val context = LocalContext.current // Butuh context
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        // 1. Update State ViewModel biar preview muncul
-        viewModel.onImageSelected(uri)
-
-        // 2. INI KUNCINYA: Minta izin permanen ke Android
-        // Supaya besok-besok link ini masih bisa dibuka walaupun aplikasi direstart
-        if (uri != null) {
-            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            try {
-                context.contentResolver.takePersistableUriPermission(uri, flag)
-            } catch (e: Exception) {
-                // Kadang beberapa galeri tidak support persistable, tapi rata-rata support
-                e.printStackTrace()
-            }
-        }
-    }
+    val context = LocalContext.current
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
@@ -88,10 +75,16 @@ fun AddScreen(
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> viewModel.onImageSelected(uri) }
+        onResult = { uri ->
+            viewModel.onImageSelected(uri)
+            if (uri != null) {
+                try {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+        }
     )
 
-    // STATE UNTUK OVERLAY
     var showContactSelectionOverlay by remember { mutableStateOf(false) }
     var showAddNewContactOverlay by remember { mutableStateOf(false) }
 
@@ -105,15 +98,12 @@ fun AddScreen(
         onTitleChange = viewModel::onTitleChange,
         onLocationChange = viewModel::onLocationChange,
         onDateChange = viewModel::onDateChange,
-        onChangePhotoClick = {
-            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        },
-        onAddParticipantClick = { showContactSelectionOverlay = true }, // Buka Overlay
+        onChangePhotoClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        onAddParticipantClick = { showContactSelectionOverlay = true },
         onContinueClick = { viewModel.saveEvent() },
         onBackClick = onNavigateBack
     )
 
-    // --- OVERLAY 1: SELECT CONTACTS ---
     if (showContactSelectionOverlay) {
         Dialog(
             onDismissRequest = { showContactSelectionOverlay = false },
@@ -122,14 +112,13 @@ fun AddScreen(
             Box(Modifier.fillMaxSize().background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
                 ContactSelectionOverlay(
                     availableContacts = availableContacts,
-                    selectedContacts = selectedParticipants,
+                    selectedContacts = selectedParticipants, // KIRIM DATA INI AGAR CHECKLIST MUNCUL
                     onDismiss = { showContactSelectionOverlay = false },
                     onConfirm = { contacts ->
                         viewModel.updateSelectedParticipants(contacts)
                         showContactSelectionOverlay = false
                     },
                     onAddNewContact = {
-                        // Tutup selection overlay, buka form add new contact
                         showContactSelectionOverlay = false
                         showAddNewContactOverlay = true
                     }
@@ -138,7 +127,6 @@ fun AddScreen(
         }
     }
 
-    // --- OVERLAY 2: ADD NEW CONTACT ---
     if (showAddNewContactOverlay) {
         Dialog(
             onDismissRequest = { showAddNewContactOverlay = false },
@@ -150,11 +138,8 @@ fun AddScreen(
                         showAddNewContactOverlay = false
                         showContactSelectionOverlay = true
                     },
-                    // FIX ERROR: Parameter diurutkan sesuai UserProfileOverlay (Name, Phone, Banks, Avatar)
                     onAddContact = { name, phone, banks, avatarName ->
-                        // Panggil ViewModel (Name, Phone, Avatar, Banks)
                         viewModel.addNewContact(name, phone, avatarName, banks)
-
                         showAddNewContactOverlay = false
                         showContactSelectionOverlay = true
                     }
@@ -191,7 +176,6 @@ fun AddScreenContent(
                 TextButton(onClick = {
                     showDatePicker = false
                     datePickerState.selectedDateMillis?.let { millis ->
-                        // FIX ERROR: Fungsi helper sekarang ada di bawah file ini
                         onDateChange(convertMillisToDate(millis))
                     }
                 }) { Text("OK") }
@@ -212,7 +196,7 @@ fun AddScreenContent(
                         AsyncImage(
                             model = selectedImageUri,
                             contentDescription = "Selected Cover",
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -251,12 +235,9 @@ fun AddScreenContent(
                     // PARTICIPANTS SECTION
                     Text("Participants", style = AppFont.SemiBold, fontSize = 16.sp, color = UIBlack, modifier = Modifier.padding(bottom = 12.dp))
 
-                    // --- PERBAIKAN: TAMBAH HORIZONTAL SCROLL ---
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()) // Scroll horizontal aktif
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                     ) {
                         ParticipantAvatarItem(isAddButton = true, onClick = onAddParticipantClick)
 
@@ -264,7 +245,7 @@ fun AddScreenContent(
                             ParticipantAvatarItem(
                                 name = contact.name,
                                 avatarName = contact.avatarName,
-                                onClick = { /* Logic remove user if needed */ }
+                                onClick = { }
                             )
                         }
                     }
@@ -285,15 +266,8 @@ fun AddScreenContent(
     }
 }
 
-// --- HELPER COMPONENTS & FUNCTIONS ---
-
 @Composable
-fun ParticipantAvatarItem(
-    name: String = "",
-    avatarName: String = "",
-    isAddButton: Boolean = false,
-    onClick: () -> Unit
-) {
+fun ParticipantAvatarItem(name: String = "", avatarName: String = "", isAddButton: Boolean = false, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp).clickable { onClick() }) {
         Box(
             modifier = Modifier.size(60.dp).clip(CircleShape).background(if (isAddButton) UIGrey else Color.Transparent),
@@ -302,7 +276,7 @@ fun ParticipantAvatarItem(
             if (isAddButton) {
                 Icon(Icons.Default.Add, null, tint = UIBlack)
             } else {
-                Image(
+                androidx.compose.foundation.Image(
                     painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
