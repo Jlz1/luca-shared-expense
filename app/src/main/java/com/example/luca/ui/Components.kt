@@ -584,7 +584,7 @@ fun EventCard(
         Box(modifier = Modifier.fillMaxSize().padding(all = 15.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // --- 1. GAMBAR EVENT (UPDATED) ---
+                // --- 1. GAMBAR EVENT ---
                 Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
                     Box(
                         modifier = Modifier

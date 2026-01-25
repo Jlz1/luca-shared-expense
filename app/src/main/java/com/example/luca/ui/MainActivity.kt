@@ -256,7 +256,7 @@ fun LucaApp() {
 
                     // 4. DETAILS & ADD
                     composable("detailed_event") {
-                        DetailedEventScreen(onBackClick = { navController.popBackStack() }, onNavigateToAddActivity = { navController.navigate("new_activity") })
+                        NewEventScreen(onCloseClick = { navController.popBackStack() }, onAddActivityClick = { navController.navigate("new_activity") })
                     }
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })

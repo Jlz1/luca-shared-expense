@@ -33,7 +33,7 @@ fun NewEventScreen(
     onMenuClick: () -> Unit = {}
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().background(UIWhite)
+        modifier = Modifier.fillMaxSize().background(UIBackground)
     ) {
         HeaderSection(onLeftIconClick = onMenuClick)
         Box(
