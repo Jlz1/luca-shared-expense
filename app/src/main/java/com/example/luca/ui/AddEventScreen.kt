@@ -47,9 +47,11 @@ fun AddScreen(
     eventId: String? = null // TERIMA EVENT ID
 ) {
     // TRIGGER LOAD DATA
+    val isEditMode = eventId != null && eventId.isNotBlank()
+
     LaunchedEffect(eventId) {
-        if (eventId != null && eventId.isNotBlank()) {
-            viewModel.loadEventForEdit(eventId)
+        if (isEditMode) {
+            viewModel.loadEventForEdit(eventId!!)
         } else {
             viewModel.fetchCurrentUser()
         }
@@ -95,6 +97,7 @@ fun AddScreen(
         selectedImageUri = selectedImageUri,
         selectedParticipants = selectedParticipants,
         isLoading = isLoading,
+        isEditMode = isEditMode,
         onTitleChange = viewModel::onTitleChange,
         onLocationChange = viewModel::onLocationChange,
         onDateChange = viewModel::onDateChange,
@@ -112,7 +115,7 @@ fun AddScreen(
             Box(Modifier.fillMaxSize().background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
                 ContactSelectionOverlay(
                     availableContacts = availableContacts,
-                    selectedContacts = selectedParticipants, // KIRIM DATA INI AGAR CHECKLIST MUNCUL
+                    selectedContacts = selectedParticipants,
                     onDismiss = { showContactSelectionOverlay = false },
                     onConfirm = { contacts ->
                         viewModel.updateSelectedParticipants(contacts)
@@ -139,7 +142,9 @@ fun AddScreen(
                         showContactSelectionOverlay = true
                     },
                     onAddContact = { name, phone, banks, avatarName ->
+                        // [FIXED] Urutan Parameter diperbaiki: (name, phone, avatarName, banks)
                         viewModel.addNewContact(name, phone, avatarName, banks)
+
                         showAddNewContactOverlay = false
                         showContactSelectionOverlay = true
                     }
@@ -158,6 +163,7 @@ fun AddScreenContent(
     selectedImageUri: Uri?,
     selectedParticipants: List<Contact>,
     isLoading: Boolean,
+    isEditMode: Boolean = false,
     onTitleChange: (String) -> Unit,
     onLocationChange: (String) -> Unit,
     onDateChange: (String) -> Unit,
@@ -185,7 +191,9 @@ fun AddScreenContent(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(UIBackground)) {
-        HeaderSection(currentState = HeaderState.NEW_EVENT, onLeftIconClick = onBackClick)
+        val headerState = if (isEditMode) HeaderState.EDIT_EVENT else HeaderState.NEW_EVENT
+
+        HeaderSection(currentState = headerState, onLeftIconClick = onBackClick)
 
         Box(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -252,7 +260,8 @@ fun AddScreenContent(
 
                     Spacer(modifier = Modifier.height(40.dp))
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        PrimaryButton(text = if (isLoading) "Saving..." else "Continue", onClick = { if (!isLoading) onContinueClick() })
+                        val btnText = if (isLoading) "Saving..." else if (isEditMode) "Save Changes" else "Create Event"
+                        PrimaryButton(text = btnText, onClick = { if (!isLoading) onContinueClick() })
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                 }
