@@ -1,5 +1,6 @@
 package com.example.luca.ui
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +57,27 @@ fun AddScreen(
 
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
+
+    val context = LocalContext.current // Butuh context
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        // 1. Update State ViewModel biar preview muncul
+        viewModel.onImageSelected(uri)
+
+        // 2. INI KUNCINYA: Minta izin permanen ke Android
+        // Supaya besok-besok link ini masih bisa dibuka walaupun aplikasi direstart
+        if (uri != null) {
+            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+            } catch (e: Exception) {
+                // Kadang beberapa galeri tidak support persistable, tapi rata-rata support
+                e.printStackTrace()
+            }
+        }
+    }
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
@@ -189,7 +212,7 @@ fun AddScreenContent(
                         AsyncImage(
                             model = selectedImageUri,
                             contentDescription = "Selected Cover",
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)),
+                            modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     } else {

@@ -122,11 +122,7 @@ class AddEventViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            var imageUrl = ""
-            val currentUri = _selectedImageUri.value
-            if (currentUri != null) {
-                imageUrl = repository.uploadEventImage(currentUri) ?: ""
-            }
+            val localImageUrl = _selectedImageUri.value?.toString() ?: ""
 
             val participantsData = _selectedParticipants.value.map { contact ->
                 ParticipantData(
@@ -140,7 +136,7 @@ class AddEventViewModel : ViewModel() {
                 title = _title.value,
                 location = _location.value,
                 date = _date.value,
-                imageUrl = imageUrl,
+                imageUrl = localImageUrl,
                 participants = participantsData
             )
 
