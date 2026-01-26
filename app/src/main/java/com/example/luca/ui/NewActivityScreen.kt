@@ -14,10 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -50,9 +52,9 @@ fun AddActivityScreen(
 ) {
     // 1. State Definition (State disimpan di sini)
     var titleInput by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Select a Category") }
+    var selectedCategory by remember { mutableStateOf("") }
     val currentUser = remember { Contact(name = "You", avatarName = "avatar_1") }
-    var selectedPayer by remember { mutableStateOf(currentUser) }
+    var selectedPayer by remember { mutableStateOf<Contact?>(null) }
 
     val selectedParticipants by viewModel.selectedParticipants.collectAsState()
     var showContactSelectionOverlay by remember { mutableStateOf(false) }
@@ -69,6 +71,7 @@ fun AddActivityScreen(
                 .fillMaxSize()
                 .background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
                 ContactSelectionOverlay(
+                    currentUser = currentUser,
                     availableContacts = availableContacts,
                     selectedContacts = selectedParticipants,
                     onDismiss = { showContactSelectionOverlay = false },
@@ -117,11 +120,10 @@ fun AddActivityScreen(
         selectedCategory = selectedCategory,
         selectedPayer = selectedPayer,
         onTitleChange = { titleInput = it },
-        onCategoryClick = { /* Logic open category sheet/dialog */ },
+        onCategoryChange = { category -> selectedCategory = category },
         onPayerChange = { contact ->
             selectedPayer = contact
         },
-        onPayerClick = { /* Logic open payer sheet/dialog */ },
         onBackClick = onBackClick,
         onContinueClick = onContinueClick,
         onAddParticipantClick = {  showContactSelectionOverlay = true  }
@@ -137,19 +139,18 @@ fun AddActivityScreenContent(
     selectedParticipants: List<Contact>,
     titleInput: String,
     selectedCategory: String,
-    selectedPayer: Contact,
+    selectedPayer: Contact?,
     // Event Parameter
     onTitleChange: (String) -> Unit,
-    onCategoryClick: () -> Unit,
+    onCategoryChange: (String) -> Unit,
     onPayerChange: (Contact) -> Unit,
-    onPayerClick: () -> Unit,
     onBackClick: () -> Unit,
     onContinueClick: () -> Unit,
     onAddParticipantClick: () -> Unit
 ) {
     val currentUser = remember { Contact(name = "You", avatarName = "avatar_1") }
     val payerOptions = remember(selectedParticipants) {
-        listOf(currentUser) + selectedParticipants.filter { it.name != "You" }
+        selectedParticipants
     }
     var isPayerExpanded by remember { mutableStateOf(false) }
 
@@ -240,10 +241,12 @@ fun AddActivityScreenContent(
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
                     DropdownTriggerSection(
                         label = "Category",
-                        displayText = selectedCategory,
+                        displayText = selectedCategory.ifEmpty { "Select a Category" },
                         leadingIcon = {
-                            // Logic: Tampilkan Icon Kategori jika ada, jika tidak (default) tampilkan titik tiga
-                            val iconRes = currentCategoryIcon ?: Icons.Default.MoreVert
+                            // Logic: Tampilkan Icon Kategori jika ada, jika tidak (default) tampilkan tanda tanya
+
+                            val iconRes = currentCategoryIcon ?: R.drawable.ic_other_outline
+                            val useDefaultIcon = currentCategoryIcon == null
 
                             // Container Lingkaran Abu-abu
                             Box(
@@ -253,19 +256,20 @@ fun AddActivityScreenContent(
                                     .background(UIGrey), // Background lingkaran
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Render Icon (bisa vector standard atau drawable resource)
-                                if (currentCategoryIcon != null) {
+                                // Render Icon
+                                if (useDefaultIcon) {
                                     Icon(
-                                        painter = painterResource(id = iconRes as Int),
-                                        contentDescription = "Category Icon",
+                                        imageVector = Icons.Outlined.HelpOutline,
+                                        contentDescription = "No category selected",
                                         tint = UIBlack,
-                                        modifier = Modifier.size(24.dp) // Ukuran icon di dalam lingkaran
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = iconRes as androidx.compose.ui.graphics.vector.ImageVector,
-                                        contentDescription = "Default Icon",
-                                        tint = UIBlack
+                                        painter = painterResource(id = iconRes),
+                                        contentDescription = "Category Icon",
+                                        tint = UIBlack,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
                             }
@@ -314,7 +318,7 @@ fun AddActivityScreenContent(
                                     }
                                 },
                                 onClick = {
-                                    onCategoryClick() // Ini trigger logic lama
+                                    onCategoryChange(category.name)
 
                                     isCategoryExpanded = false
                                 },
@@ -329,26 +333,43 @@ fun AddActivityScreenContent(
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
                     DropdownTriggerSection(
                         label = "Paid by",
-                        displayText = selectedPayer.name,
+                        displayText = selectedPayer?.name ?: "Select participant",
                         leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .padding(4.dp), // Sedikit padding biar ga mepet border
-                                contentAlignment = Alignment.Center
-                            ) {
-                                // GUNAKAN SNIPPET KAMU DI SINI UNTUK TAMPILAN TERPILIH
-                                Image(
-                                    painter = painterResource(id = AvatarUtils.getAvatarResId(selectedPayer.avatarName)),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
+                            if (selectedPayer != null) {
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
+                                        .size(40.dp)
+                                        .padding(4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = AvatarUtils.getAvatarResId(selectedPayer.avatarName)),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                )
+                                        .background(UIGrey),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "No participant selected",
+                                        tint = UIBlack,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         },
-                        onClick = { isPayerExpanded = true }
+                        onClick = { if (payerOptions.isNotEmpty()) isPayerExpanded = true },
+                        enabled = payerOptions.isNotEmpty()
                     )
 
                     // CUSTOM DROPDOWN MENU
@@ -357,8 +378,8 @@ fun AddActivityScreenContent(
                         onDismissRequest = { isPayerExpanded = false },
                         modifier = Modifier
                             .background(UIWhite)
-                            .width(240.dp) // Lebih lebar sedikit biar nama panjang muat
-                            .clip(RoundedCornerShape(12.dp)) // Bikin menu rounded
+                            .width(240.dp)
+                            .clip(RoundedCornerShape(12.dp))
                     ) {
                         payerOptions.forEach { contact ->
                             DropdownMenuItem(
@@ -428,7 +449,8 @@ fun DropdownTriggerSection(
     label: String,
     displayText: String,
     leadingIcon: @Composable () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Column {
         Text(
@@ -444,7 +466,8 @@ fun DropdownTriggerSection(
                 .fillMaxWidth()
                 .height(56.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable { onClick() },
+                .clickable(enabled = enabled) { onClick() }
+                .alpha(if (enabled) 1f else 0.5f),
             color = UIWhite,
         ) {
             Row(
@@ -490,15 +513,14 @@ fun AddActivityScreenContentPreview() {
         AddActivityScreenContent(
             selectedParticipants = dummyContacts,
             titleInput = "Makan Siang Bareng",
-            selectedCategory = "Food & Drink",
-            selectedPayer = Contact(name = "You", avatarName = "avatar_1"),
+            selectedCategory = "Food",
+            selectedPayer = null,
             onTitleChange = {},
-            onCategoryClick = {},
-            onPayerClick = {},
+            onCategoryChange = {},
+            onPayerChange = {},
             onBackClick = {},
             onContinueClick = {},
-            onAddParticipantClick = {},
-            onPayerChange = {}
+            onAddParticipantClick = {}
         )
     }
 }
