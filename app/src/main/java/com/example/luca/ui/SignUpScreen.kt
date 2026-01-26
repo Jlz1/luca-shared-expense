@@ -33,14 +33,12 @@ import com.example.luca.util.ValidationUtils
 
 @Composable
 fun SignUpScreen(
-    authViewModel: AuthViewModel, // UPDATE: Kita butuh ViewModel untuk OTP
+    authViewModel: AuthViewModel,
     onBackClick: () -> Unit,
-    onNavigateToOtp: (String) -> Unit // UPDATE: Callback pindah ke layar OTP
+    onNavigateToOtp: (String) -> Unit
 ) {
     val context = LocalContext.current
 
-    // State Form
-    var name by remember { mutableStateOf("") } // BARU: Input Nama
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -48,14 +46,11 @@ fun SignUpScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
 
-    // Error states
-    var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
     // --- OBSERVER (CCTV OTP) ---
-    // Kalau ViewModel bilang "OTP Terkirim", kita pindah layar
     LaunchedEffect(authViewModel.otpSentStatus) {
         if (authViewModel.otpSentStatus) {
             Toast.makeText(context, "Kode OTP dikirim ke email!", Toast.LENGTH_SHORT).show()
@@ -64,18 +59,12 @@ fun SignUpScreen(
         }
     }
 
-    // Kalau ada error (misal koneksi putus)
     LaunchedEffect(authViewModel.errorMessage) {
         authViewModel.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
         }
     }
 
-    // --- VALIDASI ---
-    val onNameChange: (String) -> Unit = { input ->
-        name = input
-        nameError = if (input.isBlank()) "Nama wajib diisi" else null
-    }
 
     val onEmailChangeWithValidation: (String) -> Unit = { input ->
         val sanitized = ValidationUtils.sanitizeInput(input)
@@ -100,39 +89,33 @@ fun SignUpScreen(
         }
     }
 
-    // Cek Form Valid (Tambah cek Nama)
-    val isFormValid = name.isNotBlank() && emailError == null && passwordError == null && confirmPasswordError == null &&
+    val isFormValid = emailError == null && passwordError == null && confirmPasswordError == null &&
             email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() &&
             ValidationUtils.isEmailValid(email) && ValidationUtils.isPasswordValid(password) &&
             password == confirmPassword
 
     val handleSignUp: () -> Unit = {
         // Validasi Akhir
-        if (name.isBlank()) nameError = "Nama wajib diisi"
         emailError = ValidationUtils.getEmailError(email)
         passwordError = ValidationUtils.getPasswordError(password)
         confirmPasswordError = if (confirmPassword != password) "Password tidak cocok" else null
 
-        if (emailError == null && passwordError == null && confirmPasswordError == null && nameError == null) {
-            // ACTION: Panggil fungsi OTP di ViewModel
-            authViewModel.startSignUpProcess(name, email, password)
+        if (emailError == null && passwordError == null && confirmPasswordError == null) {
+            authViewModel.startSignUpProcess(name = "User", email = email, pass = password)
         }
     }
 
     SignUpScreenContent(
-        name = name,
         email = email,
         password = password,
         confirmPassword = confirmPassword,
-        nameError = nameError,
         emailError = emailError,
         passwordError = passwordError,
         confirmPasswordError = confirmPasswordError,
         isPasswordVisible = isPasswordVisible,
         isConfirmPasswordVisible = isConfirmPasswordVisible,
-        isLoading = authViewModel.isLoading, // Ambil status loading dari VM
+        isLoading = authViewModel.isLoading,
         isFormValid = isFormValid,
-        onNameChange = onNameChange,
         onEmailChange = onEmailChangeWithValidation,
         onPasswordChange = onPasswordChangeWithValidation,
         onConfirmPasswordChange = onConfirmPasswordChangeWithValidation,
@@ -143,7 +126,6 @@ fun SignUpScreen(
     )
 }
 
-// --- SignUpInputForm KAMU TIDAK SAYA UBAH SAMA SEKALI (Tetap Estetik) ---
 @Composable
 fun SignUpInputForm(
     text: String,
@@ -243,14 +225,11 @@ fun SignUpInputForm(
     }
 }
 
-// UPDATE PARAMETER CONTENT
 @Composable
 fun SignUpScreenContent(
-    name: String,
     email: String,
     password: String,
     confirmPassword: String,
-    nameError: String?,
     emailError: String?,
     passwordError: String?,
     confirmPasswordError: String?,
@@ -258,7 +237,6 @@ fun SignUpScreenContent(
     isConfirmPasswordVisible: Boolean,
     isLoading: Boolean,
     isFormValid: Boolean,
-    onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onConfirmPasswordChange: (String) -> Unit,
@@ -321,19 +299,7 @@ fun SignUpScreenContent(
 
                         Spacer(modifier = Modifier.height(30.dp))
 
-                        // --- NEW: INPUT NAME ---
-                        // Menggunakan style SignUpInputForm yang kamu buat
-                        SignUpInputForm(
-                            text = name,
-                            onValueChange = onNameChange,
-                            placeholder = "Full Name",
-                            // Saya pinjam icon email dulu, nanti kamu bisa ganti icon user
-                            iconRes = R.drawable.ic_email_form,
-                            errorMessage = nameError
-                        )
-                        Spacer(modifier = Modifier.height(15.dp))
 
-                        // --- EMAIL ---
                         SignUpInputForm(
                             text = email,
                             onValueChange = onEmailChange,
