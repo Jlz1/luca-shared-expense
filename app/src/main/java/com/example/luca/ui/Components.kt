@@ -93,7 +93,8 @@ enum class HeaderState(
     EDIT_EVENT("Editing Event", true, false),
     NEW_ACTIVITY("New Activity", true, false),
     DETAILS("Activity Details", true, false),
-    EDIT_ACTIVITY("Edit Activity", true, false)
+    EDIT_ACTIVITY("Edit Activity", true, false),
+    ACCOUNT_SETTINGS("Account Settings", true, false)
 }
 
 // --- HELPER FUNCTIONS (PRIVATE) ---
@@ -1057,8 +1058,15 @@ fun formatRupiah(price: Long): String {
 
 // Sidebar Layout
 @Composable
-fun SidebarContent(onCloseClick: () -> Unit = {}, onDashboardClick: () -> Unit = {}, onLogoutClick: () -> Unit = {}) {
+fun SidebarContent(
+    onCloseClick: () -> Unit = {},
+    onDashboardClick: () -> Unit = {},
+    onAccountSettingsClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
+) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var expandAccountMenu by remember { mutableStateOf(false) }
+
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -1090,10 +1098,27 @@ fun SidebarContent(onCloseClick: () -> Unit = {}, onDashboardClick: () -> Unit =
             IconButton(onClick = onCloseClick) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close Sidebar", tint = Color.Black, modifier = Modifier.size(28.dp)) }
         }
         SidebarMenuItem(icon = Icons.Outlined.Home, text = "Dashboard") { onDashboardClick() }
-        SidebarMenuItem(icon = Icons.Outlined.Person, text = "Account") {}
+
+        // Account Menu with Dropdown
+        SidebarMenuItemExpandable(
+            icon = Icons.Outlined.Person,
+            text = "Account",
+            isExpanded = expandAccountMenu,
+            onClick = { expandAccountMenu = !expandAccountMenu }
+        )
+        if (expandAccountMenu) {
+            SidebarSubMenuItem(text = "Account Settings") {
+                expandAccountMenu = false
+                onAccountSettingsClick()
+            }
+            SidebarSubMenuItem(text = "Logout") {
+                expandAccountMenu = false
+                showLogoutDialog = true
+            }
+        }
+
         SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") {}
         SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") {}
-        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.ExitToApp, text = "Log Out") { showLogoutDialog = true }
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") {}
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
@@ -1107,6 +1132,50 @@ fun SidebarMenuItem(icon: ImageVector, text: String, onClick: () -> Unit) {
         Icon(imageVector = icon, contentDescription = text, tint = Color.Black, modifier = Modifier.size(26.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = text, fontSize = 18.sp, color = UIBlack, style = AppFont.Medium)
+    }
+}
+
+@Composable
+fun SidebarMenuItemExpandable(
+    icon: ImageVector,
+    text: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Icon(imageVector = icon, contentDescription = text, tint = Color.Black, modifier = Modifier.size(26.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text = text, fontSize = 18.sp, color = UIBlack, style = AppFont.Medium)
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            contentDescription = "Expand",
+            tint = UIDarkGrey,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+@Composable
+fun SidebarSubMenuItem(
+    text: String,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 8.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Spacer(modifier = Modifier.width(42.dp))
+        Text(text = text, fontSize = 16.sp, color = UIBlack, style = AppFont.Medium)
     }
 }
 
