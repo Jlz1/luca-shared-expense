@@ -26,6 +26,7 @@ import com.example.luca.util.AvatarUtils
 
 @Composable
 fun ContactSelectionOverlay(
+    currentUser: Contact,
     availableContacts: List<Contact>,
     selectedContacts: List<Contact>,
     onDismiss: () -> Unit,
@@ -66,8 +67,45 @@ fun ContactSelectionOverlay(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = UIGrey)
 
-            // List Kontak
+            // List Kontak (dengan currentUser di awal)
             LazyColumn(modifier = Modifier.weight(1f)) {
+                // Tambahin "You" (currentUser) di awal
+                item {
+                    val isSelected = currentSelection.any { it.id == currentUser.id }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                currentSelection = if (isSelected) {
+                                    currentSelection.filter { it.id != currentUser.id }
+                                } else {
+                                    currentSelection + currentUser
+                                }
+                            }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(currentUser.avatarName)),
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp).clip(CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(currentUser.name, style = AppFont.Medium, color = UIBlack, modifier = Modifier.weight(1f))
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
+                            contentDescription = null,
+                            tint = if (isSelected) UIAccentYellow else UIDarkGrey
+                        )
+                    }
+                }
+
+                // Divider setelah currentUser
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = UIGrey)
+                }
+
                 if (availableContacts.isEmpty()) {
                     item {
                         Text("No contacts found.", style = AppFont.Regular, color = UIDarkGrey, modifier = Modifier.padding(vertical = 12.dp))
