@@ -1,8 +1,21 @@
 package com.example.luca.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -10,13 +23,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
@@ -33,7 +57,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
-import com.example.luca.ui.theme.*
+import com.example.luca.ui.theme.AppFont
+import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIAccentYellow
+import com.example.luca.ui.theme.UIBackground
+import com.example.luca.ui.theme.UIBlack
+import com.example.luca.ui.theme.UIDarkGrey
+import com.example.luca.ui.theme.UIGrey
+import com.example.luca.ui.theme.UIWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,71 +180,91 @@ fun AddActivityScreen2(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(ReceiptWaveShape(waveWidth = 45.dp, waveHeight = 25.dp))
-                            .background(UIWhite)
-                            .padding(20.dp)
                     ) {
-                        // Receipt Header
+                        Image(
+                            painter = painterResource(R.drawable.bg_receipt_wave),
+                            contentDescription = "Receipt Wave",
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            alignment = Alignment.BottomCenter
+                        )
+                        
+                        Spacer(modifier = Modifier.fillMaxWidth().height(10.dp).background(UIWhite))
+
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(UIWhite)
+                                .padding(horizontal = 20.dp)
                         ) {
-                            Text(
-                                text = "Dinner at Floating Resto",
-                                style = AppFont.SemiBold,
-                                fontSize = 16.sp,
-                                color = UIBlack
-                            )
-                            Text(
-                                text = "Paid by Abel M",
-                                style = AppFont.Regular,
-                                fontSize = 12.sp,
-                                color = UIDarkGrey
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Receipt Item
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "1x",
-                                color = UIDarkGrey,
-                                fontSize = 14.sp,
-                                modifier = Modifier.width(28.dp)
-                            )
-
-                            Column(modifier = Modifier.weight(1f)) {
+                            // Receipt Header
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "Gurame Bakar Kecap",
-                                    color = UIBlack,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
+                                    text = "Dinner at Floating Resto",
+                                    style = AppFont.SemiBold,
+                                    fontSize = 16.sp,
+                                    color = UIBlack
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    item { MiniAvatar() }
-                                    item { MiniAvatar() }
-                                    item { MiniAvatar() }
-                                }
+                                Text(
+                                    text = "Paid by Abel M",
+                                    style = AppFont.Regular,
+                                    fontSize = 12.sp,
+                                    color = UIDarkGrey
+                                )
                             }
 
-                            Text(
-                                text = "Rp120.000",
-                                color = UIBlack,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Receipt Item
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = "1x",
+                                    color = UIDarkGrey,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.width(28.dp)
+                                )
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Gurame Bakar Kecap",
+                                        color = UIBlack,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        item { MiniAvatar() }
+                                        item { MiniAvatar() }
+                                        item { MiniAvatar() }
+                                    }
+                                }
+
+                                Text(
+                                    text = "Rp120.000",
+                                    color = UIBlack,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+                            HorizontalDivider(thickness = 2.dp, color = UIGrey)
+                            Spacer(modifier = Modifier.fillMaxWidth().height(10.dp).background(UIWhite))
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
-                        HorizontalDivider(thickness = 2.dp, color = UIGrey)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Image(
+                            painter = painterResource(R.drawable.bg_receipt_wave),
+                            contentDescription = "Receipt Wave",
+                            modifier = Modifier.fillMaxWidth().height(30.dp).rotate(180f),
+                            alignment = Alignment.BottomCenter
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -320,7 +371,7 @@ class ReceiptWaveShape(
             var currentX = 0f
             while (currentX < size.width) {
                 val nextX = currentX + waveWidthPx
-                quadraticBezierTo(
+                quadraticTo(
                     currentX + waveWidthPx / 2, waveHeightPx,
                     nextX, 0f
                 )
@@ -334,9 +385,11 @@ class ReceiptWaveShape(
             currentX = size.width
             while (currentX > 0) {
                 val nextX = currentX - waveWidthPx
-                quadraticBezierTo(
-                    currentX - waveWidthPx / 2, size.height - waveHeightPx,
-                    nextX, size.height
+                quadraticTo(
+                    currentX - waveWidthPx / 2,
+                    size.height - waveHeightPx,
+                    nextX,
+                    size.height
                 )
                 currentX = nextX
             }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -134,45 +135,64 @@ fun NewActivityEditScreen(
 
                 // --- 2. RECEIPT CARD ---
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(ReceiptWaveShape(waveWidth = 45.dp, waveHeight = 25.dp))
-                        .background(UIWhite)
-                        .padding(20.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Header Editable
+                    Image(
+                        painter = painterResource(R.drawable.bg_receipt_wave),
+                        contentDescription = "Receipt Wave",
+                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        alignment = Alignment.BottomCenter
+                    )
+
+                    Spacer(modifier = Modifier.fillMaxWidth().height(10.dp).background(UIWhite))
+
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(UIWhite)
+                            .padding(horizontal = 20.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            BasicTextField(
-                                value = activityTitle,
-                                onValueChange = { activityTitle = it },
-                                textStyle = TextStyle(
-                                    fontFamily = AppFont.SemiBold.fontFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp,
-                                    color = UIBlack,
-                                    textAlign = TextAlign.Center
-                                ),
-                                cursorBrush = SolidColor(UIAccentYellow),
-                                singleLine = true
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            SmallEditCircle(onClick = {})
+                        // Header Editable
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BasicTextField(
+                                    value = activityTitle,
+                                    onValueChange = { activityTitle = it },
+                                    textStyle = TextStyle(
+                                        fontFamily = AppFont.SemiBold.fontFamily,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp,
+                                        color = UIBlack,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    cursorBrush = SolidColor(UIAccentYellow),
+                                    singleLine = true
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                SmallEditCircle(onClick = {})
+                            }
+                            Text("Paid by Abel M", style = AppFont.Regular, fontSize = 12.sp, color = UIDarkGrey)
                         }
-                        Text("Paid by Abel M", style = AppFont.Regular, fontSize = 12.sp, color = UIDarkGrey)
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // ITEM LIST
+                        EditableItemRow(initialQty = "1x", initialName = "Gurame Bakar Kecap", initialPrice = "Rp120.000")
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(thickness = 2.dp, color = UIGrey)
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // ITEM LIST
-                    EditableItemRow(initialQty = "1x", initialName = "Gurame Bakar Kecap", initialPrice = "Rp120.000")
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(thickness = 2.dp, color = UIGrey)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Image(
+                        painter = painterResource(R.drawable.bg_receipt_wave),
+                        contentDescription = "Receipt Wave",
+                        modifier = Modifier.fillMaxWidth().height(30.dp).rotate(180f),
+                        alignment = Alignment.BottomCenter
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
