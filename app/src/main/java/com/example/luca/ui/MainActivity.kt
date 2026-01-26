@@ -5,15 +5,27 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
@@ -27,13 +39,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
 import com.example.luca.viewmodel.AuthViewModel
+import com.example.luca.viewmodel.ContactsViewModel
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.example.luca.viewmodel.ContactsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,33 +87,74 @@ fun LucaApp() {
         ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = false,
+            scrimColor = UIBlack.copy(alpha = 0.5f),
             drawerContent = {
-                ModalDrawerSheet(drawerContainerColor = UIWhite) {
-                    SidebarContent(
-                        onCloseClick = {
-                            scope.launch { drawerState.close() }
-                        },
-                        onDashboardClick = {
-                            scope.launch {
-                                drawerState.close()
-                                if (currentRoute != "home") {
-                                    navController.navigate("home") {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                }
-                            }
-                        },
-                        // --- FITUR LOGOUT (DARI KODE KAMU) ---
-                        onLogoutClick = {
-                            scope.launch {
-                                drawerState.close()
-                                FirebaseAuth.getInstance().signOut()
-                                navController.navigate("greeting") {
-                                    popUpTo(0) { inclusive = true }
+                // 3. TRANSPARENT FULL SHEET
+                ModalDrawerSheet(
+                    drawerContainerColor = Color.Transparent,
+                    modifier = Modifier.fillMaxWidth(1f),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                ) {
+                    Row(Modifier.fillMaxSize()) {
+
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .weight(0.60f)
+                                .fillMaxHeight()
+                                .background(UIWhite)
+                        ) {
+                            val fixedWidth = maxWidth
+
+                            Box(
+                                modifier = Modifier
+                                    .width(fixedWidth)
+                                    .horizontalScroll(rememberScrollState())
+                            ) {
+                                Box(modifier = Modifier.width(fixedWidth).fillMaxHeight()) {
+                                    SidebarContent(
+                                        onCloseClick = { scope.launch { drawerState.close() } },
+                                        onDashboardClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                if (currentRoute != "home") {
+                                                    navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                                                }
+                                            }
+                                        },
+                                        onLogoutClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                FirebaseAuth.getInstance().signOut()
+                                                navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
+                                            }
+                                        }
+                                    )
                                 }
                             }
                         }
-                    )
+
+                        // [B] DEAD ZONE (7%)
+                        Box(
+                            modifier = Modifier
+                                .weight(0.07f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { /* ZONK */ }
+                        )
+
+                        // [C] CLOSE ZONE (33%)
+                        Box(
+                            modifier = Modifier
+                                .weight(0.33f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { scope.launch { drawerState.close() } }
+                        )
+                    }
                 }
             }
         ) {
@@ -214,7 +268,6 @@ fun LucaApp() {
 
                     // 3. MAIN APP
                     composable("home") {
-                        // [FIX] Tambahkan context agar Repository bisa kompres gambar
                         val context = LocalContext.current.applicationContext
                         val repository = remember { LucaFirebaseRepository(context) }
 
@@ -240,26 +293,20 @@ fun LucaApp() {
                     }
                     composable("scan") {}
 
-                    // --- 4. DETAILS & ADD (BAGIAN KRUSIAL YANG DIPERBAIKI) ---
 
-                    // Route Detail: Harus menerima eventId
                     composable("detailed_event/{eventId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
-
                         DetailedEventScreen(
                             eventId = eventId,
                             onBackClick = { navController.popBackStack() },
-                            // [UPDATE] Membuka Sidebar (Hamburger)
                             onMenuClick = { scope.launch { drawerState.open() } },
                             onNavigateToAddActivity = { navController.navigate("new_activity") },
-                            // [UPDATE] Tombol Edit -> Ke AddScreen dengan ID
                             onNavigateToEditEvent = { id ->
                                 navController.navigate("add_event?eventId=$id")
                             }
                         )
                     }
 
-                    // Route Add/Edit: Harus menerima optional eventId
                     composable(
                         route = "add_event?eventId={eventId}",
                         arguments = listOf(navArgument("eventId") { nullable = true })
@@ -267,11 +314,10 @@ fun LucaApp() {
                         val eventId = backStackEntry.arguments?.getString("eventId")
                         AddScreen(
                             onNavigateBack = { navController.popBackStack() },
-                            eventId = eventId // Kirim ID ke layar (null = Create, ada isi = Edit)
+                            eventId = eventId
                         )
                     }
 
-                    // --- 5. ACTIVITIES & OTHERS ---
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
                     }
