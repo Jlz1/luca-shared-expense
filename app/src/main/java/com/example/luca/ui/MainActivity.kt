@@ -133,6 +133,12 @@ fun LucaApp() {
                                                 FirebaseAuth.getInstance().signOut()
                                                 navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
                                             }
+                                        },
+                                        onAboutUsClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("about_us")
+                                            }
                                         }
                                     )
                                 }
@@ -306,6 +312,12 @@ fun LucaApp() {
                                 FirebaseAuth.getInstance().signOut()
                                 navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
                             }
+                        )
+                    }
+
+                    composable("about_us") {
+                        AboutUsScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 
