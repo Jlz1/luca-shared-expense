@@ -121,6 +121,12 @@ fun LucaApp() {
                                                 }
                                             }
                                         },
+                                        onAccountSettingsClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("account_settings")
+                                            }
+                                        },
                                         onLogoutClick = {
                                             scope.launch {
                                                 drawerState.close()
@@ -293,6 +299,15 @@ fun LucaApp() {
                     }
                     composable("scan") {}
 
+                    composable("account_settings") {
+                        AccountSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onLogoutClick = {
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
+                            }
+                        )
+                    }
 
                     composable("detailed_event/{eventId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
