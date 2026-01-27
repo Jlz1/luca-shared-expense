@@ -1089,7 +1089,7 @@ fun SidebarContent(
             dismissButton = {}
         )
     }
-    Column(modifier = Modifier.fillMaxSize().background(Color.White).padding(horizontal = 14.dp, vertical = 24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.White).statusBarsPadding().padding(horizontal = 14.dp, vertical = 24.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp)) {
             Box(modifier = Modifier.size(30.dp).clip(CircleShape)) { Image(painter = painterResource(R.drawable.ic_luca_logo), contentDescription = "Logo", modifier = Modifier.fillMaxSize()) }
             Spacer(modifier = Modifier.width(12.dp))
