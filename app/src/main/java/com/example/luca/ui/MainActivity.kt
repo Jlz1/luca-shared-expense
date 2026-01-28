@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
@@ -352,7 +351,7 @@ fun LucaApp() {
                         AddActivityScreen(onBackClick = { navController.popBackStack() }, onContinueClick = { navController.navigate("new_activity_2") })
                     }
                     composable("new_activity_2") {
-                        AddActivityScreen2(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
+                        AddActivityScreen2(onBackClick = { navController.popBackStack() })
                     }
                     composable("edit_activity") { NewActivityEditScreen(onBackClick = { navController.popBackStack() }) }
 
