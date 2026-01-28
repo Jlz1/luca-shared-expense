@@ -190,18 +190,18 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                                     Box(modifier = Modifier.weight(1f)) {
                                         TeamMemberCard(
                                             name = when (index) {
-                                                0 -> "Adi Pratama"
-                                                1 -> "Bella Nurfaida"
-                                                2 -> "Citra Dewi"
-                                                3 -> "Dimas Suryanto"
-                                                else -> "Eka Putri"
+                                                0 -> "Beben Rafli Luhut Tua Sianipar"
+                                                1 -> "Jeremy Emmanuel Susilo"
+                                                2 -> "Made Abel Surya Mahotama"
+                                                3 -> "Michael Kevin Pratama"
+                                                else -> "Steven Kukilo Seto"
                                             },
                                             role = when (index) {
-                                                0 -> "Lead Developer"
-                                                1 -> "UI/UX Designer"
-                                                2 -> "Backend Engineer"
-                                                3 -> "QA Tester"
-                                                else -> "Product Manager"
+                                                0 -> "Full Stack Developer, Scrum Master"
+                                                1 -> "Full Stack Developer, DevOps Engineer"
+                                                2 -> "Full Stack Developer, Backend Developer"
+                                                3 -> "Full Stack Developer, UI/UX Designer"
+                                                else -> "Full Stack Developer, Product Owner"
                                             }
                                         )
                                     }
@@ -247,12 +247,12 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
                 Text(
-                    text = "© 2024 Luca. All rights reserved.",
+                    text = "© 2026 Luca. All rights reserved.",
                     style = AppFont.Regular,
                     fontSize = 12.sp,
                     color = UIDarkGrey,
@@ -266,7 +266,7 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                     color = UIAccentYellow,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
