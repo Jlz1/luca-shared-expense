@@ -140,6 +140,12 @@ fun LucaApp() {
                                                 navController.navigate("settings")
                                             }
                                         },
+                                        onReportBugClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("report_bugs")
+                                            }
+                                        },
                                         onAboutUsClick = {
                                             scope.launch {
                                                 drawerState.close()
@@ -342,6 +348,12 @@ fun LucaApp() {
                                     navController.navigate("account_settings")
                                 }
                             }
+                        )
+                    }
+
+                    composable("report_bugs") {
+                        ReportBugScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 

@@ -1064,6 +1064,7 @@ fun SidebarContent(
     onAccountSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onReportBugClick: () -> Unit = {},
     onAboutUsClick: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -1120,7 +1121,7 @@ fun SidebarContent(
         }
 
         SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") { onSettingsClick() }
-        SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") {}
+        SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") { onReportBugClick() }
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") { onAboutUsClick() }
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
