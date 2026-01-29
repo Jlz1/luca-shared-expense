@@ -151,6 +151,12 @@ fun LucaApp() {
                                                 drawerState.close()
                                                 navController.navigate("about_us")
                                             }
+                                        },
+                                        onHelpSupportClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("help_support")
+                                            }
                                         }
                                     )
                                 }
@@ -354,6 +360,18 @@ fun LucaApp() {
                     composable("report_bugs") {
                         ReportBugScreen(
                             onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("help_support") {
+                        HelpSupportScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onReportBugClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("report_bugs")
+                                }
+                            }
                         )
                     }
 

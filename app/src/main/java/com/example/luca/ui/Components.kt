@@ -1065,7 +1065,8 @@ fun SidebarContent(
     onLogoutClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onReportBugClick: () -> Unit = {},
-    onAboutUsClick: () -> Unit = {}
+    onAboutUsClick: () -> Unit = {},
+    onHelpSupportClick: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var expandAccountMenu by remember { mutableStateOf(false) }
@@ -1125,7 +1126,7 @@ fun SidebarContent(
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") { onAboutUsClick() }
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
-        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, text = "Help & Support") {}
+        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, text = "Help & Support") { onHelpSupportClick() }
     }
 }
 
