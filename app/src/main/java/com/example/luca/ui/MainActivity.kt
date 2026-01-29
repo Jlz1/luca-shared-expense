@@ -133,10 +133,28 @@ fun LucaApp() {
                                                 navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
                                             }
                                         },
+                                        onSettingsClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("settings")
+                                            }
+                                        },
+                                        onReportBugClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("report_bugs")
+                                            }
+                                        },
                                         onAboutUsClick = {
                                             scope.launch {
                                                 drawerState.close()
                                                 navController.navigate("about_us")
+                                            }
+                                        },
+                                        onHelpSupportClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("help_support")
                                             }
                                         }
                                     )
@@ -317,6 +335,42 @@ fun LucaApp() {
                     composable("about_us") {
                         AboutUsScreen(
                             onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("settings") {
+                        SettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onAboutUsClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("about_us")
+                                }
+                            },
+                            onAccountSettingsClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("account_settings")
+                                }
+                            }
+                        )
+                    }
+
+                    composable("report_bugs") {
+                        ReportBugScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("help_support") {
+                        HelpSupportScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onReportBugClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("report_bugs")
+                                }
+                            }
                         )
                     }
 

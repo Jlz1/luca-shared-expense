@@ -1064,7 +1064,10 @@ fun SidebarContent(
     onDashboardClick: () -> Unit = {},
     onAccountSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    onAboutUsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onReportBugClick: () -> Unit = {},
+    onAboutUsClick: () -> Unit = {},
+    onHelpSupportClick: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var expandAccountMenu by remember { mutableStateOf(false) }
@@ -1081,9 +1084,9 @@ fun SidebarContent(
                     Text(text = "Kamu harus login ulang untuk mengakses data Luca.", color = UIDarkGrey, fontSize = 14.sp, textAlign = TextAlign.Center, lineHeight = 20.sp)
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        Button(onClick = { showLogoutDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = UIGrey, contentColor = UIBlack), shape = RoundedCornerShape(50.dp), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "No", style = AppFont.SemiBold, fontSize = 14.sp) }
+                        Button(onClick = { showLogoutDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = UIGrey, contentColor = UIBlack), shape = RoundedCornerShape(50.dp), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "Batal", style = AppFont.SemiBold, fontSize = 14.sp) }
                         Spacer(modifier = Modifier.width(12.dp))
-                        Button(onClick = { showLogoutDialog = false; onLogoutClick() }, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack), shape = RoundedCornerShape(50), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "Yes", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                        Button(onClick = { showLogoutDialog = false; onLogoutClick() }, colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack), shape = RoundedCornerShape(50), elevation = ButtonDefaults.buttonElevation(0.dp), modifier = Modifier.height(48.dp).weight(1f)) { Text(text = "Ya", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
                     }
                 }
             },
@@ -1119,12 +1122,12 @@ fun SidebarContent(
             }
         }
 
-        SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") {}
-        SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") {}
+        SidebarMenuItem(icon = Icons.Outlined.Settings, text = "Settings") { onSettingsClick() }
+        SidebarMenuItem(icon = Icons.Outlined.Flag, text = "Report Bugs") { onReportBugClick() }
         SidebarMenuItem(icon = Icons.Outlined.Info, text = "About Us") { onAboutUsClick() }
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(bottom = 24.dp))
-        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, text = "Help & Support") {}
+        SidebarMenuItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, text = "Help & Support") { onHelpSupportClick() }
     }
 }
 
@@ -1315,32 +1318,40 @@ fun ContactSelectionItem(
 
 @Preview
 @Composable
-fun ComponentsPreview() {
+fun SidebarPreview() {
     LucaTheme {
-        Column(modifier = Modifier.background(UIWhite).padding(16.dp)) { PrimaryButton(text = "Test Button", onClick = {}) }
+        SidebarContent()
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF888888)
-@Composable
-fun PreviewOverlay() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { UserProfileOverlay(onClose = { println("Overlay closed") }, onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String -> println("Contact added: $name, $phone, $banks, $avatarName") }) }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AvatarListPreview() {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Preview: With Add Button")
-        Spacer(modifier = Modifier.height(10.dp))
-        AvatarList(users = listOf(UserData("You", true, Color(0xFFFF8C42)), UserData("Jeremy E"), UserData("Steven K")), avatarSize = 60.dp, showName = true, showAddButton = true)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFF0EDEA)
-@Composable
-fun ContactCardPreview() {
-    LucaTheme {
-        ContactCard(contactName = "Aldi Faustinus", phoneNumber = "+62 834 2464 3255", avatarColor = Color(0xFF5FBDAC), maxHeight = 600.dp, horizontalPadding = 5.dp, verticalPadding = 5.dp, events = listOf("Bali", "Dinner"), bankAccounts = listOf(BankAccount("BCA", "5436774334", Color(0xFF0066CC)), BankAccount("BRI", "0023421568394593", Color(0xFF003D82))))
-    }
-}
+//@Preview
+//@Composable
+//fun ComponentsPreview() {
+//    LucaTheme {
+//        Column(modifier = Modifier.background(UIWhite).padding(16.dp)) { PrimaryButton(text = "Test Button", onClick = {}) }
+//    }
+//}
+//
+//@Preview(showBackground = true, backgroundColor = 0xFF888888)
+//@Composable
+//fun PreviewOverlay() {
+//    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { UserProfileOverlay(onClose = { println("Overlay closed") }, onAddContact = { name: String, phone: String, banks: List<BankAccountData>, avatarName: String -> println("Contact added: $name, $phone, $banks, $avatarName") }) }
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun AvatarListPreview() {
+//    Column(modifier = Modifier.padding(16.dp)) {
+//        Text("Preview: With Add Button")
+//        Spacer(modifier = Modifier.height(10.dp))
+//        AvatarList(users = listOf(UserData("You", true, Color(0xFFFF8C42)), UserData("Jeremy E"), UserData("Steven K")), avatarSize = 60.dp, showName = true, showAddButton = true)
+//    }
+//}
+//
+//@Preview(showBackground = true, backgroundColor = 0xFFF0EDEA)
+//@Composable
+//fun ContactCardPreview() {
+//    LucaTheme {
+//        ContactCard(contactName = "Aldi Faustinus", phoneNumber = "+62 834 2464 3255", avatarColor = Color(0xFF5FBDAC), maxHeight = 600.dp, horizontalPadding = 5.dp, verticalPadding = 5.dp, events = listOf("Bali", "Dinner"), bankAccounts = listOf(BankAccount("BCA", "5436774334", Color(0xFF0066CC)), BankAccount("BRI", "0023421568394593", Color(0xFF003D82))))
+//    }
+//}
