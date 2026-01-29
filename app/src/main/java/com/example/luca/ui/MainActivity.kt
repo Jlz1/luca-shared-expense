@@ -134,6 +134,12 @@ fun LucaApp() {
                                                 navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
                                             }
                                         },
+                                        onSettingsClick = {
+                                            scope.launch {
+                                                drawerState.close()
+                                                navController.navigate("settings")
+                                            }
+                                        },
                                         onAboutUsClick = {
                                             scope.launch {
                                                 drawerState.close()
@@ -318,6 +324,24 @@ fun LucaApp() {
                     composable("about_us") {
                         AboutUsScreen(
                             onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("settings") {
+                        SettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onAboutUsClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("about_us")
+                                }
+                            },
+                            onAccountSettingsClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("account_settings")
+                                }
+                            }
                         )
                     }
 
