@@ -37,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.model.Event
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
@@ -380,7 +381,7 @@ fun LucaApp() {
                             eventId = eventId,
                             onBackClick = { navController.popBackStack() },
                             onMenuClick = { scope.launch { drawerState.open() } },
-                            onNavigateToAddActivity = { navController.navigate("new_activity") },
+                            onNavigateToAddActivity = { navController.navigate("new_activity/$eventId") },
                             onNavigateToEditEvent = { id ->
                                 navController.navigate("add_event?eventId=$id")
                             }
@@ -401,8 +402,23 @@ fun LucaApp() {
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
                     }
-                    composable("new_activity") {
-                        AddActivityScreen(onBackClick = { navController.popBackStack() }, onContinueClick = { navController.navigate("new_activity_2") })
+                    composable("new_activity/{eventId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                        val repository = remember { LucaFirebaseRepository() }
+                        var eventData by remember { mutableStateOf<Event?>(null) }
+
+                        LaunchedEffect(eventId) {
+                            eventData = repository.getEventById(eventId)
+                        }
+
+                        if (eventData != null) {
+                            AddActivityScreen(
+                                eventId = eventId,
+                                event = eventData!!,
+                                onBackClick = { navController.popBackStack() },
+                                onDoneClick = { navController.popBackStack() }
+                            )
+                        }
                     }
                     composable("new_activity_2") {
                         AddActivityScreen2(onBackClick = { navController.popBackStack() })

@@ -387,14 +387,19 @@ fun ParticipantItem(
 fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .width(220.dp)
             .height(56.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = UIAccentYellow,
+            disabledContainerColor = UIAccentYellow.copy(alpha = 0.5f)
+        ),
         shape = RoundedCornerShape(28.dp)
     ) {
         Text(

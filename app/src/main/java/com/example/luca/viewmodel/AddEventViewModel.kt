@@ -49,6 +49,13 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
     private val _isSuccess = MutableStateFlow(false)
     val isSuccess = _isSuccess.asStateFlow()
 
+    // Error Handling
+    private val _showParticipantWarning = MutableStateFlow(false)
+    val showParticipantWarning = _showParticipantWarning.asStateFlow()
+
+    private val _removedParticipantsInActivity = MutableStateFlow<List<String>>(emptyList())
+    val removedParticipantsInActivity = _removedParticipantsInActivity.asStateFlow()
+
     init {
         // Load data awal
         fetchContacts()
@@ -87,11 +94,8 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
                     )
                 }
                 _selectedParticipants.value = mappedParticipants
-
-            } else {
-                // Jika event tidak ketemu, fallback ke mode create (load user sendiri)
-                fetchCurrentUser()
             }
+            // JANGAN panggil fetchCurrentUser() di sini - participant sudah di-load dari event
             _isLoading.value = false
         }
     }
@@ -152,6 +156,20 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _isLoading.value = true
 
+            // CEK APAKAH ADA PARTICIPANT YANG DIHAPUS DAN SUDAH MASUK ACTIVITY
+            if (currentEventId != null) {
+                val participantsInActivities = repository.getParticipantsInActivities(currentEventId!!)
+                val currentParticipantNames = _selectedParticipants.value.map { it.name }
+                val removedParticipants = participantsInActivities.filter { it !in currentParticipantNames }
+
+                if (removedParticipants.isNotEmpty()) {
+                    _removedParticipantsInActivity.value = removedParticipants
+                    _showParticipantWarning.value = true
+                    _isLoading.value = false
+                    return@launch
+                }
+            }
+
             // LOGIK IMAGE UPDATE
             var finalImageUrl = existingImageUrl
             val currentUri = _selectedImageUri.value
@@ -187,6 +205,10 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun dismissParticipantWarning() {
+        _showParticipantWarning.value = false
+    }
+
     fun resetState() {
         _title.value = ""
         _location.value = ""
@@ -197,6 +219,8 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         existingImageUrl = ""
         _isSuccess.value = false
         _isLoading.value = false
+        _showParticipantWarning.value = false
+        _removedParticipantsInActivity.value = emptyList()
         // Reload user sendiri setelah reset (siap untuk create baru)
         fetchCurrentUser()
     }

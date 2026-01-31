@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -65,6 +66,8 @@ fun AddScreen(
     val selectedParticipants by viewModel.selectedParticipants.collectAsState() // DATA PESERTA YG SUDAH IKUT
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
+    val showParticipantWarning by viewModel.showParticipantWarning.collectAsState()
+    val removedParticipants by viewModel.removedParticipantsInActivity.collectAsState()
 
     val context = LocalContext.current
 
@@ -128,6 +131,38 @@ fun AddScreen(
                 )
             }
         }
+    }
+
+    // Warning Dialog untuk Participant yang Dihapus
+    if (showParticipantWarning && removedParticipants.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissParticipantWarning() },
+            title = { Text("Cannot Remove Participant", style = AppFont.Bold) },
+            text = {
+                Column {
+                    Text(
+                        text = "Participant berikut sudah masuk ke activity, tidak bisa dihapus:",
+                        style = AppFont.Regular,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    removedParticipants.forEach { participantName ->
+                        Text(
+                            text = "• $participantName",
+                            style = AppFont.Regular,
+                            modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissParticipantWarning() },
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                ) {
+                    Text("OK", color = UIBlack, style = AppFont.Bold)
+                }
+            }
+        )
     }
 
     if (showAddNewContactOverlay) {
@@ -276,8 +311,11 @@ fun AddScreenContent(
 }
 
 @Composable
-fun ParticipantAvatarItem(name: String = "", avatarName: String = "", isAddButton: Boolean = false, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp).clickable { onClick() }) {
+fun ParticipantAvatarItem(name: String = "", avatarName: String = "", isAddButton: Boolean = false, isDisabled: Boolean = false, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+        .width(60.dp)
+        .clickable(enabled = !isDisabled) { onClick() }
+        .alpha(if (isDisabled) 0.5f else 1f)) {
         Box(
             modifier = Modifier.size(60.dp).clip(CircleShape).background(if (isAddButton) UIGrey else Color.Transparent),
             contentAlignment = Alignment.Center
@@ -285,8 +323,9 @@ fun ParticipantAvatarItem(name: String = "", avatarName: String = "", isAddButto
             if (isAddButton) {
                 Icon(Icons.Default.Add, null, tint = UIBlack)
             } else {
+                val safeAvatarName = if (avatarName.isNotBlank()) avatarName else "avatar_1"
                 androidx.compose.foundation.Image(
-                    painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
+                    painter = painterResource(id = AvatarUtils.getAvatarResId(safeAvatarName)),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().clip(CircleShape)

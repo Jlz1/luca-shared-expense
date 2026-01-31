@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.LucaRepository
 import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.R
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,8 @@ data class UIActivityState(
     val title: String,
     val payer: String,
     val price: String,
+    val category: String = "",
+    val categoryIconRes: Int = 0,
     val iconColor: Color
 )
 
@@ -72,6 +75,8 @@ class DetailedEventViewModel : ViewModel() {
                     title = act.title,
                     payer = act.payerName,
                     price = act.amount,
+                    category = act.category,
+                    categoryIconRes = getCategoryIconRes(act.category),
                     iconColor = try {
                         Color(android.graphics.Color.parseColor(act.categoryColorHex))
                     } catch (e: Exception) {
@@ -113,5 +118,16 @@ class DetailedEventViewModel : ViewModel() {
 
     fun resetDeleteState() {
         _deleteState.value = DeleteState.Idle
+    }
+
+    private fun getCategoryIconRes(categoryName: String): Int {
+        return when (categoryName) {
+            "Food" -> R.drawable.ic_food_outline
+            "Shopping" -> R.drawable.ic_cart_outline
+            "Transportation" -> R.drawable.ic_car_outline
+            "Entertainment" -> R.drawable.ic_ticket_outline
+            "Others" -> R.drawable.ic_other_outline
+            else -> R.drawable.ic_other_outline
+        }
     }
 }

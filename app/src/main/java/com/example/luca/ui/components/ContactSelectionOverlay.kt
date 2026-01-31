@@ -33,7 +33,7 @@ fun ContactSelectionOverlay(
     onConfirm: (List<Contact>) -> Unit,
     onAddNewContact: () -> Unit
 ) {
-    var currentSelection by remember { mutableStateOf(selectedContacts) }
+    var currentSelection by remember { mutableStateOf(selectedContacts.toMutableList()) }
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -47,89 +47,50 @@ fun ContactSelectionOverlay(
             Text("Add Participants", style = AppFont.Bold, fontSize = 20.sp, color = UIBlack)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Add New Contact
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onAddNewContact() }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(UIAccentYellow),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Add, null, tint = UIBlack)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Add New Contact", style = AppFont.SemiBold, color = UIBlack)
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = UIGrey)
-
-            // List Kontak (dengan currentUser di awal)
+            // List Kontak (hanya dari availableContacts, tanpa "You" dan "Add New Contact")
             LazyColumn(modifier = Modifier.weight(1f)) {
-                // Tambahin "You" (currentUser) di awal
-                item {
-                    val isSelected = currentSelection.any { it.id == currentUser.id }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                currentSelection = if (isSelected) {
-                                    currentSelection.filter { it.id != currentUser.id }
-                                } else {
-                                    currentSelection + currentUser
-                                }
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(currentUser.avatarName)),
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp).clip(CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(currentUser.name, style = AppFont.Medium, color = UIBlack, modifier = Modifier.weight(1f))
-                        Icon(
-                            imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
-                            contentDescription = null,
-                            tint = if (isSelected) UIAccentYellow else UIDarkGrey
-                        )
-                    }
-                }
-
-                // Divider setelah currentUser
-                item {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = UIGrey)
-                }
-
                 if (availableContacts.isEmpty()) {
                     item {
                         Text("No contacts found.", style = AppFont.Regular, color = UIDarkGrey, modifier = Modifier.padding(vertical = 12.dp))
                     }
                 }
 
-                items(availableContacts) { contact ->
-                    val isSelected = currentSelection.any { it.id == contact.id }
+                items(
+                    availableContacts.filter { it.name.isNotBlank() },
+                    key = { it.id + it.name }
+                ) { contact ->
+                    val isSelected = currentSelection.any { selectedContact ->
+                        if (contact.id.isNotEmpty() && selectedContact.id.isNotEmpty()) {
+                            selectedContact.id == contact.id
+                        } else {
+                            selectedContact.name == contact.name && selectedContact.avatarName == contact.avatarName
+                        }
+                    }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                currentSelection = if (isSelected) {
-                                    currentSelection.filter { it.id != contact.id }
+                                if (isSelected) {
+                                    // Remove dari selection
+                                    currentSelection = currentSelection.filterNot { selectedContact ->
+                                        if (contact.id.isNotEmpty() && selectedContact.id.isNotEmpty()) {
+                                            selectedContact.id == contact.id
+                                        } else {
+                                            selectedContact.name == contact.name && selectedContact.avatarName == contact.avatarName
+                                        }
+                                    }.toMutableList()
                                 } else {
-                                    currentSelection + contact
+                                    // Add ke selection
+                                    currentSelection = (currentSelection + contact).toMutableList()
                                 }
                             }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "avatar_1"
                         Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)),
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
                             contentDescription = null,
                             modifier = Modifier.size(40.dp).clip(CircleShape)
                         )
