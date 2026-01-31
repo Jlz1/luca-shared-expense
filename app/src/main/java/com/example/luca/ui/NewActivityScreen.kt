@@ -42,25 +42,41 @@ import com.example.luca.ui.theme.UIDarkGrey
 import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 import com.example.luca.util.AvatarUtils
-import com.example.luca.viewmodel.AddEventViewModel
+import com.example.luca.viewmodel.AddActivityViewModel
+import com.example.luca.model.Event
 
 @Composable
 fun AddActivityScreen(
-    viewModel: AddEventViewModel = viewModel(),
+    eventId: String,
+    event: Event,
+    viewModel: AddActivityViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onContinueClick: () -> Unit = {}
+    onDoneClick: () -> Unit = {}
 ) {
+    // Initialize ViewModel dengan event data
+    LaunchedEffect(eventId) {
+        viewModel.setEventId(eventId)
+        viewModel.loadEventParticipants(event)
+    }
+
     // 1. State Definition (State disimpan di sini)
     var titleInput by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
-    val currentUser = remember { Contact(name = "You", avatarName = "avatar_1") }
     var selectedPayer by remember { mutableStateOf<Contact?>(null) }
 
     val selectedParticipants by viewModel.selectedParticipants.collectAsState()
-    var showContactSelectionOverlay by remember { mutableStateOf(false) }
-    var showAddNewContactOverlay by remember { mutableStateOf(false) }
+    val eventParticipants by viewModel.eventParticipants.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val isSuccess by viewModel.isSuccess.collectAsState()
 
-    val availableContacts by viewModel.availableContacts.collectAsState()
+    var showContactSelectionOverlay by remember { mutableStateOf(false) }
+
+    // Handle success
+    if (isSuccess) {
+        LaunchedEffect(Unit) {
+            onDoneClick()
+        }
+    }
 
     if (showContactSelectionOverlay) {
         Dialog(
@@ -71,43 +87,15 @@ fun AddActivityScreen(
                 .fillMaxSize()
                 .background(Color.Black.copy(0.5f)), contentAlignment = Alignment.Center) {
                 ContactSelectionOverlay(
-                    currentUser = currentUser,
-                    availableContacts = availableContacts,
+                    currentUser = Contact(name = "You", avatarName = "avatar_1"),
+                    availableContacts = eventParticipants,
                     selectedContacts = selectedParticipants,
                     onDismiss = { showContactSelectionOverlay = false },
                     onConfirm = { contacts ->
                         viewModel.updateSelectedParticipants(contacts)
                         showContactSelectionOverlay = false
                     },
-                    onAddNewContact = {
-                        // Tutup selection overlay, buka form add new contact
-                        showContactSelectionOverlay = false
-                        showAddNewContactOverlay = true
-                    }
-                )
-            }
-        }
-    }
-
-    if (showAddNewContactOverlay) {
-        Dialog(
-            onDismissRequest = { showAddNewContactOverlay = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                UserProfileOverlay(
-                    onClose = {
-                        showAddNewContactOverlay = false
-                        showContactSelectionOverlay = true
-                    },
-                    // FIX ERROR: Parameter diurutkan sesuai UserProfileOverlay (Name, Phone, Banks, Avatar)
-                    onAddContact = { name, phone, banks, avatarName ->
-                        // Panggil ViewModel (Name, Phone, Avatar, Banks)
-                        viewModel.addNewContact(name, phone, avatarName, banks)
-
-                        showAddNewContactOverlay = false
-                        showContactSelectionOverlay = true
-                    }
+                    onAddNewContact = {} // Disable add new contact untuk activity
                 )
             }
         }
@@ -116,60 +104,125 @@ fun AddActivityScreen(
     // 2. Call Content
     AddActivityScreenContent(
         selectedParticipants = selectedParticipants,
+        eventParticipants = eventParticipants,
         titleInput = titleInput,
         selectedCategory = selectedCategory,
         selectedPayer = selectedPayer,
-        onTitleChange = { titleInput = it },
-        onCategoryChange = { category -> selectedCategory = category },
+        isLoading = isLoading,
+        onTitleChange = {
+            titleInput = it
+            viewModel.onTitleChange(it)
+        },
+        onCategoryChange = { category ->
+            selectedCategory = category
+            viewModel.onCategoryChange(category)
+        },
         onPayerChange = { contact ->
             selectedPayer = contact
+            viewModel.onPayerChange(contact)
         },
         onBackClick = onBackClick,
-        onContinueClick = onContinueClick,
-        onAddParticipantClick = {  showContactSelectionOverlay = true  }
+        onDoneClick = {
+            viewModel.saveActivity()
+        },
+        onAddParticipantClick = { showContactSelectionOverlay = true }
     )
 }
 
-data class CategoryOption(val name: String, val iconRes: Int)
+data class CategoryOption(
+    val name: String,
+    val iconRes: Int,
+    val colorHex: String = "#FFCC80"
+)
+
+// Helper function untuk mendapatkan category option dari nama
+fun getCategoryOption(categoryName: String): CategoryOption {
+    return when (categoryName) {
+        "Food" -> CategoryOption("Food", R.drawable.ic_food_outline, "#FFA726")
+        "Shopping" -> CategoryOption("Shopping", R.drawable.ic_cart_outline, "#AB47BC")
+        "Transportation" -> CategoryOption("Transportation", R.drawable.ic_car_outline, "#42A5F5")
+        "Entertainment" -> CategoryOption("Entertainment", R.drawable.ic_ticket_outline, "#EC407A")
+        "Others" -> CategoryOption("Others", R.drawable.ic_other_outline, "#FFCC80")
+        else -> CategoryOption("Others", R.drawable.ic_other_outline, "#FFCC80")
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddActivityScreenContent(
     // Data Parameter
     selectedParticipants: List<Contact>,
+    eventParticipants: List<Contact>,
     titleInput: String,
     selectedCategory: String,
     selectedPayer: Contact?,
+    isLoading: Boolean = false,
     // Event Parameter
     onTitleChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onPayerChange: (Contact) -> Unit,
     onBackClick: () -> Unit,
-    onContinueClick: () -> Unit,
+    onDoneClick: () -> Unit,
     onAddParticipantClick: () -> Unit
 ) {
-    val currentUser = remember { Contact(name = "You", avatarName = "avatar_1") }
-    val payerOptions = remember(selectedParticipants) {
-        selectedParticipants
+    val payerOptions = remember(eventParticipants) {
+        eventParticipants
     }
     var isPayerExpanded by remember { mutableStateOf(false) }
 
     // 1. Definisikan List Kategori
     val categoryOptions = remember {
         listOf(
-            CategoryOption("Food", R.drawable.ic_food_outline),
-            CategoryOption("Shopping", R.drawable.ic_cart_outline),
-            CategoryOption("Transportation", R.drawable.ic_car_outline),
-            CategoryOption("Entertainment", R.drawable.ic_ticket_outline),
-            CategoryOption("Others", R.drawable.ic_other_outline)
+            CategoryOption("Food", R.drawable.ic_food_outline, "#FFA726"),
+            CategoryOption("Shopping", R.drawable.ic_cart_outline, "#AB47BC"),
+            CategoryOption("Transportation", R.drawable.ic_car_outline, "#42A5F5"),
+            CategoryOption("Entertainment", R.drawable.ic_ticket_outline, "#EC407A"),
+            CategoryOption("Others", R.drawable.ic_other_outline, "#FFCC80")
         )
     }
 
 // 2. State lokal untuk dropdown
     var isCategoryExpanded by remember { mutableStateOf(false) }
 
-// 3. Cari object kategori berdasarkan nama yang sedang terpilih (selectedCategory String)
+    // 6. Cari object kategori berdasarkan nama yang sedang terpilih (selectedCategory String)
     val currentCategoryIcon = categoryOptions.find { it.name == selectedCategory }?.iconRes
+
+    // 7. State untuk error dialog
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    // 8. Fungsi validasi dengan error messages
+    fun validateInput(): String? {
+        // Hitung total orang: participant + paid by
+        val totalPeople = selectedParticipants.size + (if (selectedPayer != null) 1 else 0)
+
+        return when {
+            titleInput.isBlank() -> "Isi Title aktivitas"
+            selectedParticipants.isEmpty() -> "Isi minimal 1 participant"
+            selectedCategory.isEmpty() -> "Pilih kategori"
+            selectedPayer == null -> "Pilih siapa yang membayar"
+            totalPeople < 2 -> "Minimal harus 2 orang (participant + pembayar)"
+            selectedPayer in selectedParticipants -> "Pembayar tidak boleh menjadi participant (orang yang sama tidak boleh jadi participant dan pembayar)"
+            else -> null
+        }
+    }
+
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text("Validation Error", style = AppFont.Bold) },
+            text = { Text(errorMessage, style = AppFont.Regular) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                ) {
+                    Text("OK", color = UIBlack, style = AppFont.Bold)
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -225,7 +278,10 @@ fun AddActivityScreenContent(
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                 ) {
-                    ParticipantAvatarItem(isAddButton = true, onClick = onAddParticipantClick)
+                    ParticipantAvatarItem(
+                        isAddButton = true,
+                        onClick = onAddParticipantClick
+                    )
 
                     selectedParticipants.forEach { contact ->
                         ParticipantAvatarItem(
@@ -429,14 +485,22 @@ fun AddActivityScreenContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(UIBackground)
                     .padding(20.dp)
                     .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 PrimaryButton(
-                    text = "Continue",
-                    onClick = onContinueClick
+                    text = "Done",
+                    onClick = {
+                        val validationError = validateInput()
+                        if (validationError != null) {
+                            errorMessage = validationError
+                            showErrorDialog = true
+                        } else {
+                            onDoneClick()
+                        }
+                    },
+                    enabled = !isLoading
                 )
             }
         }
@@ -506,20 +570,23 @@ fun DropdownTriggerSection(
 fun AddActivityScreenContentPreview() {
     // 1. Setup Dummy Data
     val dummyContacts = listOf(
-        Contact(name = "", avatarName = "")
+        Contact(name = "Andi", avatarName = "avatar_1"),
+        Contact(name = "Budi", avatarName = "avatar_2")
     )
 
     MaterialTheme {
         AddActivityScreenContent(
-            selectedParticipants = dummyContacts,
+            selectedParticipants = emptyList(),
+            eventParticipants = dummyContacts,
             titleInput = "Makan Siang Bareng",
             selectedCategory = "Food",
             selectedPayer = null,
+            isLoading = false,
             onTitleChange = {},
             onCategoryChange = {},
             onPayerChange = {},
             onBackClick = {},
-            onContinueClick = {},
+            onDoneClick = {},
             onAddParticipantClick = {}
         )
     }

@@ -23,6 +23,11 @@ interface LucaRepository {
     suspend fun createEvent(event: Event): Result<Boolean>
     suspend fun uploadEventImage(imageUri: Uri): String?
 
+    // Activity Actions
+    suspend fun createActivity(eventId: String, activity: Activity): Result<Boolean>
+    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
+    suspend fun getParticipantsInActivities(eventId: String): List<String>
+
     // Data Fetching
     fun getEventsFlow(): Flow<List<Event>>
 
@@ -35,7 +40,6 @@ interface LucaRepository {
 
     // Legacy / Details
     suspend fun getEventById(id: String): Event?
-    suspend fun getActivitiesByEventId(eventId: String): List<Activity>
 
     suspend fun deleteEvent(eventId: String): Result<Boolean>
 }
@@ -163,7 +167,40 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         }
     }
 
-    override suspend fun getActivitiesByEventId(eventId: String): List<Activity> = emptyList()
+    override suspend fun getActivitiesByEventId(eventId: String): List<Activity> {
+        val uid = currentUserId ?: return emptyList()
+        return try {
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .get()
+                .await()
+            snapshot.toObjects(Activity::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    override suspend fun createActivity(eventId: String, activity: Activity): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+        return try {
+            val docRef = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document()
+            val finalActivity = activity.copy(id = docRef.id, eventId = eventId)
+            docRef.set(finalActivity).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
 
     override suspend fun deleteEvent(eventId: String): Result<Boolean> {
         val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
@@ -174,6 +211,20 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    override suspend fun getParticipantsInActivities(eventId: String): List<String> {
+        val uid = currentUserId ?: return emptyList()
+        return try {
+            val activities = getActivitiesByEventId(eventId)
+            // Collect all participant names from all activities
+            activities.flatMap { activity ->
+                activity.participants.map { it.name }
+            }.distinct()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 }
