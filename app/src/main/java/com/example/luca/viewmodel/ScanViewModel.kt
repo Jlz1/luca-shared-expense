@@ -16,19 +16,37 @@ class ScanViewModel : ViewModel() {
 
     fun uploadImage(imageFile: File) {
         viewModelScope.launch {
-            _scanState.value = "Sedang menganalisa struk..."
+            _scanState.value = "Sedang menganalisa struk...\n(Ini bisa memakan waktu 30-60 detik untuk pertama kali)"
 
             val result = repository.uploadReceipt(imageFile)
 
             result.onSuccess { response ->
-                if (response.status == "success") {
-                    _scanState.value = response.filteredText ?: "Tidak ada text terdeteksi"
-                } else {
-                    _scanState.value = "Error: ${response.message ?: "Unknown error"}"
+                when {
+                    response.status == "success" && !response.filteredText.isNullOrEmpty() -> {
+                        _scanState.value = response.filteredText
+                    }
+                    response.status == "success" && response.filteredText.isNullOrEmpty() -> {
+                        _scanState.value = "❌ Tidak ada text terdeteksi.\nCoba ambil foto lagi dengan pencahayaan lebih baik."
+                    }
+                    else -> {
+                        _scanState.value = "❌ Error: ${response.message ?: "Unknown error"}"
+                    }
                 }
             }.onFailure { exception ->
-                _scanState.value = "Error: ${exception.message ?: "Gagal koneksi ke server"}"
+                val errorMsg = when {
+                    exception.message?.contains("timeout", ignoreCase = true) == true ->
+                        "⏱️ Timeout: Server terlalu lama merespon.\nCoba lagi dalam beberapa detik."
+                    exception.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                        "📡 Tidak ada koneksi internet.\nCek koneksi kamu."
+                    else ->
+                        "❌ Error: ${exception.message ?: "Gagal koneksi ke server"}"
+                }
+                _scanState.value = errorMsg
             }
         }
+    }
+
+    fun resetScan() {
+        _scanState.value = "Menunggu Scan..."
     }
 }

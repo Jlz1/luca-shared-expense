@@ -142,7 +142,7 @@ fun ScanScreen(
                 }
 
                 scanResult != "Menunggu Scan..." -> {
-                    Text("Hasil Scan ☁️", style = AppFont.Bold, fontSize = 18.sp)
+                    Text("Hasil Scan", style = AppFont.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Box(
