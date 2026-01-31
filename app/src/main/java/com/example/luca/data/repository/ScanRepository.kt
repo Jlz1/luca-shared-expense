@@ -12,14 +12,11 @@ class ScanRepository {
 
     suspend fun uploadReceipt(imageFile: File): Result<ScanResponse> {
         return try {
-            // 1. Ubah File jadi Multipart (paket yang bisa dikirim via internet)
             val requestFile = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
 
-            // 2. Panggil API
             val response = api.scanReceipt(body)
 
-            // 3. Cek sukses atau gagal
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {

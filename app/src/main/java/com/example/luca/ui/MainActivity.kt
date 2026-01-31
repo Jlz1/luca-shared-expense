@@ -47,7 +47,6 @@ import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -321,7 +320,11 @@ fun LucaApp() {
                             onMenuClick = { scope.launch { drawerState.open() } }
                         )
                     }
-                    composable("scan") {}
+                    composable("scan") {
+                        ScanScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
 
                     composable("account_settings") {
                         AccountSettingsScreen(

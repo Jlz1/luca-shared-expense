@@ -9,7 +9,7 @@ import retrofit2.http.Part
 
 interface ScanApiService {
     @Multipart
-    @POST("/") // Server kita langsung terima di root URL
+    @POST("/")
     suspend fun scanReceipt(
         @Part file: MultipartBody.Part
     ): Response<ScanResponse>

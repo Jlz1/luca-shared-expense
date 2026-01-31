@@ -7,8 +7,11 @@ data class ScanResponse(
     val status: String,
 
     @SerializedName("raw_text")
-    val rawText: String?,
+    val rawText: String? = null,
 
     @SerializedName("filtered_text")
-    val filteredText: String?
+    val filteredText: String? = null,
+
+    @SerializedName("message")
+    val message: String? = null
 )

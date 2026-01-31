@@ -1,7 +1,9 @@
 package com.example.luca.ui
 
+import android.Manifest
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -40,29 +42,42 @@ fun ScanScreen(
     val context = LocalContext.current
     val scanResult by viewModel.scanState.collectAsState()
 
-    // State untuk file foto sementara
     var tempPhotoFile by remember { mutableStateOf<File?>(null) }
 
-    // Launcher Kamera
+    // 1. CAMERA LAUNCHER (definisi dulu)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && tempPhotoFile != null) {
-            // Jika foto berhasil diambil, langsung upload ke Cloud
             viewModel.uploadImage(tempPhotoFile!!)
         }
     }
 
-    // Fungsi helper untuk membuka kamera
+    // 2. PERMISSION LAUNCHER (baru pakai cameraLauncher)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                val file = createImageFile(context)
+                tempPhotoFile = file
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    file
+                )
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Permission kamera ditolak", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 3. FUNCTION TO LAUNCH CAMERA
     fun launchCamera() {
-        val file = createContextImageFile(context)
-        tempPhotoFile = file
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider", // Pastikan sama dengan AndroidManifest
-            file
-        )
-        cameraLauncher.launch(uri)
+        permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
     Column(
@@ -71,26 +86,24 @@ fun ScanScreen(
             .background(UIAccentYellow)
             .statusBarsPadding()
     ) {
-        // 1. HEADER (Tombol Back & Judul)
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            // Tombol Back
             IconButton(
                 onClick = onBackClick,
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_back), // Pastikan icon ini ada
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
                     contentDescription = "Back",
                     tint = UIBlack,
                     modifier = Modifier.size(24.dp)
                 )
             }
 
-            // Judul Halaman
             Text(
                 text = "Scan Receipt",
                 style = AppFont.Bold,
@@ -102,7 +115,7 @@ fun ScanScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 2. CONTENT AREA (Putih Melengkung)
+        // Content Area
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,29 +124,27 @@ fun ScanScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // LOGIC TAMPILAN BERDASARKAN STATUS
             when {
-                // KASUS A: SEDANG LOADING / UPLOAD
                 scanResult.contains("Sedang", ignoreCase = true) -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(color = UIAccentYellow, modifier = Modifier.size(60.dp))
+                        CircularProgressIndicator(
+                            color = UIAccentYellow,
+                            modifier = Modifier.size(60.dp)
+                        )
                         Spacer(modifier = Modifier.height(20.dp))
                         Text("Menganalisa Struk...", style = AppFont.Bold, fontSize = 18.sp)
                         Text("Mohon tunggu sebentar", style = AppFont.Regular, color = UIDarkGrey)
                     }
                 }
 
-                // KASUS B: HASIL SUDAH ADA (Bukan Menunggu, Bukan Loading)
                 scanResult != "Menunggu Scan..." -> {
-                    Text("Hasil Scan Cloud ☁️", style = AppFont.Bold, fontSize = 18.sp)
+                    Text("Hasil Scan ☁️", style = AppFont.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Kotak Hasil Text (Scrollable)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -145,7 +156,7 @@ fun ScanScreen(
                     ) {
                         Text(
                             text = scanResult,
-                            style = AppFont.Regular, // Pakai font monospaced kalau ada lebih bagus
+                            style = AppFont.Regular,
                             fontSize = 14.sp,
                             color = UIBlack
                         )
@@ -153,12 +164,10 @@ fun ScanScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Tombol Aksi
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Tombol Ulang
                         Button(
                             onClick = { launchCamera() },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray),
@@ -168,9 +177,8 @@ fun ScanScreen(
                             Text("Scan Ulang", color = UIBlack)
                         }
 
-                        // Tombol Lanjut (Misal: Ke Halaman Edit Item)
                         Button(
-                            onClick = { /* TODO: Logic Parsing & Navigate ke Edit Event */ },
+                            onClick = { /* TODO: Navigate */ },
                             colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
                             modifier = Modifier.weight(1f).height(50.dp),
                             shape = RoundedCornerShape(12.dp)
@@ -180,14 +188,12 @@ fun ScanScreen(
                     }
                 }
 
-                // KASUS C: TAMPILAN AWAL (IDLE)
                 else -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Icon Kamera Besar
                         Icon(
                             painter = painterResource(id = R.drawable.ic_scan_button),
                             contentDescription = "Camera",
@@ -208,7 +214,6 @@ fun ScanScreen(
                         )
                         Spacer(modifier = Modifier.height(40.dp))
 
-                        // Tombol Buka Kamera
                         Button(
                             onClick = { launchCamera() },
                             colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
@@ -219,7 +224,7 @@ fun ScanScreen(
                             elevation = ButtonDefaults.buttonElevation(8.dp)
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_plus_button), // Icon plus atau kamera
+                                painter = painterResource(id = R.drawable.ic_plus_button),
                                 contentDescription = null,
                                 tint = UIBlack
                             )
@@ -238,10 +243,10 @@ fun ScanScreen(
     }
 }
 
-// --- HELPER FUNCTION (Wajib ada di file ini atau di Utils) ---
-fun createContextImageFile(context: Context): File {
+// Helper function
+fun createImageFile(context: Context): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-    val imageFileName = "JPEG_" + timeStamp + "_"
+    val imageFileName = "JPEG_${timeStamp}_"
     return File.createTempFile(
         imageFileName,
         ".jpg",

@@ -4,34 +4,30 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.repository.ScanRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
 class ScanViewModel : ViewModel() {
-    // Panggil Repository yang sudah kita buat tadi
     private val repository = ScanRepository()
 
-    // Variable buat nampung status (Loading, Hasil Teks, atau Error)
-    private val _scanState = MutableStateFlow<String>("Menunggu Scan...")
-    val scanState = _scanState.asStateFlow()
+    private val _scanState = MutableStateFlow("Menunggu Scan...")
+    val scanState: StateFlow<String> = _scanState
 
-    fun uploadImage(file: File) {
+    fun uploadImage(imageFile: File) {
         viewModelScope.launch {
-            _scanState.value = "Sedang Mengupload... Mohon Tunggu ⏳"
+            _scanState.value = "Sedang menganalisa struk..."
 
-            // Proses Upload ke Cloud Run
-            val result = repository.uploadReceipt(file)
+            val result = repository.uploadReceipt(imageFile)
 
             result.onSuccess { response ->
-                // Kalau sukses, ambil teks hasil filter
-                val teksStruk = response.filteredText ?: "Struk kosong / Gagal baca"
-                _scanState.value = teksStruk
-            }
-
-            result.onFailure { error ->
-                // Kalau gagal (internet mati / server error)
-                _scanState.value = "Error: ${error.message}"
+                if (response.status == "success") {
+                    _scanState.value = response.filteredText ?: "Tidak ada text terdeteksi"
+                } else {
+                    _scanState.value = "Error: ${response.message ?: "Unknown error"}"
+                }
+            }.onFailure { exception ->
+                _scanState.value = "Error: ${exception.message ?: "Gagal koneksi ke server"}"
             }
         }
     }

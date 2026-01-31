@@ -7,27 +7,28 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ScanApiClient {
-    // 👇 URL Cloud Run Kamu
-    private const val BASE_URL = "https://scan-api-554715404328.asia-southeast2.run.app/"
+    // GANTI URL ini dengan Hugging Face Space kamu yang udah running!
+    private const val BASE_URL = "https://lucashared-luca-shared-expense.hf.space/"
 
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    private val client = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    // INI YANG KURANG! Expose service supaya bisa dipanggil dari Repository
     val service: ScanApiService by lazy {
-        // Logging biar kelihatan kalau ada error di Logcat
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        val client = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .connectTimeout(60, TimeUnit.SECONDS) // Upload gambar butuh waktu lama
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .build()
-
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(client)
-            .build()
-            .create(ScanApiService::class.java)
+        retrofit.create(ScanApiService::class.java)
     }
 }
