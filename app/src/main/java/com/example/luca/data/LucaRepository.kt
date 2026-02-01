@@ -26,6 +26,7 @@ interface LucaRepository {
     // Activity Actions
     suspend fun createActivity(eventId: String, activity: Activity): Result<Boolean>
     suspend fun getActivitiesByEventId(eventId: String): List<Activity>
+    suspend fun getActivityById(eventId: String, activityId: String): Activity?
     suspend fun getParticipantsInActivities(eventId: String): List<String>
 
     // Data Fetching
@@ -181,6 +182,24 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    override suspend fun getActivityById(eventId: String, activityId: String): Activity? {
+        val uid = currentUserId ?: return null
+        return try {
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document(activityId)
+                .get()
+                .await()
+            snapshot.toObject(Activity::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

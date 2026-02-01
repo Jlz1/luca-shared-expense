@@ -37,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.model.Activity
 import com.example.luca.model.Event
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
@@ -411,9 +412,19 @@ fun LucaApp() {
                     composable("activity_detail/{eventId}/{activityId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
                         val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
+                        val repository = remember { LucaFirebaseRepository() }
+                        var activityData by remember { mutableStateOf<Activity?>(null) }
+
+                        LaunchedEffect(eventId, activityId) {
+                            if (eventId.isNotEmpty() && activityId.isNotEmpty()) {
+                                activityData = repository.getActivityById(eventId, activityId)
+                            }
+                        }
+
                         AddActivityScreen2(
                             eventId = eventId,
                             activityId = activityId,
+                            activity = activityData,
                             onBackClick = { navController.popBackStack() }
                         )
                     }

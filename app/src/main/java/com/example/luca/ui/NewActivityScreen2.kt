@@ -41,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.R
+import com.example.luca.model.Activity
 import com.example.luca.model.Contact
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
@@ -87,13 +88,34 @@ fun AddActivityScreen2(
     viewModel: AddEventViewModel = viewModel(),
     eventId: String = "",
     activityId: String = "",
+    activity: Activity? = null,
     onBackClick: () -> Unit = {}
 ) {
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    // --- STATE: Event Members from ViewModel ---
-    val eventMembers by viewModel.selectedParticipants.collectAsState()
+    // --- STATE: Event Members from Activity (exclude paidBy) ---
+    // Ambil participant dari activity.participants, exclude paidBy
+    val eventMembers = remember(activity) {
+        if (activity != null) {
+            // Konversi ParticipantData ke Contact, exclude paidBy
+            activity.participants
+                .filter { participantData ->
+                    // Exclude paidBy jika ada
+                    val paidByName = activity.paidBy?.name
+                    paidByName == null || participantData.name != paidByName
+                }
+                .map { participantData ->
+                    Contact(
+                        name = participantData.name,
+                        avatarName = participantData.avatarName
+                    )
+                }
+        } else {
+            // Fallback ke ViewModel selectedParticipants
+            emptyList()
+        }
+    }
 
     // --- STATE: Receipt Items ---
     var receiptItems by remember {
@@ -168,7 +190,7 @@ fun AddActivityScreen2(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(80.dp),
+                            .height(120.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         // Participants list
@@ -178,23 +200,23 @@ fun AddActivityScreen2(
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(UIWhite)
-                                .padding(horizontal = 12.dp),
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 if (eventMembers.isNotEmpty()) {
                                     items(eventMembers) { member ->
-                                        GreyAvatarItem(member.name)
+                                        ParticipantAvatarItem(member)
                                     }
                                 } else {
                                     // Fallback display jika tidak ada participants
-                                    item { GreyAvatarItem("You") }
-                                    item { GreyAvatarItem("Jeremy E") }
-                                    item { GreyAvatarItem("Abel M") }
+                                    item { ParticipantAvatarItem(Contact(name = "You")) }
+                                    item { ParticipantAvatarItem(Contact(name = "Jeremy E")) }
+                                    item { ParticipantAvatarItem(Contact(name = "Abel M")) }
                                 }
                             }
                         }
@@ -639,6 +661,81 @@ fun FabCircleButton(size: Dp, onClick: () -> Unit = {}, content: @Composable () 
         contentAlignment = Alignment.Center
     ) {
         content()
+    }
+}
+
+@Composable
+fun ParticipantAvatarItem(contact: Contact) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.width(60.dp)
+    ) {
+        // Avatar dengan profile picture atau fallback ke initial
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(UIDarkGrey),
+            contentAlignment = Alignment.Center
+        ) {
+            // Load profile picture dari database jika ada
+            if (contact.avatarName.isNotBlank()) {
+                // Cek resource ID tanpa try-catch di dalam composable
+                val resourceId = getDrawableResourceId(contact.avatarName)
+                if (resourceId != 0) {
+                    Image(
+                        painter = painterResource(id = resourceId),
+                        contentDescription = contact.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Fallback ke initial jika resource tidak ditemukan
+                    val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
+                    Text(
+                        text = initial.toString(),
+                        color = UIWhite,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                // Fallback ke initial jika tidak ada profile picture
+                val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
+                Text(
+                    text = initial.toString(),
+                    color = UIWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        // Nama dengan text yang kecil
+        Text(
+            text = contact.name,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = UIBlack,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// Helper function untuk mendapatkan resource ID dari nama file
+@Suppress("DiscouragedPrivateApi")
+fun getDrawableResourceId(resourceName: String): Int {
+    return try {
+        val rClass = Class.forName("com.example.luca.R\$drawable")
+        val field = rClass.getField(resourceName)
+        field.getInt(null)
+    } catch (e: Exception) {
+        0
     }
 }
 
