@@ -387,6 +387,9 @@ fun LucaApp() {
                             onNavigateToAddActivity = { navController.navigate("new_activity/$eventId") },
                             onNavigateToEditEvent = { id ->
                                 navController.navigate("add_event?eventId=$id")
+                            },
+                            onNavigateToActivityDetail = { activityId ->
+                                navController.navigate("activity_detail/$eventId/$activityId")
                             }
                         )
                     }
@@ -404,6 +407,15 @@ fun LucaApp() {
 
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
+                    }
+                    composable("activity_detail/{eventId}/{activityId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                        val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
+                        AddActivityScreen2(
+                            eventId = eventId,
+                            activityId = activityId,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
                     composable("new_activity/{eventId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""

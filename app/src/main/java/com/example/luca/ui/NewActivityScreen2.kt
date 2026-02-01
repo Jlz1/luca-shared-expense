@@ -85,6 +85,8 @@ import java.util.Locale
 @Composable
 fun AddActivityScreen2(
     viewModel: AddEventViewModel = viewModel(),
+    eventId: String = "",
+    activityId: String = "",
     onBackClick: () -> Unit = {}
 ) {
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---

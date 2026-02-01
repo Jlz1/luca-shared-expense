@@ -23,6 +23,7 @@ data class UIEventState(
 )
 
 data class UIActivityState(
+    val id: String = "",
     val title: String,
     val payer: String,
     val price: String,
@@ -72,6 +73,7 @@ class DetailedEventViewModel : ViewModel() {
             val activitiesRaw = repository.getActivitiesByEventId(eventId)
             _uiActivities.value = activitiesRaw.map { act ->
                 UIActivityState(
+                    id = act.id,
                     title = act.title,
                     payer = act.payerName,
                     price = act.amount,
