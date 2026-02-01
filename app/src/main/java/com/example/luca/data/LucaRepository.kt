@@ -24,10 +24,12 @@ interface LucaRepository {
     suspend fun uploadEventImage(imageUri: Uri): String?
 
     // Activity Actions
-    suspend fun createActivity(eventId: String, activity: Activity): Result<Boolean>
+    suspend fun createActivity(eventId: String, activity: Activity): Result<String>
     suspend fun getActivitiesByEventId(eventId: String): List<Activity>
     suspend fun getActivityById(eventId: String, activityId: String): Activity?
     suspend fun getParticipantsInActivities(eventId: String): List<String>
+    suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double): Result<Boolean>
+    suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>>
 
     // Data Fetching
     fun getEventsFlow(): Flow<List<Event>>
@@ -203,7 +205,7 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         }
     }
 
-    override suspend fun createActivity(eventId: String, activity: Activity): Result<Boolean> {
+    override suspend fun createActivity(eventId: String, activity: Activity): Result<String> {
         val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
         return try {
             val docRef = db.collection("users")
@@ -214,7 +216,8 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 .document()
             val finalActivity = activity.copy(id = docRef.id, eventId = eventId)
             docRef.set(finalActivity).await()
-            Result.success(true)
+            android.util.Log.d("LucaRepository", "Activity created with ID: ${docRef.id}")
+            Result.success(docRef.id) // Return activity ID
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
@@ -241,6 +244,114 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             activities.flatMap { activity ->
                 activity.participants.map { it.name }
             }.distinct()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    override suspend fun saveActivityItems(
+        eventId: String,
+        activityId: String,
+        items: List<Any>,
+        taxPercentage: Double,
+        discountAmount: Double
+    ): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+        
+        return try {
+            android.util.Log.d("LucaRepository", "=== START saveActivityItems ===")
+            android.util.Log.d("LucaRepository", "UserID: $uid")
+            android.util.Log.d("LucaRepository", "EventID: $eventId")
+            android.util.Log.d("LucaRepository", "ActivityID: $activityId")
+            android.util.Log.d("LucaRepository", "Items count: ${items.size}")
+            
+            if (eventId.isEmpty() || activityId.isEmpty()) {
+                android.util.Log.e("LucaRepository", "ERROR: EventID or ActivityID is empty!")
+                return Result.failure(Exception("EventID or ActivityID is empty"))
+            }
+            
+            // Reference to items collection
+            val itemsCollectionRef = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document(activityId)
+                .collection("items")
+
+            // First, delete all existing items
+            val existingSnapshot = itemsCollectionRef.get().await()
+            for (doc in existingSnapshot.documents) {
+                doc.reference.delete().await()
+                android.util.Log.d("LucaRepository", "Deleted existing item: ${doc.id}")
+            }
+
+            // Then save new items
+            for (item in items) {
+                @Suppress("UNCHECKED_CAST")
+                val itemMap = item as? Map<String, Any> ?: continue
+
+                // Extract and convert fields with proper type handling
+                val itemName = itemMap["itemName"]?.toString() ?: ""
+                val price = when (itemMap["price"]) {
+                    is Long -> itemMap["price"] as Long
+                    is Int -> (itemMap["price"] as Int).toLong()
+                    is String -> (itemMap["price"] as String).toLongOrNull() ?: 0L
+                    else -> 0L
+                }
+                val quantity = when (itemMap["quantity"]) {
+                    is Int -> itemMap["quantity"] as Int
+                    is Long -> (itemMap["quantity"] as Long).toInt()
+                    is String -> (itemMap["quantity"] as String).toIntOrNull() ?: 1
+                    else -> 1
+                }
+                @Suppress("UNCHECKED_CAST")
+                val memberNames = (itemMap["memberNames"] as? List<String>) ?: emptyList()
+                val timestamp = itemMap["timestamp"] as? Long ?: System.currentTimeMillis()
+
+                val itemData = mapOf(
+                    "itemName" to itemName,
+                    "price" to price,
+                    "quantity" to quantity,
+                    "memberNames" to memberNames,
+                    "taxPercentage" to taxPercentage,
+                    "discountAmount" to discountAmount,
+                    "timestamp" to timestamp
+                )
+
+                // Save each item
+                val docRef = itemsCollectionRef.document()
+                docRef.set(itemData).await()
+                android.util.Log.d("LucaRepository", "✅ Saved item [${docRef.id}]: $itemName (Qty: $quantity, Price: $price)")
+            }
+
+            android.util.Log.d("LucaRepository", "✅ === END saveActivityItems SUCCESS ===")
+            Result.success(true)
+            
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ ERROR in saveActivityItems: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>> {
+        val uid = currentUserId ?: return emptyList()
+        return try {
+            val itemsSnap = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document(activityId)
+                .collection("items")
+                .get()
+                .await()
+            itemsSnap.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                data
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

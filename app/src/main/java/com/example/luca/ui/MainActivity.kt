@@ -442,7 +442,12 @@ fun LucaApp() {
                                 eventId = eventId,
                                 event = eventData!!,
                                 onBackClick = { navController.popBackStack() },
-                                onDoneClick = { navController.popBackStack() }
+                                onDoneClick = { eid, _ ->
+                                    // After creating an activity, go directly to Detailed Event screen
+                                    navController.navigate("detailed_event/$eid") {
+                                        launchSingleTop = true
+                                    }
+                                }
                             )
                         }
                     }

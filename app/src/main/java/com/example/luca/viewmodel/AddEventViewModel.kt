@@ -224,4 +224,44 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         // Reload user sendiri setelah reset (siap untuk create baru)
         fetchCurrentUser()
     }
+
+    // New method to save activity items
+    fun saveActivityItems(
+        eventId: String,
+        activityId: String,
+        items: List<Any>, // List of ReceiptItem
+        taxPercentage: Double,
+        discountAmount: Double
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                android.util.Log.d("AddEventViewModel", "======== saveActivityItems START ========")
+                android.util.Log.d("AddEventViewModel", "EventID: $eventId, ActivityID: $activityId, Items: ${items.size}")
+
+                val result = repository.saveActivityItems(
+                    eventId = eventId,
+                    activityId = activityId,
+                    items = items,
+                    taxPercentage = taxPercentage,
+                    discountAmount = discountAmount
+                )
+
+                if (result.isSuccess) {
+                    android.util.Log.d("AddEventViewModel", "✅✅✅ saveActivityItems SUCCESS!")
+                    _isSuccess.value = true
+                } else {
+                    android.util.Log.e("AddEventViewModel", "❌ saveActivityItems FAILED: ${result.exceptionOrNull()?.message}")
+                    _isSuccess.value = false
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AddEventViewModel", "❌ Exception: ${e.message}")
+                e.printStackTrace()
+                _isSuccess.value = false
+            } finally {
+                _isLoading.value = false
+                android.util.Log.d("AddEventViewModel", "======== saveActivityItems END ========")
+            }
+        }
+    }
 }

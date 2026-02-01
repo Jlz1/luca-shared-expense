@@ -51,7 +51,7 @@ fun AddActivityScreen(
     event: Event,
     viewModel: AddActivityViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onDoneClick: () -> Unit = {}
+    onDoneClick: (eventId: String, activityId: String) -> Unit = { _, _ -> }
 ) {
     // Initialize ViewModel dengan event data
     LaunchedEffect(eventId) {
@@ -63,18 +63,19 @@ fun AddActivityScreen(
     var titleInput by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var selectedPayer by remember { mutableStateOf<Contact?>(null) }
+    var showContactSelectionOverlay by remember { mutableStateOf(false) }
 
     val selectedParticipants by viewModel.selectedParticipants.collectAsState()
     val eventParticipants by viewModel.eventParticipants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
+    val createdActivityId by viewModel.createdActivityId.collectAsState()
 
-    var showContactSelectionOverlay by remember { mutableStateOf(false) }
-
-    // Handle success
-    if (isSuccess) {
-        LaunchedEffect(Unit) {
-            onDoneClick()
+    // Handle success - LANGSUNG navigate saat isSuccess berubah jadi true
+    LaunchedEffect(isSuccess) {
+        if (isSuccess && createdActivityId.isNotEmpty()) {
+            android.util.Log.d("AddActivityScreen", "SUCCESS! Navigating to activity: $createdActivityId")
+            onDoneClick(eventId, createdActivityId)
         }
     }
 
