@@ -193,16 +193,12 @@ fun AddActivityScreenContent(
 
     // 8. Fungsi validasi dengan error messages
     fun validateInput(): String? {
-        // Hitung total orang: participant + paid by
-        val totalPeople = selectedParticipants.size + (if (selectedPayer != null) 1 else 0)
-
         return when {
             titleInput.isBlank() -> "Isi Title aktivitas"
             selectedParticipants.isEmpty() -> "Isi minimal 1 participant"
             selectedCategory.isEmpty() -> "Pilih kategori"
             selectedPayer == null -> "Pilih siapa yang membayar"
-            totalPeople < 2 -> "Minimal harus 2 orang (participant + pembayar)"
-            selectedPayer in selectedParticipants -> "Pembayar tidak boleh menjadi participant (orang yang sama tidak boleh jadi participant dan pembayar)"
+            selectedParticipants.size == 1 && selectedPayer in selectedParticipants -> "Minimal harus 2 orang berbeda (participant + pembayar)"
             else -> null
         }
     }
