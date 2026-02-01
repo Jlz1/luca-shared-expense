@@ -3,6 +3,8 @@ package com.example.luca.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.repository.ScanRepository
+import com.example.luca.model.ParsedReceiptData
+import com.example.luca.utils.ReceiptParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,6 +16,9 @@ class ScanViewModel : ViewModel() {
     private val _scanState = MutableStateFlow("Menunggu Scan...")
     val scanState: StateFlow<String> = _scanState
 
+    private val _parsedReceiptData = MutableStateFlow<ParsedReceiptData?>(null)
+    val parsedReceiptData: StateFlow<ParsedReceiptData?> = _parsedReceiptData
+
     fun uploadImage(imageFile: File) {
         viewModelScope.launch {
             _scanState.value = "Sedang menganalisa struk...\n(Ini bisa memakan waktu 30-60 detik untuk pertama kali)"
@@ -24,12 +29,17 @@ class ScanViewModel : ViewModel() {
                 when {
                     response.status == "success" && !response.filteredText.isNullOrEmpty() -> {
                         _scanState.value = response.filteredText
+                        // Parse the OCR text into structured data
+                        val parsedData = ReceiptParser.parseReceiptText(response.filteredText)
+                        _parsedReceiptData.value = parsedData
                     }
                     response.status == "success" && response.filteredText.isNullOrEmpty() -> {
                         _scanState.value = "❌ Tidak ada text terdeteksi.\nCoba ambil foto lagi dengan pencahayaan lebih baik."
+                        _parsedReceiptData.value = null
                     }
                     else -> {
                         _scanState.value = "❌ Error: ${response.message ?: "Unknown error"}"
+                        _parsedReceiptData.value = null
                     }
                 }
             }.onFailure { exception ->
@@ -42,11 +52,13 @@ class ScanViewModel : ViewModel() {
                         "❌ Error: ${exception.message ?: "Gagal koneksi ke server"}"
                 }
                 _scanState.value = errorMsg
+                _parsedReceiptData.value = null
             }
         }
     }
 
     fun resetScan() {
         _scanState.value = "Menunggu Scan..."
+        _parsedReceiptData.value = null
     }
 }
