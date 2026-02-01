@@ -2,7 +2,6 @@ package com.example.luca.ui
 
 import android.Manifest
 import android.content.Context
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,8 +40,27 @@ fun ScanScreen(
 ) {
     val context = LocalContext.current
     val scanResult by viewModel.scanState.collectAsState()
+    val parsedReceiptData by viewModel.parsedReceiptData.collectAsState()
+
+    var showResultScreen by remember { mutableStateOf(false) }
 
     var tempPhotoFile by remember { mutableStateOf<File?>(null) }
+
+    // Show ScanResultScreen when parsed data is available
+    if (showResultScreen && parsedReceiptData != null) {
+        ScanResultScreen(
+            parsedData = parsedReceiptData!!,
+            onBackClick = {
+                showResultScreen = false
+                viewModel.resetScan()
+            },
+            onScanAgain = {
+                showResultScreen = false
+                viewModel.resetScan()
+            }
+        )
+        return
+    }
 
     // 1. CAMERA LAUNCHER (definisi dulu)
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -178,10 +196,15 @@ fun ScanScreen(
                         }
 
                         Button(
-                            onClick = { /* TODO: Navigate */ },
+                            onClick = {
+                                if (parsedReceiptData != null) {
+                                    showResultScreen = true
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
                             modifier = Modifier.weight(1f).height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = parsedReceiptData != null
                         ) {
                             Text("Proses Item", color = UIBlack, fontWeight = FontWeight.Bold)
                         }

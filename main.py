@@ -11,13 +11,11 @@ app = Flask(__name__)
 
 # --- 1. INIT MODEL ML (Otaknya) ---
 print("🚀 Loading PaddleOCR Model...")
-# use_gpu=False wajib untuk Cloud Run (biar murah/gratis)
 ocr_engine = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False, show_log=False)
 print("✅ Model Ready!")
 
 # ==========================================
 # BAGIAN A: FUNGSI-FUNGSI ML & IMAGE PROCESSING
-# (Ini Kodingan ML Kamu)
 # ==========================================
 
 def unsharp_mask(image, kernel_size=(5, 5), sigma=1.0, amount=1.0, threshold=0):
@@ -250,35 +248,38 @@ def smart_filter_receipt(text, context_window=1):
 # BAGIAN B: API SERVER (Pintu Masuk Android)
 # ==========================================
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def process_receipt_api():
-    # 1. Cek apakah Android ngirim file?
+    # Handle GET request
+    if request.method == 'GET':
+        return jsonify({
+            "status": "online",
+            "message": "Luca OCR API Running 🚀",
+            "version": "1.0"
+        }), 200
+    
+    # Handle POST request
     if 'file' not in request.files:
         return jsonify({"status": "error", "message": "No file uploaded"}), 400
     
     file = request.files['file']
     
     try:
-        # 2. Baca File Gambar dari Memory (Tanpa Simpan ke Disk)
         file_bytes = np.frombuffer(file.read(), np.uint8)
         original_img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         if original_img is None:
             return jsonify({"status": "error", "message": "Image corrupt/unreadable"}), 400
 
-        # 3. Jalankan Tuning Lab (Auto Scan & Deskew)
         result_image = tuning_lab(original_img, denoise_h=10, upscale=True)
 
         if result_image is None:
              return jsonify({"status": "error", "message": "Preprocessing failed"}), 500
 
-        # 4. Jalankan OCR (Paddle)
         paddle_raw_result = ocr_engine.ocr(result_image)
         
-        # 5. Parsing Format Paddle yang ribet
         formatted_results = []
         if paddle_raw_result:
-            # Handle kalau return-nya List di dalam List (tergantung versi Paddle)
             source = paddle_raw_result[0] if len(paddle_raw_result) > 0 and isinstance(paddle_raw_result[0], list) else paddle_raw_result
             
             for line in source:
@@ -287,14 +288,13 @@ def process_receipt_api():
                     txt = line[1][0]
                     conf = line[1][1]
                     formatted_results.append((box, txt, conf))
-                except: continue
+                except: 
+                    continue
 
-        # 6. Susun Hasil Akhir (Grouping & Filtering)
         if formatted_results:
             full_text = group_lines_by_height_overlap(formatted_results, overlap_threshold=0.5)
             filtered_text = smart_filter_receipt(full_text, context_window=1)
             
-            # 7. Kirim JSON balik ke Android
             return jsonify({
                 "status": "success",
                 "raw_text": full_text,
@@ -315,6 +315,5 @@ def process_receipt_api():
 # MAIN ENTRY POINT
 # ==========================================
 if __name__ == "__main__":
-    # Mengambil PORT dari Google Cloud Run Environment
     port = int(os.environ.get("PORT", 8080))
     app.run(debug=True, host="0.0.0.0", port=port)
