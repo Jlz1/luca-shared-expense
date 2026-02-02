@@ -112,26 +112,40 @@ fun AddActivityScreen2(
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    // --- STATE: Event Members from Activity (exclude paidBy) ---
-    // Ambil participant dari activity.participants, exclude paidBy
-    val eventMembers = remember(activity) {
+    // --- STATE: Event Members from Activity (INCLUDE paidBy) ---
+    // Use state that can be populated from repo when activity is null
+    var eventMembers by remember { mutableStateOf<List<Contact>>(emptyList()) }
+
+    // Initialize from provided activity if available (INCLUDE paidBy)
+    LaunchedEffect(activity) {
         if (activity != null) {
-            // Konversi ParticipantData ke Contact, exclude paidBy
-            activity.participants
-                .filter { participantData ->
-                    // Exclude paidBy jika ada
-                    val paidByName = activity.paidBy?.name
-                    paidByName == null || participantData.name != paidByName
+            val baseMembers = activity.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+            val payerContact = activity.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+            eventMembers = if (payerContact != null) {
+                // Avoid duplicates by name
+                val exists = baseMembers.any { it.name == payerContact.name }
+                if (exists) baseMembers else baseMembers + payerContact
+            } else baseMembers
+        }
+    }
+
+    // If activity is null, fetch from repository using eventId & activityId (INCLUDE paidBy)
+    LaunchedEffect(eventId, activityId) {
+        if (activity == null && eventId.isNotEmpty() && activityId.isNotEmpty()) {
+            try {
+                val repo = LucaFirebaseRepository()
+                val loaded = withContext(Dispatchers.IO) { repo.getActivityById(eventId, activityId) }
+                loaded?.let { act ->
+                    val baseMembers = act.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+                    val payerContact = act.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+                    eventMembers = if (payerContact != null) {
+                        val exists = baseMembers.any { it.name == payerContact.name }
+                        if (exists) baseMembers else baseMembers + payerContact
+                    } else baseMembers
                 }
-                .map { participantData ->
-                    Contact(
-                        name = participantData.name,
-                        avatarName = participantData.avatarName
-                    )
-                }
-        } else {
-            // Fallback ke ViewModel selectedParticipants
-            emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("NewActivityScreen2", "Failed to load activity participants: ${e.message}")
+            }
         }
     }
 
@@ -167,7 +181,7 @@ fun AddActivityScreen2(
                     quantity = qty,
                     itemName = name,
                     price = price,
-                    members = memberNames.map { UIAccentYellow }, // color placeholder not used in save
+                    members = emptyList(),
                     memberNames = memberNames
                 )
             }
@@ -1628,31 +1642,39 @@ fun EditItemDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Avatar dengan warna berdasarkan participant
-                                    val avatarColor = when (member.name.lowercase()) {
-                                        "you" -> Color(0xFF4A90E2)
-                                        "jeremy e" -> Color(0xFFE27D60)
-                                        "abel m" -> Color(0xFF85C1E9)
-                                        "test" -> Color(0xFF58D68D)
-                                        "endi ganteng" -> Color(0xFFEC7063)
-                                        "john" -> Color(0xFFAF7AC5)
-                                        "penis" -> Color(0xFFF7DC6F)
-                                        else -> UIDarkGrey
+                                    // Avatar with profile picture from resources if available
+                                    val resourceId = remember(member.avatarName) {
+                                        if (member.avatarName.isNotBlank()) {
+                                            try { getDrawableResourceId(member.avatarName) } catch (_: Exception) { 0 }
+                                        } else { 0 }
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(avatarColor),
+                                            .background(UIDarkGrey),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = null,
-                                            tint = UIWhite,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        if (resourceId != 0) {
+                                            Image(
+                                                painter = painterResource(id = resourceId),
+                                                contentDescription = member.name,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            // Fallback to initial letter
+                                            val initial = member.name.firstOrNull()?.uppercaseChar() ?: "?"
+                                            Text(
+                                                text = initial.toString(),
+                                                color = UIWhite,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
