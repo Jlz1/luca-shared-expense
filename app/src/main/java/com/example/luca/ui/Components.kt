@@ -95,7 +95,8 @@ enum class HeaderState(
     NEW_ACTIVITY("New Activity", true, false),
     DETAILS("Activity Details", true, false),
     EDIT_ACTIVITY("Edit Activity", true, false),
-    ACCOUNT_SETTINGS("Account Settings", true, false)
+    ACCOUNT_SETTINGS("Account Settings", true, false),
+    SUMMARY("Summary", true, false)
 }
 
 // --- HELPER FUNCTIONS (PRIVATE) ---
