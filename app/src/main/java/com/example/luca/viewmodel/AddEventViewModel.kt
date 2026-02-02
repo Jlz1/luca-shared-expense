@@ -56,6 +56,9 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
     private val _removedParticipantsInActivity = MutableStateFlow<List<String>>(emptyList())
     val removedParticipantsInActivity = _removedParticipantsInActivity.asStateFlow()
 
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError = _lastError.asStateFlow()
+
     init {
         // Load data awal
         fetchContacts()
@@ -175,10 +178,17 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
             val currentUri = _selectedImageUri.value
 
             if (currentUri != null && currentUri.toString() != existingImageUrl) {
+                android.util.Log.d("AddEventViewModel", "saveEvent: uploading image uri=$currentUri")
                 val uploadedUrl = repository.uploadEventImage(currentUri)
                 if (uploadedUrl != null) {
+                    android.util.Log.d("AddEventViewModel", "saveEvent: image uploaded url=$uploadedUrl")
                     finalImageUrl = uploadedUrl
+                } else {
+                    android.util.Log.e("AddEventViewModel", "saveEvent: uploadEventImage returned null")
+                    _lastError.value = "Image upload failed"
                 }
+            } else {
+                android.util.Log.d("AddEventViewModel", "saveEvent: using existing imageUrl")
             }
 
             val participantsData = _selectedParticipants.value.map { contact ->
@@ -189,7 +199,7 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
             }
 
             val newEvent = Event(
-                id = currentEventId ?: "", // PENTING: Pakai ID lama jika edit, kosong jika baru
+                id = currentEventId ?: "",
                 title = _title.value,
                 location = _location.value,
                 date = _date.value,
@@ -197,10 +207,16 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
                 participants = participantsData
             )
 
-            // Repository createEvent menghandle 'set' data (Create or Update)
             val result = repository.createEvent(newEvent)
 
-            _isSuccess.value = result.isSuccess
+            if (result.isSuccess) {
+                _isSuccess.value = true
+            } else {
+                val msg = result.exceptionOrNull()?.message ?: "Unknown error"
+                android.util.Log.e("AddEventViewModel", "saveEvent: createEvent failed: $msg")
+                _lastError.value = "Save event failed: $msg"
+                _isSuccess.value = false
+            }
             _isLoading.value = false
         }
     }

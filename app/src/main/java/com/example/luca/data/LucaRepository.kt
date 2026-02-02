@@ -51,7 +51,8 @@ interface LucaRepository {
 class LucaFirebaseRepository(private val context: Context? = null) : LucaRepository {
 
     private val db = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+    // Point to the specific Firebase Storage bucket provided by the user
+    private val storage = FirebaseStorage.getInstance("gs://luca-f40d7.firebasestorage.app")
     private val auth = FirebaseAuth.getInstance()
 
     private val currentUserId: String?
@@ -111,24 +112,67 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             val fileName = UUID.randomUUID().toString()
             val ref = storage.reference.child("images/events/$fileName.jpg")
 
-            // Jika Context ada, lakukan kompresi
+            android.util.Log.d("LucaRepository", "uploadEventImage: start uri=$imageUri to ${ref.path}")
+
+            // Jika Context ada, lakukan kompresi kualitas-preserving
             if (context != null) {
-                val inputStream = context.contentResolver.openInputStream(imageUri)
-                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                val inputStream = try { context.contentResolver.openInputStream(imageUri) } catch (e: Exception) { null }
+                if (inputStream == null) {
+                    android.util.Log.e("LucaRepository", "uploadEventImage: inputStream null for uri=$imageUri")
+                    // Fallback ke putFile agar tetap ada peluang upload
+                    ref.putFile(imageUri).await()
+                } else {
+                    val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                    try { inputStream.close() } catch (_: Exception) {}
 
-                val baos = ByteArrayOutputStream()
-                // Kompres ke JPEG kualitas 50%
-                originalBitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos)
-                val data = baos.toByteArray()
+                    if (originalBitmap == null) {
+                        android.util.Log.e("LucaRepository", "uploadEventImage: decoded bitmap null, fallback putFile")
+                        ref.putFile(imageUri).await()
+                    } else {
+                        // Resize terlebih dahulu agar dimensi tidak terlalu besar (maks 1920px pada sisi terpanjang)
+                        val maxSize = 1920
+                        val longestSide = maxOf(originalBitmap.width, originalBitmap.height)
+                        val ratio = maxSize.toFloat() / longestSide.toFloat()
+                        val resizedBitmap = if (ratio < 1f) {
+                            Bitmap.createScaledBitmap(
+                                originalBitmap,
+                                (originalBitmap.width * ratio).toInt(),
+                                (originalBitmap.height * ratio).toInt(),
+                                true
+                            )
+                        } else {
+                            originalBitmap
+                        }
 
-                ref.putBytes(data).await()
+                        // Iterative compress hingga ukuran <= 1MB, menjaga kualitas setinggi mungkin
+                        val targetBytes = 1_000_000 // ~1MB
+                        var quality = 85
+                        var data: ByteArray
+                        var loops = 0
+                        do {
+                            val baos = ByteArrayOutputStream()
+                            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, baos)
+                            data = baos.toByteArray()
+                            android.util.Log.d("LucaRepository", "uploadEventImage: try#$loops quality=$quality size=${data.size}")
+                            quality -= 5
+                            loops++
+                        } while (data.size > targetBytes && quality >= 50)
+
+                        android.util.Log.d("LucaRepository", "uploadEventImage: final size=${data.size} bytes, quality=${quality + 5}")
+                        ref.putBytes(data).await()
+                      }
+                }
             } else {
                 // Fallback jika context null (Upload file mentah)
+                android.util.Log.w("LucaRepository", "uploadEventImage: context null, using putFile")
                 ref.putFile(imageUri).await()
             }
 
-            ref.downloadUrl.await().toString()
+            val url = ref.downloadUrl.await().toString()
+            android.util.Log.d("LucaRepository", "uploadEventImage: success url=$url")
+            url
         } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "uploadEventImage: error ${e.message}")
             e.printStackTrace()
             null
         }
