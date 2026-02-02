@@ -41,7 +41,8 @@ fun DetailedEventScreen(
     onBackClick: () -> Unit = {}, // Tetap ada untuk tombol X di card
     onMenuClick: () -> Unit = {}, // [BARU] Callback untuk buka sidebar
     onNavigateToAddActivity: () -> Unit = {},
-    onNavigateToEditEvent: (String) -> Unit = {}
+    onNavigateToEditEvent: (String) -> Unit = {},
+    onNavigateToActivityDetail: (String) -> Unit = {} // [BARU] Navigate ke NewActivityScreen2
 ) {
     LaunchedEffect(eventId) { viewModel.loadEventData(eventId) }
 
@@ -75,7 +76,7 @@ fun DetailedEventScreen(
                     Spacer(Modifier.height(16.dp))
                     SearchBarModify(placeholder = "Search activities...", readOnly = false)
                     Spacer(Modifier.height(16.dp))
-                    ActivitySection(activitiesState, activitiesState.isEmpty(), onNavigateToAddActivity)
+                    ActivitySection(activitiesState, activitiesState.isEmpty(), onNavigateToAddActivity, onNavigateToActivityDetail)
                     Spacer(Modifier.height(120.dp))
                 }
             }
@@ -164,16 +165,16 @@ fun PasswordConfirmationDialog(onDismiss: () -> Unit, onConfirm: (String) -> Uni
 }
 
 @Composable
-fun ActivitySection(activities: List<UIActivityState>, isEmpty: Boolean, onNavigateToAddActivity: () -> Unit) {
+fun ActivitySection(activities: List<UIActivityState>, isEmpty: Boolean, onNavigateToAddActivity: () -> Unit, onNavigateToActivityDetail: (String) -> Unit) {
     if (isEmpty) EmptyStateMessage(onNavigateToAddActivity)
     else LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(activities) { ActivityItemCard(it) }
+        items(activities) { ActivityItemCard(it, onNavigateToActivityDetail) }
     }
 }
 
 @Composable
-fun ActivityItemCard(item: UIActivityState) {
-    Surface(shape = RoundedCornerShape(20.dp), color = UIWhite, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth().height(80.dp)) {
+fun ActivityItemCard(item: UIActivityState, onNavigateToActivityDetail: (String) -> Unit = {}) {
+    Surface(shape = RoundedCornerShape(20.dp), color = UIWhite, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth().height(80.dp).clickable { onNavigateToActivityDetail(item.id) }) {
         Row(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(item.iconColor.copy(0.3f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.ShoppingCart, null, tint = UIBlack, modifier = Modifier.size(24.dp))

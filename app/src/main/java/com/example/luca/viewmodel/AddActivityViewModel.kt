@@ -43,6 +43,10 @@ class AddActivityViewModel(application: Application) : AndroidViewModel(applicat
     private val _isSuccess = MutableStateFlow(false)
     val isSuccess = _isSuccess.asStateFlow()
 
+    // Created Activity ID - untuk navigation setelah create
+    private val _createdActivityId = MutableStateFlow("")
+    val createdActivityId = _createdActivityId.asStateFlow()
+
     fun setEventId(newEventId: String) {
         _eventId.value = newEventId
     }
@@ -77,6 +81,7 @@ class AddActivityViewModel(application: Application) : AndroidViewModel(applicat
     fun saveActivity() {
         val eventIdValue = _eventId.value
         if (eventIdValue.isEmpty() || _titleInput.value.isBlank()) {
+            android.util.Log.e("AddActivityViewModel", "saveActivity failed: eventId or title is empty")
             return
         }
 
@@ -108,9 +113,18 @@ class AddActivityViewModel(application: Application) : AndroidViewModel(applicat
                 payerName = _selectedPayer.value?.name ?: ""
             )
 
+            android.util.Log.d("AddActivityViewModel", "Creating activity: ${newActivity.title}")
             val result = repository.createActivity(eventIdValue, newActivity)
 
-            _isSuccess.value = result.isSuccess
+            if (result.isSuccess) {
+                val activityId = result.getOrNull() ?: ""
+                android.util.Log.d("AddActivityViewModel", "Activity created successfully! ID: $activityId")
+                _createdActivityId.value = activityId
+                _isSuccess.value = true
+            } else {
+                android.util.Log.e("AddActivityViewModel", "Failed to create activity: ${result.exceptionOrNull()?.message}")
+                _isSuccess.value = false
+            }
             _isLoading.value = false
         }
     }
@@ -122,6 +136,7 @@ class AddActivityViewModel(application: Application) : AndroidViewModel(applicat
         _selectedPayer.value = null
         _isSuccess.value = false
         _isLoading.value = false
+        _createdActivityId.value = ""
     }
 
     private fun getCategoryColorHex(categoryName: String): String {

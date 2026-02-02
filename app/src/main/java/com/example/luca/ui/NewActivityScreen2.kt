@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,11 +42,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,9 +58,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -68,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.R
+import com.example.luca.model.Activity
 import com.example.luca.model.Contact
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
@@ -79,42 +83,83 @@ import com.example.luca.ui.theme.UIGrey
 import com.example.luca.ui.theme.UIWhite
 import com.example.luca.viewmodel.AddEventViewModel
 import java.util.Locale
+import com.example.luca.data.LucaFirebaseRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddActivityScreen2(
     viewModel: AddEventViewModel = viewModel(),
-    onBackClick: () -> Unit = {}
+    eventId: String = "",
+    activityId: String = "",
+    activity: Activity? = null,
+    onBackClick: () -> Unit = {},
+    onSaveSuccess: (eventId: String) -> Unit = {}
 ) {
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    // --- STATE: Event Members from ViewModel ---
-    val eventMembers by viewModel.selectedParticipants.collectAsState()
+    // --- STATE: Event Members from Activity (exclude paidBy) ---
+    // Ambil participant dari activity.participants, exclude paidBy
+    val eventMembers = remember(activity) {
+        if (activity != null) {
+            // Konversi ParticipantData ke Contact, exclude paidBy
+            activity.participants
+                .filter { participantData ->
+                    // Exclude paidBy jika ada
+                    val paidByName = activity.paidBy?.name
+                    paidByName == null || participantData.name != paidByName
+                }
+                .map { participantData ->
+                    Contact(
+                        name = participantData.name,
+                        avatarName = participantData.avatarName
+                    )
+                }
+        } else {
+            // Fallback ke ViewModel selectedParticipants
+            emptyList()
+        }
+    }
 
     // --- STATE: Receipt Items ---
     var receiptItems by remember {
         mutableStateOf(listOf<ReceiptItem>())
     }
 
-    // Initialize default receipt item when eventMembers changes
-    LaunchedEffect(eventMembers) {
-        if (receiptItems.isEmpty()) {
-            val defaultMemberNames = if (eventMembers.isNotEmpty()) {
-                eventMembers.take(3).map { it.name }
-            } else {
-                listOf("You", "Jeremy E", "Abel M") // Fallback jika tidak ada participants
+    // Load items for this Activity when the screen opens
+    LaunchedEffect(eventId, activityId) {
+        if (eventId.isNotEmpty() && activityId.isNotEmpty()) {
+            val repo = LucaFirebaseRepository()
+            val items = withContext(Dispatchers.IO) {
+                repo.getActivityItems(eventId, activityId)
             }
-            receiptItems = listOf(
+            // Map Firestore item documents to UI ReceiptItem
+            receiptItems = items.map { data ->
+                val name = (data["itemName"] as? String) ?: ""
+                val price = when (val p = data["price"]) {
+                    is Long -> p
+                    is Int -> p.toLong()
+                    is String -> p.toLongOrNull() ?: 0L
+                    else -> 0L
+                }
+                val qty = when (val q = data["quantity"]) {
+                    is Int -> q
+                    is Long -> q.toInt()
+                    is String -> q.toIntOrNull() ?: 1
+                    else -> 1
+                }
+                val memberNames = (data["memberNames"] as? List<*>)?.map { it.toString() } ?: emptyList()
                 ReceiptItem(
-                    quantity = 1,
-                    itemName = "Gurame Bakar Kecap",
-                    price = 120000L,
-                    members = defaultMemberNames.map { UIAccentYellow }, // Placeholder colors for members
-                    memberNames = defaultMemberNames
+                    quantity = qty,
+                    itemName = name,
+                    price = price,
+                    members = memberNames.map { UIAccentYellow }, // color placeholder not used in save
+                    memberNames = memberNames
                 )
-            )
+            }
         }
     }
 
@@ -127,6 +172,17 @@ fun AddActivityScreen2(
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
 
+    // Monitor save success state
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isSuccess) {
+        if (isSuccess && eventId.isNotEmpty()) {
+            android.util.Log.d("NewActivityScreen2", "✅✅✅ SUCCESS! Navigating back to DetailedEventScreen")
+            onSaveSuccess(eventId)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -136,7 +192,7 @@ fun AddActivityScreen2(
 
         // 2. HEADER
         HeaderSection(
-            currentState = HeaderState.NEW_ACTIVITY,
+            currentState = HeaderState.EDIT_ACTIVITY,
             onLeftIconClick = onBackClick
         )
 
@@ -166,33 +222,32 @@ fun AddActivityScreen2(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(80.dp),
+                            .height(110.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Participants list
+                        // Participants list - SCROLLABLE HORIZONTAL
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(UIWhite)
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.CenterStart
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
                         ) {
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 if (eventMembers.isNotEmpty()) {
                                     items(eventMembers) { member ->
-                                        GreyAvatarItem(member.name)
+                                        ParticipantAvatarItemSmall(member)
                                     }
                                 } else {
                                     // Fallback display jika tidak ada participants
-                                    item { GreyAvatarItem("You") }
-                                    item { GreyAvatarItem("Jeremy E") }
-                                    item { GreyAvatarItem("Abel M") }
+                                    item { ParticipantAvatarItemSmall(Contact(name = "You", avatarName = "avatar_1")) }
+                                    item { ParticipantAvatarItemSmall(Contact(name = "Jeremy E", avatarName = "avatar_2")) }
+                                    item { ParticipantAvatarItemSmall(Contact(name = "Abel M", avatarName = "avatar_3")) }
                                 }
                             }
                         }
@@ -261,13 +316,13 @@ fun AddActivityScreen2(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "Dinner at Floating Resto",
+                                    text = activity?.title ?: "New Activity",
                                     style = AppFont.SemiBold,
                                     fontSize = 16.sp,
                                     color = UIBlack
                                 )
                                 Text(
-                                    text = "Paid by Abel M",
+                                    text = "Paid by ${activity?.payerName ?: "Unknown"}",
                                     style = AppFont.Regular,
                                     fontSize = 12.sp,
                                     color = UIDarkGrey
@@ -436,7 +491,8 @@ fun AddActivityScreen2(
                             .background(UIWhite)
                             .padding(16.dp)
                     ) {
-                        val subtotal = receiptItems.sumOf { it.price.toDouble() * it.quantity }
+                        // Calculate subtotal with qty * price
+                        val subtotal = receiptItems.sumOf { (it.price.toDouble() * it.quantity) }
                         val taxAmount = subtotal * globalTaxPercentage / 100
                         val totalBill = subtotal + taxAmount - globalDiscountAmount
 
@@ -503,15 +559,67 @@ fun AddActivityScreen2(
                         .padding(bottom = 34.dp)
                 ) {
                     Button(
-                        onClick = {},
+                        onClick = {
+                            android.util.Log.d("NewActivityScreen2", "======== CONTINUE BUTTON CLICKED ========")
+                            // Save items to database
+                            if (eventId.isEmpty()) {
+                                android.util.Log.e("NewActivityScreen2", "❌ ERROR: EventID is EMPTY!")
+                                return@Button
+                            }
+                            if (activityId.isEmpty()) {
+                                android.util.Log.e("NewActivityScreen2", "❌ ERROR: ActivityID is EMPTY!")
+                                return@Button
+                            }
+
+                            android.util.Log.d("NewActivityScreen2", "✅ EventID: $eventId")
+                            android.util.Log.d("NewActivityScreen2", "✅ ActivityID: $activityId")
+                            android.util.Log.d("NewActivityScreen2", "✅ Items count: ${receiptItems.size}")
+
+                            // Only save if there are items
+                            if (receiptItems.isEmpty()) {
+                                android.util.Log.w("NewActivityScreen2", "⚠️ No items to save, proceeding without items")
+                                // Still navigate even if no items
+                                onSaveSuccess(eventId)
+                                return@Button
+                            }
+
+                            // Convert ReceiptItem to Map<String, Any> for Firestore
+                            val itemsForDb = receiptItems.map { item ->
+                                mapOf<String, Any>(
+                                    "itemName" to item.itemName,
+                                    "price" to item.price,
+                                    "quantity" to item.quantity,
+                                    "memberNames" to item.memberNames,
+                                    "timestamp" to System.currentTimeMillis()
+                                )
+                            }
+
+                            // Log untuk debugging
+                            android.util.Log.d("NewActivityScreen2", "Saving ${itemsForDb.size} items...")
+                            android.util.Log.d("NewActivityScreen2", "Tax: $globalTaxPercentage%, Discount: ${globalDiscountAmount}")
+                            itemsForDb.forEachIndexed { index, item ->
+                                android.util.Log.d("NewActivityScreen2", "Item[$index]: $item")
+                            }
+
+                            viewModel.saveActivityItems(
+                                eventId = eventId,
+                                activityId = activityId,
+                                items = itemsForDb,
+                                taxPercentage = globalTaxPercentage,
+                                discountAmount = globalDiscountAmount
+                            )
+                            android.util.Log.d("NewActivityScreen2", "======== saveActivityItems CALLED ========")
+                            // isSuccess LaunchedEffect akan handle navigation
+                        },
                         modifier = Modifier.size(width = 188.dp, height = 50.dp),
                         shape = RoundedCornerShape(25.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = UIAccentYellow,
                             contentColor = UIBlack
-                        )
+                        ),
+                        enabled = isLoading.not()  // Disable button saat loading
                     ) {
-                        Text(text = "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
+                        Text(text = if (isLoading) "Saving..." else "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
                     }
                 }
             }
@@ -641,6 +749,145 @@ fun FabCircleButton(size: Dp, onClick: () -> Unit = {}, content: @Composable () 
 }
 
 @Composable
+fun ParticipantAvatarItem(contact: Contact) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.width(60.dp)
+    ) {
+        // Avatar dengan profile picture atau fallback ke initial
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(UIDarkGrey),
+            contentAlignment = Alignment.Center
+        ) {
+            // Load profile picture dari database jika ada
+            if (contact.avatarName.isNotBlank()) {
+                // Cek resource ID tanpa try-catch di dalam composable
+                val resourceId = getDrawableResourceId(contact.avatarName)
+                if (resourceId != 0) {
+                    Image(
+                        painter = painterResource(id = resourceId),
+                        contentDescription = contact.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Fallback ke initial jika resource tidak ditemukan
+                    val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
+                    Text(
+                        text = initial.toString(),
+                        color = UIWhite,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                // Fallback ke initial jika tidak ada profile picture
+                val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
+                Text(
+                    text = initial.toString(),
+                    color = UIWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        // Nama dengan text yang kecil
+        Text(
+            text = contact.name,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = UIBlack,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun ParticipantAvatarItemSmall(contact: Contact) {
+    // Hitung resourceId di luar composable
+    val resourceId = remember(contact.avatarName) {
+        if (contact.avatarName.isNotBlank()) {
+            try {
+                getDrawableResourceId(contact.avatarName)
+            } catch (e: Exception) {
+                0
+            }
+        } else {
+            0
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.width(65.dp)
+    ) {
+        // Avatar dengan profile picture atau fallback ke initial
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(UIDarkGrey),
+            contentAlignment = Alignment.Center
+        ) {
+            // Load profile picture dari database jika ada
+            if (resourceId != 0) {
+                Image(
+                    painter = painterResource(id = resourceId),
+                    contentDescription = contact.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Fallback ke initial
+                val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
+                Text(
+                    text = initial.toString(),
+                    color = UIWhite,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        // Nama dengan text yang kecil
+        Text(
+            text = contact.name,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Medium,
+            color = UIBlack,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// Helper function untuk mendapatkan resource ID dari nama file
+@Suppress("DiscouragedPrivateApi")
+fun getDrawableResourceId(resourceName: String): Int {
+    return try {
+        val rClass = Class.forName("com.example.luca.R\$drawable")
+        val field = rClass.getField(resourceName)
+        field.getInt(null)
+    } catch (e: Exception) {
+        0
+    }
+}
+
+@Composable
 fun GreyAvatarItem(name: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -670,6 +917,42 @@ fun MiniAvatar() {
         contentAlignment = Alignment.Center
     ) {
         Icon(Icons.Default.Person, null, tint = UIWhite, modifier = Modifier.size(12.dp))
+    }
+}
+
+@Composable
+fun MiniAvatarWithImage(contact: Contact) {
+    val resourceId = remember(contact.avatarName) {
+        if (contact.avatarName.isNotBlank()) {
+            try {
+                getDrawableResourceId(contact.avatarName)
+            } catch (e: Exception) {
+                0
+            }
+        } else {
+            0
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(20.dp)
+            .clip(CircleShape)
+            .background(UIDarkGrey),
+        contentAlignment = Alignment.Center
+    ) {
+        if (resourceId != 0) {
+            Image(
+                painter = painterResource(id = resourceId),
+                contentDescription = contact.name,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(Icons.Default.Person, null, tint = UIWhite, modifier = Modifier.size(12.dp))
+        }
     }
 }
 
@@ -716,9 +999,16 @@ fun ReceiptItemRow(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
+                // Tampilkan participant icons dari database
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(item.memberNames.size) {
-                        MiniAvatar()
+                    items(item.memberNames.size) { index ->
+                        val memberName = item.memberNames[index]
+                        val participant = eventMembers.find { it.name == memberName }
+                        if (participant != null) {
+                            MiniAvatarWithImage(participant)
+                        } else {
+                            MiniAvatar()
+                        }
                     }
                 }
             }
@@ -728,8 +1018,10 @@ fun ReceiptItemRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Tampilkan total price (quantity * price)
+            val totalPrice = item.price.toDouble() * item.quantity
             Text(
-                text = "Rp${String.format(Locale.getDefault(), "%,.0f", item.price.toDouble())}",
+                text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalPrice)}",
                 color = UIBlack,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
@@ -859,31 +1151,45 @@ fun AddItemDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Avatar dengan warna berdasarkan participant
-                                    val avatarColor = when (member.name.lowercase()) {
-                                        "you" -> Color(0xFF4A90E2)
-                                        "jeremy e" -> Color(0xFFE27D60)
-                                        "abel m" -> Color(0xFF85C1E9)
-                                        "test" -> Color(0xFF58D68D)
-                                        "endi ganteng" -> Color(0xFFEC7063)
-                                        "john" -> Color(0xFFAF7AC5)
-                                        "penis" -> Color(0xFFF7DC6F)
-                                        else -> UIDarkGrey
+                                    // Avatar dengan profile picture dari database
+                                    val resourceId = remember(member.avatarName) {
+                                        if (member.avatarName.isNotBlank()) {
+                                            try {
+                                                getDrawableResourceId(member.avatarName)
+                                            } catch (e: Exception) {
+                                                0
+                                            }
+                                        } else {
+                                            0
+                                        }
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(avatarColor),
+                                            .background(UIDarkGrey),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = null,
-                                            tint = UIWhite,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        if (resourceId != 0) {
+                                            Image(
+                                                painter = painterResource(id = resourceId),
+                                                contentDescription = member.name,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            // Fallback ke initial letter
+                                            val initial = member.name.firstOrNull()?.uppercaseChar() ?: "?"
+                                            Text(
+                                                text = initial.toString(),
+                                                color = UIWhite,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -1326,3 +1632,6 @@ fun AddActivity2Preview() {
         AddActivityScreen2()
     }
 }
+
+
+

@@ -37,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.model.Activity
 import com.example.luca.model.Event
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIBlack
@@ -387,6 +388,9 @@ fun LucaApp() {
                             onNavigateToAddActivity = { navController.navigate("new_activity/$eventId") },
                             onNavigateToEditEvent = { id ->
                                 navController.navigate("add_event?eventId=$id")
+                            },
+                            onNavigateToActivityDetail = { activityId ->
+                                navController.navigate("activity_detail/$eventId/$activityId")
                             }
                         )
                     }
@@ -405,6 +409,25 @@ fun LucaApp() {
                     composable("detailed_activity") {
                         DetailedActivityScreen(onBackClick = { navController.popBackStack() }, onEditClick = { navController.navigate("edit_activity") })
                     }
+                    composable("activity_detail/{eventId}/{activityId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                        val activityId = backStackEntry.arguments?.getString("activityId") ?: ""
+                        val repository = remember { LucaFirebaseRepository() }
+                        var activityData by remember { mutableStateOf<Activity?>(null) }
+
+                        LaunchedEffect(eventId, activityId) {
+                            if (eventId.isNotEmpty() && activityId.isNotEmpty()) {
+                                activityData = repository.getActivityById(eventId, activityId)
+                            }
+                        }
+
+                        AddActivityScreen2(
+                            eventId = eventId,
+                            activityId = activityId,
+                            activity = activityData,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
                     composable("new_activity/{eventId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
                         val repository = remember { LucaFirebaseRepository() }
@@ -419,7 +442,12 @@ fun LucaApp() {
                                 eventId = eventId,
                                 event = eventData!!,
                                 onBackClick = { navController.popBackStack() },
-                                onDoneClick = { navController.popBackStack() }
+                                onDoneClick = { eid, _ ->
+                                    // After creating an activity, go directly to Detailed Event screen
+                                    navController.navigate("detailed_event/$eid") {
+                                        launchSingleTop = true
+                                    }
+                                }
                             )
                         }
                     }
