@@ -1,83 +1,182 @@
 package com.example.luca.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.luca.ui.theme.*
-import com.example.luca.util.AvatarUtils
+import com.example.luca.R
+import com.example.luca.ui.theme.AppFont
+import com.example.luca.ui.theme.LucaTheme
+import com.example.luca.ui.theme.UIAccentRed
+import com.example.luca.ui.theme.UIAccentYellow
+import com.example.luca.ui.theme.UIBackground
+import com.example.luca.ui.theme.UIBlack
+import com.example.luca.ui.theme.UIDarkGrey
+import com.example.luca.ui.theme.UIGrey
+import com.example.luca.ui.theme.UIWhite
 import com.example.luca.viewmodel.DeleteState
 import com.example.luca.viewmodel.DetailedEventViewModel
 import com.example.luca.viewmodel.UIActivityState
 import com.example.luca.viewmodel.UIEventState
-import com.example.luca.ui.components.*
 
 @Composable
 fun DetailedEventScreen(
     eventId: String,
     viewModel: DetailedEventViewModel = viewModel(),
-    onBackClick: () -> Unit = {}, // Tetap ada untuk tombol X di card
-    onMenuClick: () -> Unit = {}, // [BARU] Callback untuk buka sidebar
+    onBackClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {},
     onNavigateToEditEvent: (String) -> Unit = {},
     onNavigateToActivityDetail: (String) -> Unit = {}, // [BARU] Navigate ke NewActivityScreen2
     onNavigateToSummary: () -> Unit = {} // [BARU] Navigate ke SummaryScreen untuk split bill
 ) {
+    // 1. Load Data
     LaunchedEffect(eventId) { viewModel.loadEventData(eventId) }
 
+    // 2. Collect State
     val eventState by viewModel.uiEvent.collectAsState()
     val activitiesState by viewModel.uiActivities.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
+
+    // State lokal untuk dialog
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    if (deleteState is DeleteState.Success) {
-        LaunchedEffect(Unit) { onBackClick() }
+    // 3. LOGIC FIX: Pantau perubahan deleteState di sini
+    LaunchedEffect(deleteState) {
+        if (deleteState is DeleteState.Success) {
+            showDeleteDialog = false // Tutup dialog paksa
+            onBackClick()            // Kembali ke halaman sebelumnya
+            viewModel.resetDeleteState()
+        }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(UIBackground).statusBarsPadding()) {
+    // 4. Panggil UI Murni (DetailedEventContent)
+    DetailedEventContent(
+        eventState = eventState,
+        activitiesState = activitiesState,
+        onBackClick = onBackClick,
+        onMenuClick = onMenuClick,
+        onNavigateToAddActivity = onNavigateToAddActivity,
+        onEditClick = { onNavigateToEditEvent(eventId) },
+        onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
+        onActivityClick = onNavigateToActivityDetail
+    )
+
+    // 5. Tampilkan Dialog (Overlay)
+    if (showDeleteDialog) {
+        DeleteConfirmationDialog(
+            onDismiss = {
+                showDeleteDialog = false
+                viewModel.resetDeleteState()
+            },
+            onConfirm = {
+                viewModel.deleteEvent(eventId) // Panggil fungsi delete baru
+            },
+            isLoading = deleteState is DeleteState.Loading,
+            errorMessage = (deleteState as? DeleteState.Error)?.message
+        )
+    }
+}
+
+// --- UI MURNI (Bisa di-Preview tanpa ViewModel) ---
+@Composable
+fun DetailedEventContent(
+    eventState: UIEventState,
+    activitiesState: List<UIActivityState>,
+    onBackClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
+    onNavigateToAddActivity: () -> Unit = {},
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onActivityClick: (String) -> Unit = {}
+) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(UIBackground)
+        .statusBarsPadding()) {
         // HEADER
         HeaderSection(
-            currentState = HeaderState.HOME, // Tampilkan Hamburger + Logo
-            onLeftIconClick = onMenuClick // [FIX] Arahkan ke onMenuClick (Buka Drawer)
+            currentState = HeaderState.HOME,
+            onLeftIconClick = onMenuClick
         )
 
         // CONTENT
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        Box(modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                Column(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)) {
                     Spacer(Modifier.height(24.dp))
                     FigmaEventCard(
                         event = eventState,
-                        onEditClick = { onNavigateToEditEvent(eventId) },
-                        onDeleteClick = { showDeleteDialog = true },
-                        onCloseClick = onBackClick // Tombol X di card tetap berfungsi Back
+                        onEditClick = onEditClick,
+                        onDeleteClick = onDeleteClick,
+                        onCloseClick = onBackClick
                     )
                     Spacer(Modifier.height(16.dp))
+                    // Pastikan SearchBarModify tersedia atau ganti dengan Text sementara untuk preview
                     SearchBarModify(placeholder = "Search activities...", readOnly = false)
                     Spacer(Modifier.height(16.dp))
-                    ActivitySection(activitiesState, activitiesState.isEmpty(), onNavigateToAddActivity, onNavigateToActivityDetail)
+
+                    ActivitySection(
+                        activities = activitiesState,
+                        isEmpty = activitiesState.isEmpty(),
+                        onNavigateToAddActivity = onNavigateToAddActivity,
+                        onNavigateToActivityDetail = onActivityClick
+                    )
                     Spacer(Modifier.height(120.dp))
                 }
             }
@@ -89,61 +188,196 @@ fun DetailedEventScreen(
             )
         }
     }
-
-    if (showDeleteDialog) {
-        PasswordConfirmationDialog(
-            onDismiss = { showDeleteDialog = false; viewModel.resetDeleteState() },
-            onConfirm = { viewModel.deleteEventWithPassword(eventId, it) },
-            isLoading = deleteState is DeleteState.Loading,
-            errorMessage = (deleteState as? DeleteState.Error)?.message
-        )
-    }
 }
 
 @Composable
-fun FigmaEventCard(event: UIEventState, onEditClick: () -> Unit, onDeleteClick: () -> Unit, onCloseClick: () -> Unit) {
-    Card(shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(8.dp), colors = CardDefaults.cardColors(UIWhite), modifier = Modifier.fillMaxWidth().height(280.dp)) {
-        Box(modifier = Modifier.fillMaxSize()) {
+fun FigmaEventCard(
+    event: UIEventState,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onCloseClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(280.dp)
+            .padding(horizontal = 0.dp, vertical = 8.dp)
+    ) {
+        // 1. Background Image Card
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(20.dp))
+                .background(UIAccentYellow) // Fallback color
+        ) {
             if (event.imageUrl.isNotEmpty()) {
-                AsyncImage(model = event.imageUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().height(200.dp).align(Alignment.TopCenter))
+                AsyncImage(
+                    model = event.imageUrl,
+                    contentDescription = "Event Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.Gray).align(Alignment.TopCenter))
+                // Placeholder pattern or color if no image
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Gray))
             }
+        }
 
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.TopCenter)) {
-                SmallCircleButton(Icons.Default.Close, Modifier.align(Alignment.TopStart).clickable { onCloseClick() })
-                Row(modifier = Modifier.align(Alignment.TopEnd)) {
-                    SmallCircleButton(Icons.Default.Edit, Modifier.clickable { onEditClick() })
-                    Spacer(Modifier.width(12.dp))
-                    SmallCircleButton(Icons.Default.Delete, Modifier.clickable { onDeleteClick() })
+        // 2. Exit Button (Top Left)
+        IconButton(
+            onClick = onCloseClick,
+            modifier = Modifier
+                .padding(12.dp)
+                .size(40.dp)
+                .align(Alignment.TopStart)
+        ) {
+            // Gunakan resource drawable kamu, fallback ke Icon default jika error/belum ada
+            // Image(painter = painterResource(id = R.drawable.ic_close_event), contentDescription = "Close")
+
+            // UNTUK SEMENTARA SAYA PAKAI SURFACE + ICON AGAR AMAN JIKA DRAWABLE BELUM ADA
+            Surface(
+                shape = CircleShape,
+                color = UIWhite.copy(alpha = 0.8f),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_close_event),
+                    contentDescription = "Close",
+                    modifier = Modifier.padding(4.dp),
+                    tint = UIBlack
+                )
+            }
+        }
+
+        // 3. Edit & Delete Buttons (Top Right)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Edit Button
+            IconButton(
+                onClick = onEditClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                // Image(painter = painterResource(id = R.drawable.ic_edit_event), contentDescription = "Edit")
+                Surface(
+                    shape = CircleShape,
+                    color = UIWhite.copy(alpha = 0.8f),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_edit_event),
+                        contentDescription = "Edit",
+                        modifier = Modifier.padding(4.dp),
+                        tint = UIBlack
+                    )
                 }
             }
 
-            Surface(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(90.dp), shape = RoundedCornerShape(topStart = 40.dp), color = UIWhite) {
-                Box(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
-                    Column(modifier = Modifier.align(Alignment.CenterStart), verticalArrangement = Arrangement.Center) {
-                        Text(event.title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = UIBlack, style = AppFont.Bold)
-                        Spacer(Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, null, tint = UIAccentYellow, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(event.location, color = UIDarkGrey, fontSize = 12.sp, style = AppFont.Regular)
-                        }
+            // Delete Button
+            IconButton(
+                onClick = onDeleteClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                // Image(painter = painterResource(id = R.drawable.ic_delete_event), contentDescription = "Delete")
+                Surface(
+                    shape = CircleShape,
+                    color = UIWhite.copy(alpha = 0.8f),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_delete_event),
+                        contentDescription = "Delete",
+                        modifier = Modifier.padding(4.dp),
+                        tint = Color.Red
+                    )
+                }
+            }
+        }
+
+        // 4. Event Info at Bottom (Overlay)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Left side: Event Title and Location stacked
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Event Title
+                Surface(
+                    color = UIWhite,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = event.title,
+                        style = AppFont.Bold,
+                        fontSize = 18.sp,
+                        color = UIBlack,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+
+                // Location Info with White Background
+                Surface(
+                    color = UIWhite,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        // Gunakan resource drawable location pin kamu
+                        // Icon(painter = painterResource(id = R.drawable.ic_location_pin), ...)
+
+                        // Fallback icon
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            tint = UIAccentYellow,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = event.location,
+                            style = AppFont.Medium,
+                            fontSize = 11.sp,
+                            color = UIBlack
+                        )
                     }
-                    Text(event.date, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = UIBlack, style = AppFont.Bold, modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 4.dp))
                 }
             }
 
-            Row(modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-20).dp, y = (-70).dp), horizontalArrangement = Arrangement.spacedBy((-12).dp)) {
-                val displayAvatars = event.participantAvatars.take(3)
-                val remaining = event.participantAvatars.size - 3
-                displayAvatars.forEach { name ->
-                    androidx.compose.foundation.Image(painter = painterResource(AvatarUtils.getAvatarResId(name)), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(CircleShape).border(2.dp, UIWhite, CircleShape).background(Color.LightGray))
-                }
-                if (remaining > 0) {
-                    Box(modifier = Modifier.size(36.dp).clip(CircleShape).border(2.dp, UIWhite, CircleShape).background(Color(0xFF333333)), contentAlignment = Alignment.Center) {
-                        Text("+$remaining", color = UIWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+            // Right side: Profile Icons and Date stacked
+            Column(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Profile Icons Row (Dynamic)
+                StackedAvatarRow(avatars = event.participantAvatars, itemSize = 34.dp)
+
+                // Date with White Background
+                Surface(
+                    color = UIWhite,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = event.date,
+                        style = AppFont.Medium,
+                        fontSize = 11.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
             }
         }
@@ -151,19 +385,83 @@ fun FigmaEventCard(event: UIEventState, onEditClick: () -> Unit, onDeleteClick: 
 }
 
 @Composable
-fun PasswordConfirmationDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit, isLoading: Boolean, errorMessage: String?) {
-    var password by remember { mutableStateOf("") }
+fun DeleteConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit, // Tidak butuh parameter String password lagi
+    isLoading: Boolean,
+    errorMessage: String? = null
+) {
     Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(UIWhite), modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Delete Event", style = AppFont.Bold, fontSize = 20.sp, color = UIAccentRed)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(UIWhite),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Judul
+                Text(
+                    text = "Delete Event",
+                    style = AppFont.Bold,
+                    fontSize = 20.sp,
+                    color = UIAccentRed
+                )
+
                 Spacer(Modifier.height(16.dp))
-                OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-                if (errorMessage != null) Text(errorMessage, color = UIAccentRed, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+
+                // Pesan Konfirmasi (Pengganti Input Password)
+                Text(
+                    text = "Are you sure you want to delete this event? This action cannot be undone.",
+                    style = AppFont.Regular,
+                    fontSize = 14.sp,
+                    color = UIBlack,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                // Error Message (Opsional, misal gagal koneksi)
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = UIAccentRed,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
                 Spacer(Modifier.height(24.dp))
+
+                // Tombol Action
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = UIGrey), modifier = Modifier.weight(1f)) { Text("Cancel", color = UIBlack) }
-                    Button(onClick = { onConfirm(password) }, colors = ButtonDefaults.buttonColors(containerColor = UIAccentRed), modifier = Modifier.weight(1f)) { if (isLoading) CircularProgressIndicator(color = UIWhite, modifier = Modifier.size(20.dp)) else Text("Delete", color = UIWhite) }
+                    // Tombol Cancel
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
+                    ) {
+                        Text("Cancel", color = UIBlack, style = AppFont.SemiBold)
+                    }
+
+                    // Tombol Delete
+                    Button(
+                        onClick = onConfirm, // Langsung panggil fungsi confirm
+                        colors = ButtonDefaults.buttonColors(containerColor = UIAccentRed),
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = UIWhite,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Text("Delete", color = UIWhite, style = AppFont.SemiBold)
+                        }
+                    }
                 }
             }
         }
@@ -180,16 +478,25 @@ fun ActivitySection(activities: List<UIActivityState>, isEmpty: Boolean, onNavig
 
 @Composable
 fun ActivityItemCard(item: UIActivityState, onNavigateToActivityDetail: (String) -> Unit = {}) {
-    Surface(shape = RoundedCornerShape(20.dp), color = UIWhite, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth().height(80.dp).clickable { onNavigateToActivityDetail(item.id) }) {
-        Row(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(item.iconColor.copy(0.3f)), contentAlignment = Alignment.Center) {
+    Surface(shape = RoundedCornerShape(20.dp), color = UIWhite, shadowElevation = 1.dp, modifier = Modifier
+        .fillMaxWidth()
+        .height(80.dp)
+        .clickable { onNavigateToActivityDetail(item.id) }) {
+        Row(modifier = Modifier
+            .padding(16.dp)
+            .fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(item.iconColor.copy(0.3f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.ShoppingCart, null, tint = UIBlack, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UIBlack, style = AppFont.Bold)
+                Text(item.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UIBlack, style = AppFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(item.payer, fontSize = 12.sp, color = UIDarkGrey, style = AppFont.Medium)
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(item.price, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UIAccentRed, style = AppFont.Medium)
         }
     }
@@ -245,16 +552,105 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
 
 @Composable
 fun FloatingAddButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(modifier = modifier.size(60.dp).clickable { onClick() }, shape = CircleShape, color = UIAccentYellow, shadowElevation = 6.dp) {
+    Surface(modifier = modifier
+        .size(60.dp)
+        .clickable { onClick() }, shape = CircleShape, color = UIAccentYellow, shadowElevation = 6.dp) {
         Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, null, tint = UIBlack, modifier = Modifier.size(32.dp)) }
     }
 }
 
 @Composable
 fun EmptyStateMessage(onNavigateToAddActivity: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 100.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(top = 100.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Oops.", fontWeight = FontWeight.Bold, fontSize = 32.sp, color = UIDarkGrey)
         Spacer(Modifier.height(8.dp))
         Text("You haven't made any activities.", fontSize = 16.sp, color = UIDarkGrey)
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+fun DetailedEventScreenPreview_Populated() {
+    // Dummy Data Event
+    val dummyEvent = UIEventState(
+        title = "Liburan ke Bali",
+        location = "Kuta, Bali",
+        date = "12 Dec 2025",
+        imageUrl = "", // Kosongkan biar muncul placeholder abu-abu
+        participantAvatars = listOf("avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5")
+    )
+
+    // Dummy Data Activities
+    val dummyActivities = listOf(
+        UIActivityState(
+            id = "a1",
+            title = "Sewa Papan Surfing",
+            payer = "Paid by You",
+            price = "Rp 150.000",
+            iconColor = Color.Blue
+        ),
+        UIActivityState(
+            id = "a2",
+            title = "Makan Siang Nasi Padang",
+            payer = "Paid by Jeremy",
+            price = "Rp 45.000",
+            iconColor = Color.Red
+        ),
+        UIActivityState(
+            id = "a3",
+            title = "Tiket Masuk GWK",
+            payer = "Paid by Abel",
+            price = "Rp 125.000",
+            iconColor = Color.Green
+        ),
+        UIActivityState(
+            id = "a4",
+            title = "Tiket Masuk GWK",
+            payer = "Paid by Abel",
+            price = "Rp 125.000",
+            iconColor = Color.Green
+        ),
+        UIActivityState(
+            id = "a5",
+            title = "Tiket Masuk GWK",
+            payer = "Paid by Abel",
+            price = "Rp 125.000",
+            iconColor = Color.Green
+        ),
+        UIActivityState(
+            id = "a6",
+            title = "Tiket Masuk GWK",
+            payer = "Paid by Abel",
+            price = "Rp 125.000",
+            iconColor = Color.Green
+        )
+    )
+
+    LucaTheme {
+        DetailedEventContent(
+            eventState = dummyEvent,
+            activitiesState = dummyActivities
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+fun DetailedEventScreenPreview_Empty() {
+    val dummyEvent = UIEventState(
+        title = "Snorkeling Trip",
+        location = "Pulau Seribu",
+        date = "20 Jan 2026",
+        imageUrl = "",
+        participantAvatars = listOf("avatar_1", "avatar_2")
+    )
+
+    LucaTheme {
+        DetailedEventContent(
+            eventState = dummyEvent,
+            activitiesState = emptyList() // List kosong untuk tes Empty State
+        )
     }
 }

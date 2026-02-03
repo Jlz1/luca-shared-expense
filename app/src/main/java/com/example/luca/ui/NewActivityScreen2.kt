@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,6 +86,17 @@ import java.util.Locale
 import com.example.luca.data.LucaFirebaseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.Manifest
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import com.example.luca.ui.viewmodel.ScanViewModel
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,26 +112,40 @@ fun AddActivityScreen2(
     // --- STATE: Agar Switch Equal Split bisa Nyala/Mati ---
     var isSplitEqual by remember { mutableStateOf(false) }
 
-    // --- STATE: Event Members from Activity (exclude paidBy) ---
-    // Ambil participant dari activity.participants, exclude paidBy
-    val eventMembers = remember(activity) {
+    // --- STATE: Event Members from Activity (INCLUDE paidBy) ---
+    // Use state that can be populated from repo when activity is null
+    var eventMembers by remember { mutableStateOf<List<Contact>>(emptyList()) }
+
+    // Initialize from provided activity if available (INCLUDE paidBy)
+    LaunchedEffect(activity) {
         if (activity != null) {
-            // Konversi ParticipantData ke Contact, exclude paidBy
-            activity.participants
-                .filter { participantData ->
-                    // Exclude paidBy jika ada
-                    val paidByName = activity.paidBy?.name
-                    paidByName == null || participantData.name != paidByName
+            val baseMembers = activity.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+            val payerContact = activity.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+            eventMembers = if (payerContact != null) {
+                // Avoid duplicates by name
+                val exists = baseMembers.any { it.name == payerContact.name }
+                if (exists) baseMembers else baseMembers + payerContact
+            } else baseMembers
+        }
+    }
+
+    // If activity is null, fetch from repository using eventId & activityId (INCLUDE paidBy)
+    LaunchedEffect(eventId, activityId) {
+        if (activity == null && eventId.isNotEmpty() && activityId.isNotEmpty()) {
+            try {
+                val repo = LucaFirebaseRepository()
+                val loaded = withContext(Dispatchers.IO) { repo.getActivityById(eventId, activityId) }
+                loaded?.let { act ->
+                    val baseMembers = act.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+                    val payerContact = act.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+                    eventMembers = if (payerContact != null) {
+                        val exists = baseMembers.any { it.name == payerContact.name }
+                        if (exists) baseMembers else baseMembers + payerContact
+                    } else baseMembers
                 }
-                .map { participantData ->
-                    Contact(
-                        name = participantData.name,
-                        avatarName = participantData.avatarName
-                    )
-                }
-        } else {
-            // Fallback ke ViewModel selectedParticipants
-            emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("NewActivityScreen2", "Failed to load activity participants: ${e.message}")
+            }
         }
     }
 
@@ -156,7 +181,7 @@ fun AddActivityScreen2(
                     quantity = qty,
                     itemName = name,
                     price = price,
-                    members = memberNames.map { UIAccentYellow }, // color placeholder not used in save
+                    members = emptyList(),
                     memberNames = memberNames
                 )
             }
@@ -172,6 +197,15 @@ fun AddActivityScreen2(
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
 
+    // --- STATE: Scan Camera Integration ---
+    val scanViewModel: ScanViewModel = viewModel()
+    val context = LocalContext.current
+    val parsedReceiptData by scanViewModel.parsedReceiptData.collectAsState()
+    val scanState by scanViewModel.scanState.collectAsState()
+
+    var tempPhotoFile by remember { mutableStateOf<File?>(null) }
+    var showScanLoading by remember { mutableStateOf(false) }
+
     // Monitor save success state
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
@@ -180,6 +214,84 @@ fun AddActivityScreen2(
         if (isSuccess && eventId.isNotEmpty()) {
             android.util.Log.d("NewActivityScreen2", "✅✅✅ SUCCESS! Navigating back to DetailedEventScreen")
             onSaveSuccess(eventId)
+        }
+    }
+
+    // Camera Launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoFile != null) {
+            scanViewModel.uploadImage(tempPhotoFile!!)
+            showScanLoading = true
+        }
+    }
+
+    // Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                val file = createImageFileForCamera(context)
+                tempPhotoFile = file
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    file
+                )
+                cameraLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Permission kamera ditolak", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Function to launch camera
+    fun launchCamera() {
+        permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    // Monitor scan result and add items when scan completes
+    LaunchedEffect(parsedReceiptData) {
+        parsedReceiptData?.let { data ->
+            if (showScanLoading) {
+                showScanLoading = false
+
+                // Add scanned items to receipt items
+                val scannedItems = data.items.map { item ->
+                    ReceiptItem(
+                        quantity = item.itemQuantity,
+                        itemName = item.itemName,
+                        price = item.itemPrice.toLong(),
+                        members = emptyList(),
+                        memberNames = emptyList()
+                    )
+                }
+                receiptItems = receiptItems + scannedItems
+                globalTaxPercentage = data.tax
+                globalDiscountAmount = data.discount
+
+                // Show success message
+                Toast.makeText(
+                    context,
+                    "✅ Receipt scanned! ${scannedItems.size} items added",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                // Reset scan state
+                scanViewModel.resetScan()
+            }
+        }
+    }
+
+    // Monitor scan state for errors
+    LaunchedEffect(scanState) {
+        if (scanState.startsWith("❌") && showScanLoading) {
+            showScanLoading = false
+            Toast.makeText(context, scanState, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -366,34 +478,66 @@ fun AddActivityScreen2(
                                     .padding(16.dp)
                             ) {
                                 if (receiptItems.isEmpty()) {
-                                    // Empty state with helpful instructions
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 24.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = null,
-                                            tint = UIDarkGrey.copy(alpha = 0.5f),
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text(
-                                            text = "No items yet",
-                                            style = AppFont.SemiBold,
-                                            fontSize = 16.sp,
-                                            color = UIDarkGrey
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Tap 'Add Item' below to start adding receipt items",
-                                            style = AppFont.Regular,
-                                            fontSize = 12.sp,
-                                            color = UIDarkGrey.copy(alpha = 0.7f),
-                                            textAlign = TextAlign.Center
-                                        )
+                                    // Show loading animation when processing scan, otherwise show empty state
+                                    if (showScanLoading) {
+                                        // Loading state with animation
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(48.dp),
+                                                color = UIAccentYellow,
+                                                strokeWidth = 4.dp
+                                            )
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Text(
+                                                text = "Processing receipt...",
+                                                style = AppFont.SemiBold,
+                                                fontSize = 16.sp,
+                                                color = UIBlack
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Please wait while we analyze your receipt",
+                                                style = AppFont.Regular,
+                                                fontSize = 12.sp,
+                                                color = UIDarkGrey.copy(alpha = 0.7f),
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    } else {
+                                        // Empty state with helpful instructions
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = null,
+                                                tint = UIDarkGrey.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text(
+                                                text = "No items yet",
+                                                style = AppFont.SemiBold,
+                                                fontSize = 16.sp,
+                                                color = UIDarkGrey
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Tap 'Add Item' below to start adding receipt items",
+                                                style = AppFont.Regular,
+                                                fontSize = 12.sp,
+                                                color = UIDarkGrey.copy(alpha = 0.7f),
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 } else {
                                     // Scrollable receipt items in unified container
@@ -542,7 +686,7 @@ fun AddActivityScreen2(
                         .padding(end = 20.dp, bottom = 34.dp)
                 ) {
 
-                    FabCircleButton(size = 56.dp) {
+                    FabCircleButton(size = 56.dp, onClick = { launchCamera() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_scan_button),
                             contentDescription = "Scan",
@@ -620,6 +764,46 @@ fun AddActivityScreen2(
                         enabled = isLoading.not()  // Disable button saat loading
                     ) {
                         Text(text = if (isLoading) "Saving..." else "Continue", style = AppFont.SemiBold, fontSize = 16.sp)
+                    }
+                }
+            }
+
+            // Full screen loading overlay when processing scan
+            if (showScanLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(enabled = false) { }, // Prevent clicks while loading
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(UIWhite)
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(56.dp),
+                            color = UIAccentYellow,
+                            strokeWidth = 5.dp
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "Processing Receipt...",
+                            style = AppFont.SemiBold,
+                            fontSize = 18.sp,
+                            color = UIBlack
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Analyzing your receipt\nThis may take 30-60 seconds",
+                            style = AppFont.Regular,
+                            fontSize = 14.sp,
+                            color = UIDarkGrey,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -1156,7 +1340,7 @@ fun AddItemDialog(
                                         if (member.avatarName.isNotBlank()) {
                                             try {
                                                 getDrawableResourceId(member.avatarName)
-                                            } catch (e: Exception) {
+                                            } catch (_: Exception) {
                                                 0
                                             }
                                         } else {
@@ -1458,31 +1642,39 @@ fun EditItemDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Avatar dengan warna berdasarkan participant
-                                    val avatarColor = when (member.name.lowercase()) {
-                                        "you" -> Color(0xFF4A90E2)
-                                        "jeremy e" -> Color(0xFFE27D60)
-                                        "abel m" -> Color(0xFF85C1E9)
-                                        "test" -> Color(0xFF58D68D)
-                                        "endi ganteng" -> Color(0xFFEC7063)
-                                        "john" -> Color(0xFFAF7AC5)
-                                        "penis" -> Color(0xFFF7DC6F)
-                                        else -> UIDarkGrey
+                                    // Avatar with profile picture from resources if available
+                                    val resourceId = remember(member.avatarName) {
+                                        if (member.avatarName.isNotBlank()) {
+                                            try { getDrawableResourceId(member.avatarName) } catch (_: Exception) { 0 }
+                                        } else { 0 }
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(avatarColor),
+                                            .background(UIDarkGrey),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = null,
-                                            tint = UIWhite,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        if (resourceId != 0) {
+                                            Image(
+                                                painter = painterResource(id = resourceId),
+                                                contentDescription = member.name,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            // Fallback to initial letter
+                                            val initial = member.name.firstOrNull()?.uppercaseChar() ?: "?"
+                                            Text(
+                                                text = initial.toString(),
+                                                color = UIWhite,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -1633,5 +1825,13 @@ fun AddActivity2Preview() {
     }
 }
 
-
-
+// Helper function
+fun createImageFileForCamera(context: android.content.Context): File {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val imageFileName = "JPEG_${timeStamp}_"
+    return File.createTempFile(
+        imageFileName,
+        ".jpg",
+        context.externalCacheDir
+    )
+}

@@ -74,10 +74,9 @@ fun LucaApp() {
     // --- STATE MANAGEMENT ---
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val mainTabs = listOf("home", "contacts", "scan")
+    val mainTabs = listOf("home", "contacts")
     val showBottomBar = currentRoute in mainTabs
     val currentTab = when (currentRoute) {
-        "scan" -> 0
         "contacts" -> 2
         else -> 1
     }

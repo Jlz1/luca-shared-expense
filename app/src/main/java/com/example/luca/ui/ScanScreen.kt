@@ -43,8 +43,8 @@ fun ScanScreen(
     val parsedReceiptData by viewModel.parsedReceiptData.collectAsState()
 
     var showResultScreen by remember { mutableStateOf(false) }
-
     var tempPhotoFile by remember { mutableStateOf<File?>(null) }
+    var cameraLaunched by remember { mutableStateOf(false) }
 
     // Show ScanResultScreen when parsed data is available
     if (showResultScreen && parsedReceiptData != null) {
@@ -57,6 +57,7 @@ fun ScanScreen(
             onScanAgain = {
                 showResultScreen = false
                 viewModel.resetScan()
+                cameraLaunched = false
             }
         )
         return
@@ -68,6 +69,10 @@ fun ScanScreen(
     ) { success ->
         if (success && tempPhotoFile != null) {
             viewModel.uploadImage(tempPhotoFile!!)
+            showResultScreen = true
+        } else {
+            // User cancelled the camera, go back
+            onBackClick()
         }
     }
 
@@ -87,9 +92,11 @@ fun ScanScreen(
                 cameraLauncher.launch(uri)
             } catch (e: Exception) {
                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                onBackClick()
             }
         } else {
             Toast.makeText(context, "Permission kamera ditolak", Toast.LENGTH_SHORT).show()
+            onBackClick()
         }
     }
 
@@ -98,38 +105,63 @@ fun ScanScreen(
         permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
+    // 4. LAUNCH CAMERA AUTOMATICALLY ON SCREEN LOAD
+    LaunchedEffect(Unit) {
+        if (!cameraLaunched) {
+            cameraLaunched = true
+            launchCamera()
+        }
+    }
+
+    // Show loading state immediately while camera is being launched/used
+    if (cameraLaunched && scanResult == "Menunggu Scan...") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(UIAccentYellow)
+                .statusBarsPadding()
+        ) {
+            // Header - menggunakan HeaderSection dari MainActivity
+            HeaderSection(
+                currentState = HeaderState.DETAILS,
+                onLeftIconClick = onBackClick
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Content Area
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                    .background(UIBackground)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(
+                    color = UIAccentYellow,
+                    modifier = Modifier.size(60.dp)
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Text("Siap memotret struk...", style = AppFont.Bold, fontSize = 18.sp)
+                Text("Buka kamera sekarang", style = AppFont.Regular, color = UIDarkGrey)
+            }
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(UIAccentYellow)
             .statusBarsPadding()
     ) {
-        // Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 20.dp)
-        ) {
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_arrow_back),
-                    contentDescription = "Back",
-                    tint = UIBlack,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Text(
-                text = "Scan Receipt",
-                style = AppFont.Bold,
-                fontSize = 20.sp,
-                color = UIBlack,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
+        // Header - menggunakan HeaderSection dari MainActivity
+        HeaderSection(
+            currentState = HeaderState.DETAILS,
+            onLeftIconClick = onBackClick
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 
