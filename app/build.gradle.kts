@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.luca"
+    namespace = "com.noir.luca"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.luca"
+        applicationId = "com.noir.luca"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

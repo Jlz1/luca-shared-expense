@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -42,10 +41,15 @@ fun GreetingScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Web Client ID
-    val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
+    // 🔐 Web Client ID (OAuth 2.0 Client)
+    // CARA MENDAPATKAN:
+    // 1. Buka google-services.json di folder app/
+    // 2. Cari entry dengan "client_type": 3 (Web Client)
+    // 3. Copy value dari "client_id"
+    // CONTOH: "665756297830-xxxxxxxxxx.apps.googleusercontent.com"
+    // ⚠️ GANTI dengan Web Client ID dari google-services.json ANDA!
+    val webClientId = "665756297830-atc7e0ekcf7863ovqds76imrcijoljk6.apps.googleusercontent.com"
 
     // Observer 1: User Lama & Sukses -> Langsung Home
     LaunchedEffect(authViewModel.isSuccess) {

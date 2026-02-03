@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 

@@ -24,7 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.data.AuthRepository
 // Import Component Overlay yang baru dibuat
 import com.example.luca.ui.components.AvatarSelectionOverlay

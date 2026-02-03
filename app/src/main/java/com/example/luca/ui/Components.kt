@@ -51,7 +51,7 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.model.BankAccountData
 import com.example.luca.model.Contact
 import com.example.luca.model.Event
