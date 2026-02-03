@@ -45,6 +45,10 @@ interface LucaRepository {
     suspend fun getEventById(id: String): Event?
 
     suspend fun deleteEvent(eventId: String): Result<Boolean>
+
+    // Settlement Actions
+    suspend fun saveSettlementResult(eventId: String, settlementJson: String): Result<Boolean>
+    suspend fun getSettlementResult(eventId: String): String?
 }
 
 // Konstruktor menerima Context untuk keperluan kompresi gambar
@@ -355,6 +359,52 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    /**
+     * Menyimpan hasil settlement calculation sebagai JSON string di Event document.
+     * Field yang digunakan: settlementResultJson
+     */
+    override suspend fun saveSettlementResult(eventId: String, settlementJson: String): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+        return try {
+            android.util.Log.d("LucaRepository", "Saving settlement result for event: $eventId")
+
+            db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .update("settlementResultJson", settlementJson)
+                .await()
+
+            android.util.Log.d("LucaRepository", "✅ Settlement result saved successfully")
+            Result.success(true)
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error saving settlement result: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Mengambil hasil settlement calculation dari Event document.
+     * @return JSON string of SettlementResult or null if not exists
+     */
+    override suspend fun getSettlementResult(eventId: String): String? {
+        val uid = currentUserId ?: return null
+        return try {
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .get()
+                .await()
+
+            snapshot.getString("settlementResultJson")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

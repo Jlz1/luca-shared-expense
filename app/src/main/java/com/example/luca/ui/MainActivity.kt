@@ -391,6 +391,21 @@ fun LucaApp() {
                             },
                             onNavigateToActivityDetail = { activityId ->
                                 navController.navigate("activity_detail/$eventId/$activityId")
+                            },
+                            onNavigateToSummary = {
+                                navController.navigate("summary/$eventId")
+                            }
+                        )
+                    }
+
+                    // Summary Screen - Split Bill Calculation
+                    composable("summary/{eventId}") { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                        SummaryScreen(
+                            eventId = eventId,
+                            onBackClick = { navController.popBackStack() },
+                            onShareClick = {
+                                // TODO: Implement share functionality
                             }
                         )
                     }
