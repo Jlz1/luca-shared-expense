@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -30,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,7 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme
 import com.example.luca.ui.theme.UIAccentRed
@@ -110,7 +109,8 @@ fun DetailedEventScreen(
         onNavigateToAddActivity = onNavigateToAddActivity,
         onEditClick = { onNavigateToEditEvent(eventId) },
         onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
-        onActivityClick = onNavigateToActivityDetail
+        onActivityClick = onNavigateToActivityDetail,
+        onNavigateToSummary = onNavigateToSummary
     )
 
     // 5. Tampilkan Dialog (Overlay)
@@ -139,7 +139,8 @@ fun DetailedEventContent(
     onNavigateToAddActivity: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onActivityClick: (String) -> Unit = {}
+    onActivityClick: (String) -> Unit = {},
+    onNavigateToSummary: () -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -470,7 +471,7 @@ fun DeleteConfirmationDialog(
 
 @Composable
 fun ActivitySection(activities: List<UIActivityState>, isEmpty: Boolean, onNavigateToAddActivity: () -> Unit, onNavigateToActivityDetail: (String) -> Unit) {
-    if (isEmpty) EmptyStateMessage(onNavigateToAddActivity)
+    if (isEmpty) EmptyActivityMessage()
     else LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         items(activities) { ActivityItemCard(it, onNavigateToActivityDetail) }
     }
@@ -503,13 +504,6 @@ fun ActivityItemCard(item: UIActivityState, onNavigateToActivityDetail: (String)
 }
 
 @Composable
-fun SmallCircleButton(icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
-    Surface(shape = CircleShape, color = UIWhite, modifier = modifier.size(36.dp)) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, null, modifier = Modifier.size(18.dp), tint = UIBlack) }
-    }
-}
-
-@Composable
 fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActivityClick: () -> Unit, onSummaryClick: () -> Unit = {}) {
     Box(modifier = modifier.fillMaxWidth()) {
         if (isEmpty) {
@@ -537,7 +531,7 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                         modifier = Modifier.padding(horizontal = 20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.AttachMoney, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.AccountBalance, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     }
@@ -560,7 +554,7 @@ fun FloatingAddButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 }
 
 @Composable
-fun EmptyStateMessage(onNavigateToAddActivity: () -> Unit) {
+fun EmptyActivityMessage() {
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(top = 100.dp), horizontalAlignment = Alignment.CenterHorizontally) {

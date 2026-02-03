@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 // Pastikan import komponen-komponen ini ada
 // import com.example.luca.ui.components.* @OptIn(ExperimentalMaterial3Api::class)

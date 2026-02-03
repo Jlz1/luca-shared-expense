@@ -1,6 +1,6 @@
 package com.example.luca.ui
 
-import com.example.luca.R
+import com.noir.luca.R
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior

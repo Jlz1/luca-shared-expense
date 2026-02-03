@@ -1,6 +1,6 @@
 package com.example.luca.util
 
-import com.example.luca.R
+import com.noir.luca.R
 
 object AvatarUtils {
     // Mendaftarkan 10 Avatar: Pair("NamaDatabase", R.drawable.NamaFile)

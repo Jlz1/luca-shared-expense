@@ -31,7 +31,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.model.Contact
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.components.ContactSelectionOverlay
 import com.example.luca.ui.theme.AppFont
 import com.example.luca.ui.theme.LucaTheme

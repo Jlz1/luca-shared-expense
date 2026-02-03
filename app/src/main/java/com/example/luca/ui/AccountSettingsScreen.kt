@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.util.AvatarUtils
 import com.example.luca.viewmodel.AccountSettingsViewModel

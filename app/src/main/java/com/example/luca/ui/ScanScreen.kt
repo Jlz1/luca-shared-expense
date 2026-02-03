@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.ui.viewmodel.ScanViewModel
 import java.io.File

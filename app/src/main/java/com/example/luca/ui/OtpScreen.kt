@@ -19,7 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.luca.R
+import com.noir.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.AuthViewModel
 
