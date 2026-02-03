@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.*
@@ -28,18 +29,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.model.Contact
+import com.example.luca.model.Settlement
 import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.SummaryViewModel
 import java.util.Locale
 
-// Dummy Model untuk Settlement
-data class Settlement(
-    val id: String,
-    val from: Contact,
-    val to: Contact,
-    val amount: Long,
-    var isPaid: Boolean = false
-)
 
 enum class SummaryTab {
     SETTLEMENT, DETAILS
@@ -47,22 +43,22 @@ enum class SummaryTab {
 
 @Composable
 fun SummaryScreen(
+    eventId: String = "",
+    viewModel: SummaryViewModel = viewModel(),
     onBackClick: () -> Unit = {},
     onShareClick: () -> Unit = {}
 ) {
     // State Tab
     var currentTab by remember { mutableStateOf(SummaryTab.SETTLEMENT) }
 
-    // Dummy Data Settlement
-    val settlements = remember {
-        mutableStateListOf(
-            Settlement("1", Contact(name = "Jeremy E", avatarName = "avatar_2"), Contact(name = "You", avatarName = "avatar_1"), 150000),
-            Settlement("2", Contact(name = "Abel M", avatarName = "avatar_3"), Contact(name = "You", avatarName = "avatar_1"), 75000),
-            Settlement("3", Contact(name = "Jeremy E", avatarName = "avatar_2"), Contact(name = "Abel M", avatarName = "avatar_3"), 25000),
-            Settlement("4", Contact(name = "John D", avatarName = ""), Contact(name = "You", avatarName = "avatar_1"), 12000),
-            Settlement("5", Contact(name = "John D", avatarName = ""), Contact(name = "You", avatarName = "avatar_1"), 12000),
-            Settlement("6", Contact(name = "John D", avatarName = ""), Contact(name = "You", avatarName = "avatar_1"), 12000),
-        )
+    // Collect UI state from ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Load settlements when screen is first displayed
+    LaunchedEffect(eventId) {
+        if (eventId.isNotEmpty()) {
+            viewModel.loadAndCalculateSettlements(eventId)
+        }
     }
 
     // Container Utama (Kuning)
@@ -73,8 +69,6 @@ fun SummaryScreen(
             .statusBarsPadding()
     ) {
         // 1. Header
-        // Menggunakan HeaderSection yang sudah ada (pastikan import sesuai package kamu)
-        // Disini saya mock manual jika HeaderSection belum di import
         HeaderSection(currentState = HeaderState.SUMMARY, onLeftIconClick = onBackClick)
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -92,6 +86,18 @@ fun SummaryScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Event Title
+                if (uiState.eventTitle.isNotEmpty()) {
+                    Text(
+                        text = uiState.eventTitle,
+                        style = AppFont.Bold,
+                        fontSize = 20.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 // --- TAB SWITCHER ---
                 CustomSegmentedControl(
                     currentTab = currentTab,
@@ -102,29 +108,69 @@ fun SummaryScreen(
 
                 // --- CONTENT BASED ON TAB ---
                 Box(modifier = Modifier.weight(1f)) {
-                    when (currentTab) {
-                        SummaryTab.SETTLEMENT -> {
-                            SettlementList(
-                                settlements = settlements,
-                                onTogglePaid = { settlement ->
-                                    // Update logic dummy
-                                    val index = settlements.indexOfFirst { it.id == settlement.id }
-                                    if (index != -1) {
-                                        settlements[index] = settlements[index].copy(isPaid = !settlements[index].isPaid)
+                    when {
+                        uiState.isLoading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(color = UIAccentYellow)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Calculating optimal settlements...",
+                                        style = AppFont.Regular,
+                                        color = UIDarkGrey
+                                    )
+                                }
+                            }
+                        }
+                        uiState.errorMessage != null -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = uiState.errorMessage ?: "Unknown error",
+                                        style = AppFont.Regular,
+                                        color = Color.Red,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { viewModel.refresh() },
+                                        colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                                    ) {
+                                        Icon(Icons.Default.Refresh, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Retry", color = UIBlack)
                                     }
                                 }
-                            )
+                            }
                         }
-                        SummaryTab.DETAILS -> {
-                            SpreadsheetPlaceholder()
+                        else -> {
+                            when (currentTab) {
+                                SummaryTab.SETTLEMENT -> {
+                                    SettlementList(
+                                        settlements = uiState.settlements,
+                                        totalExpense = uiState.totalExpense,
+                                        onTogglePaid = { settlement ->
+                                            viewModel.toggleSettlementPaid(settlement.id)
+                                        }
+                                    )
+                                }
+                                SummaryTab.DETAILS -> {
+                                    SpreadsheetPlaceholder()
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // --- BOTTOM SHARE BUTTON ---
-            // Hanya muncul di tab Settlement biar gampang di SS
-            if (currentTab == SummaryTab.SETTLEMENT) {
+            if (currentTab == SummaryTab.SETTLEMENT && !uiState.isLoading) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -137,7 +183,7 @@ fun SummaryScreen(
                             .height(56.dp),
                         shape = RoundedCornerShape(28.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = UIBlack, // Hitam biar kontras sama kartu putih
+                            containerColor = UIBlack,
                             contentColor = UIWhite
                         ),
                         elevation = ButtonDefaults.buttonElevation(8.dp)
@@ -199,24 +245,76 @@ fun CustomSegmentedControl(
 @Composable
 fun SettlementList(
     settlements: List<Settlement>,
+    totalExpense: Long = 0L,
     onTogglePaid: (Settlement) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Total Expense Header
+        if (totalExpense > 0) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = UIAccentYellow.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Total Expense",
+                            style = AppFont.SemiBold,
+                            fontSize = 14.sp,
+                            color = UIBlack
+                        )
+                        Text(
+                            text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalExpense.toDouble())}",
+                            style = AppFont.Bold,
+                            fontSize = 18.sp,
+                            color = UIBlack
+                        )
+                    }
+                }
+            }
+        }
+
         item {
             Text(
-                text = "Settlements",
+                text = "Settlements (${settlements.size})",
                 style = AppFont.SemiBold,
                 fontSize = 18.sp,
                 color = UIBlack,
-                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp, top = 8.dp)
             )
         }
 
-        items(settlements) { item ->
-            SettlementCard(item = item, onTogglePaid = { onTogglePaid(item) })
+        if (settlements.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No settlements needed.\nEveryone is settled up! 🎉",
+                        style = AppFont.Regular,
+                        fontSize = 16.sp,
+                        color = UIDarkGrey,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            items(settlements) { item ->
+                SettlementCard(item = item, onTogglePaid = { onTogglePaid(item) })
+            }
         }
 
         item {
@@ -243,6 +341,10 @@ fun SettlementCard(
     val containerColor = if (item.isPaid) UIDarkGrey.copy(alpha = 0.1f) else UIWhite
     val borderColor = if (item.isPaid) Color.Transparent else UIAccentYellow.copy(alpha = 0.5f)
 
+    // Create Contact objects from Settlement data for avatar display
+    val fromContact = Contact(name = item.fromName, avatarName = item.fromAvatarName)
+    val toContact = Contact(name = item.toName, avatarName = item.toAvatarName)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -260,7 +362,7 @@ fun SettlementCard(
             modifier = Modifier.weight(1f).padding(end = 8.dp)
         ) {
             // From Avatar
-            ParticipantAvatarItemSmall(item.from)
+            ParticipantAvatarItemSmall(fromContact)
 
             // Arrow
             Box(
@@ -280,7 +382,7 @@ fun SettlementCard(
             }
 
             // To Avatar
-            ParticipantAvatarItemSmall(item.to)
+            ParticipantAvatarItemSmall(toContact)
         }
 
         // Kanan: Jumlah & Checkbox
@@ -417,6 +519,6 @@ fun SpreadsheetPlaceholder() {
 @Composable
 fun SummaryScreenPreview() {
     LucaTheme {
-        SummaryScreen()
+        SummaryScreen(eventId = "preview")
     }
 }

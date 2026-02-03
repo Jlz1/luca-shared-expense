@@ -78,7 +78,8 @@ fun DetailedEventScreen(
     onMenuClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {},
     onNavigateToEditEvent: (String) -> Unit = {},
-    onNavigateToActivityDetail: (String) -> Unit = {}
+    onNavigateToActivityDetail: (String) -> Unit = {}, // [BARU] Navigate ke NewActivityScreen2
+    onNavigateToSummary: () -> Unit = {} // [BARU] Navigate ke SummaryScreen untuk split bill
 ) {
     // 1. Load Data
     LaunchedEffect(eventId) { viewModel.loadEventData(eventId) }
@@ -180,11 +181,10 @@ fun DetailedEventContent(
                 }
             }
             BottomActionArea(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(24.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp),
                 isEmpty = activitiesState.isEmpty(),
-                onAddActivityClick = onNavigateToAddActivity
+                onAddActivityClick = onNavigateToAddActivity,
+                onSummaryClick = onNavigateToSummary
             )
         }
     }
@@ -510,7 +510,7 @@ fun SmallCircleButton(icon: androidx.compose.ui.graphics.vector.ImageVector, mod
 }
 
 @Composable
-fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActivityClick: () -> Unit) {
+fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActivityClick: () -> Unit, onSummaryClick: () -> Unit = {}) {
     Box(modifier = modifier.fillMaxWidth()) {
         if (isEmpty) {
             Column(modifier = Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.End) {
@@ -519,7 +519,33 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 FloatingAddButton(onClick = onAddActivityClick)
             }
         } else {
-            FloatingAddButton(modifier = Modifier.align(Alignment.CenterEnd), onClick = onAddActivityClick)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Summary Button (Calculate Settlement)
+                Surface(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .clickable { onSummaryClick() },
+                    shape = RoundedCornerShape(24.dp),
+                    color = UIBlack,
+                    shadowElevation = 6.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.AttachMoney, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                }
+
+                // Add Activity Button
+                FloatingAddButton(onClick = onAddActivityClick)
+            }
         }
     }
 }
