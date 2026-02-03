@@ -89,33 +89,32 @@ class DetailedEventViewModel : ViewModel() {
         }
     }
 
-    // Logic Delete Event Dengan Password
-    fun deleteEventWithPassword(eventId: String, passwordInput: String) {
+    // Logic Delete Event
+    fun deleteEvent(eventId: String) {
         val currentUser = auth.currentUser
 
-        if (currentUser == null || currentUser.email == null) {
+        if (currentUser == null) {
             _deleteState.value = DeleteState.Error("User session not found. Please relogin.")
             return
         }
 
         _deleteState.value = DeleteState.Loading
 
-        val credential = EmailAuthProvider.getCredential(currentUser.email!!, passwordInput)
-
-        currentUser.reauthenticate(credential)
-            .addOnSuccessListener {
-                viewModelScope.launch {
-                    val result = repository.deleteEvent(eventId)
-                    if (result.isSuccess) {
-                        _deleteState.value = DeleteState.Success
-                    } else {
-                        _deleteState.value = DeleteState.Error("Failed to delete event from database.")
-                    }
+        // Langsung hapus tanpa re-autentikasi password
+        viewModelScope.launch {
+            try {
+                val result = repository.deleteEvent(eventId)
+                if (result.isSuccess) {
+                    _deleteState.value = DeleteState.Success
+                } else {
+                    // Ambil pesan error dari result jika ada, atau gunakan default
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to delete event from database."
+                    _deleteState.value = DeleteState.Error(errorMsg)
                 }
+            } catch (e: Exception) {
+                _deleteState.value = DeleteState.Error(e.message ?: "An unexpected error occurred.")
             }
-            .addOnFailureListener {
-                _deleteState.value = DeleteState.Error("Password salah. Silakan coba lagi.")
-            }
+        }
     }
 
     fun resetDeleteState() {

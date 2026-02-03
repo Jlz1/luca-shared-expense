@@ -239,7 +239,7 @@ fun AddScreenContent(
                         AsyncImage(
                             model = selectedImageUri,
                             contentDescription = "Selected Cover",
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)),
+                            modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     } else {

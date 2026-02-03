@@ -420,21 +420,42 @@ fun StackedAvatarRow(
     maxVisible: Int = 4,
     itemSize: Dp = 40.dp
 ) {
-    val isOverflow = avatars.size > maxVisible
-    val visibleCount = if (isOverflow) maxVisible - 1 else avatars.size
+    val showOverflow = avatars.size > maxVisible
+    val displayCount = if (showOverflow) maxVisible - 1 else avatars.size
+    val remaining = avatars.size - displayCount
 
     Row(
         horizontalArrangement = Arrangement.spacedBy((spacing).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        for (i in 0 until visibleCount) {
-            Box(
-                modifier = Modifier.zIndex((visibleCount - i).toFloat())
-            ) {
+        // 1. Render Avatar yang terlihat
+        for (i in 0 until displayCount) {
+            // ZIndex agar avatar kiri menumpuk di atas avatar kanan (opsional, sesuaikan selera)
+            // Kode B tidak pake zIndex manual, tapi urutan draw compose defaultnya kiri di bawah kanan.
+            // Kalau mau kiri diatas kanan, pake zIndex menurun.
+            Box(modifier = Modifier.zIndex((displayCount - i).toFloat())) {
                 AvatarItem(
-                    imageUrl = avatars[i],
-                    size = itemSize,
-                    zIndex = (visibleCount - i).toFloat()
+                    avatarName = avatars[i],
+                    size = itemSize
+                )
+            }
+        }
+
+        // 2. Render Lingkaran Sisa (+N) jika ada
+        if (showOverflow && remaining > 0) {
+            Box(
+                modifier = Modifier
+                    .size(itemSize)
+                    .clip(CircleShape)
+                    .border(2.dp, UIWhite, CircleShape)
+                    .background(UIBlack), // Sesuaikan warna background sisa (+N)
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "+$remaining",
+                    color = UIWhite,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -443,29 +464,22 @@ fun StackedAvatarRow(
 
 @Composable
 fun AvatarItem(
-    imageUrl: String,
-    zIndex: Float = 0f,
+    avatarName: String,
     size: Dp = 40.dp
 ) {
-    val context = LocalContext.current
+    val resId = remember(avatarName) {
+        AvatarUtils.getAvatarResId(avatarName)
+    }
 
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .crossfade(true)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .build(),
+    Image(
+        painter = painterResource(id = resId),
         contentDescription = "Avatar",
+        contentScale = ContentScale.Crop,
         modifier = Modifier
             .size(size)
-            .zIndex(zIndex)
             .clip(CircleShape)
-            .border(2.dp, UIWhite, CircleShape)
-            .background(UIGrey),
-        contentScale = ContentScale.Crop,
-        placeholder = null,
-        error = painterResource(id = R.drawable.ic_launcher_foreground)
+            .border(2.dp, UIWhite, CircleShape) // Border putih agar keliatan pisahnya pas ditumpuk
+            .background(Color.LightGray) // Fallback background
     )
 }
 
