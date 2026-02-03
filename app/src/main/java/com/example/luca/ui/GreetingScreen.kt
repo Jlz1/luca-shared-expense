@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,13 +44,9 @@ fun GreetingScreen(
     val context = LocalContext.current
 
     // 🔐 Web Client ID (OAuth 2.0 Client)
-    // CARA MENDAPATKAN:
-    // 1. Buka google-services.json di folder app/
-    // 2. Cari entry dengan "client_type": 3 (Web Client)
-    // 3. Copy value dari "client_id"
-    // CONTOH: "665756297830-xxxxxxxxxx.apps.googleusercontent.com"
-    // ⚠️ GANTI dengan Web Client ID dari google-services.json ANDA!
-    val webClientId = "665756297830-atc7e0ekcf7863ovqds76imrcijoljk6.apps.googleusercontent.com"
+    // Diambil secara dinamis dari strings.xml yang di-generate dari google-services.json
+    // Ini memastikan semua developer menggunakan OAuth yang sama tanpa hardcode
+    val webClientId = stringResource(R.string.default_web_client_id)
 
     // Observer 1: User Lama & Sukses -> Langsung Home
     LaunchedEffect(authViewModel.isSuccess) {

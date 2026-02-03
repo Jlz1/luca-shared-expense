@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">luca</string>
+    <!-- Google OAuth Web Client ID - Automatically extracted from google-services.json -->
+    <string name="default_web_client_id">665756297830-atc7e0ekcf7863ovqds76imrcijoljk6.apps.googleusercontent.com</string>
 </resources>

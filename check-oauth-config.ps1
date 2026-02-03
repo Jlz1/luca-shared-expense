@@ -1,4 +1,4 @@
-# Script untuk verifikasi konfigurasi Google OAuth
+# Scrip# Script untuk verifikasi konfigurasi Google OAuth
 # Memeriksa apakah semua setup sudah benar
 
 Write-Host ""
@@ -58,6 +58,19 @@ if (Test-Path $googleServicesPath) {
             if ($null -ne $webClient) {
                 $webClientId = $webClient.client_id
                 Write-Host "   🌐 Web Client ID: $webClientId" -ForegroundColor Cyan
+
+                # Check if strings.xml exists and matches
+                $stringsPath = "app\src\main\res\values\strings.xml"
+                if (Test-Path $stringsPath) {
+                    $stringsXml = Get-Content $stringsPath -Raw
+                    if ($stringsXml -match $webClientId) {
+                        Write-Host "   ✅ strings.xml MATCH dengan google-services.json" -ForegroundColor Green
+                    } else {
+                        Write-Host "   ❌ strings.xml TIDAK MATCH!" -ForegroundColor Red
+                        Write-Host "   Update strings.xml dengan Web Client ID di atas" -ForegroundColor Yellow
+                        $hasError = $true
+                    }
+                }
             } else {
                 Write-Host "   ❌ Web Client ID tidak ditemukan!" -ForegroundColor Red
                 $hasError = $true
@@ -76,6 +89,11 @@ if (Test-Path $googleServicesPath) {
                 Write-Host "   ✅ Android OAuth Client ditemukan" -ForegroundColor Green
             } else {
                 Write-Host "   ❌ Android OAuth Client tidak ditemukan!" -ForegroundColor Red
+                Write-Host ""
+                Write-Host "   SOLUSI:" -ForegroundColor Yellow
+                Write-Host "   1. Tambahkan SHA certificates ke Firebase Console" -ForegroundColor White
+                Write-Host "   2. Download ULANG google-services.json" -ForegroundColor White
+                Write-Host "   3. Lihat: GOOGLE_OAUTH_SETUP_GUIDE.md" -ForegroundColor White
                 $hasError = $true
             }
         } else {
@@ -120,7 +138,13 @@ if ($hasError) {
     Write-Host "  ❌ KONFIGURASI BELUM LENGKAP" -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "📖 Lihat: GOOGLE_OAUTH_QUICK_START.md" -ForegroundColor Yellow
+    Write-Host "📖 Baca panduan lengkap:" -ForegroundColor Yellow
+    Write-Host "   GOOGLE_OAUTH_SETUP_GUIDE.md" -ForegroundColor White
+    Write-Host ""
+    Write-Host "🔑 Langkah penting:" -ForegroundColor Yellow
+    Write-Host "   1. Jalankan: .\get-sha-certificates.ps1" -ForegroundColor White
+    Write-Host "   2. Tambahkan SHA ke Firebase Console" -ForegroundColor White
+    Write-Host "   3. Download ulang google-services.json" -ForegroundColor White
 } else {
     Write-Host "  ✅ KONFIGURASI SUDAH BENAR!" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Cyan
