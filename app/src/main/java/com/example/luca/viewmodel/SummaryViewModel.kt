@@ -14,6 +14,27 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
+ * Data class untuk expense item detail (untuk Details tab)
+ */
+data class ExpenseItemDetail(
+    val activityTitle: String = "",
+    val itemName: String = "",
+    val price: Long = 0L,
+    val quantity: Int = 1,
+    val splitAmount: Long = 0L // Amount this user needs to pay for this item
+)
+
+/**
+ * Data class untuk user consumption detail (untuk Details tab)
+ */
+data class UserConsumptionDetail(
+    val userName: String = "",
+    val avatarName: String = "",
+    val totalConsumption: Long = 0L,
+    val items: List<ExpenseItemDetail> = emptyList()
+)
+
+/**
  * State untuk UI Summary Screen
  */
 data class SummaryUiState(
@@ -22,7 +43,8 @@ data class SummaryUiState(
     val totalExpense: Long = 0L,
     val errorMessage: String? = null,
     val eventTitle: String = "",
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
+    val consumptionDetails: List<UserConsumptionDetail> = emptyList()
 )
 
 /**
@@ -141,7 +163,10 @@ class SummaryViewModel(
                 // Cache result for later saving
                 cachedSettlementResult = settlementResult
 
-                // 5. Save result to Firebase
+                // 5. Calculate consumption details (who consumed what)
+                val consumptionDetails = calculateConsumptionDetails(activities, participantAvatars, eventId)
+
+                // 6. Save result to Firebase
                 saveSettlementResultToFirebase(eventId, settlementResult)
 
                 // Update UI state
@@ -150,7 +175,8 @@ class SummaryViewModel(
                     eventTitle = event.title,
                     settlements = settlementResult.settlements,
                     totalExpense = settlementResult.totalExpense,
-                    errorMessage = null
+                    errorMessage = null,
+                    consumptionDetails = consumptionDetails
                 )
 
                 Log.d("SummaryViewModel", "=== END Loading Event ===")
@@ -163,6 +189,74 @@ class SummaryViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * Calculate consumption details for each user.
+     * Groups items by WHO CONSUMED them (memberNames), not who paid.
+     */
+    private suspend fun calculateConsumptionDetails(
+        activities: List<com.example.luca.model.Activity>,
+        participantAvatars: Map<String, String>,
+        eventId: String
+    ): List<UserConsumptionDetail> {
+        // Map to store user -> list of expense items
+        val userConsumptionMap = mutableMapOf<String, MutableList<ExpenseItemDetail>>()
+
+        // Iterate through all activities and their items
+        for (activity in activities) {
+            val items = repository.getActivityItems(eventId, activity.id)
+
+            for (itemMap in items) {
+                // Convert map to Item object
+                val itemName = itemMap["itemName"] as? String ?: "Unknown Item"
+                val price = (itemMap["price"] as? Number)?.toLong() ?: 0L
+                val quantity = (itemMap["quantity"] as? Number)?.toInt() ?: 1
+                val memberNames = (itemMap["memberNames"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+
+                // Calculate split amount per person
+                val totalItemCost = price * quantity
+                val splitAmount = if (memberNames.isNotEmpty()) {
+                    totalItemCost / memberNames.size
+                } else {
+                    0L
+                }
+
+                // Create expense item detail
+                val expenseItem = ExpenseItemDetail(
+                    activityTitle = activity.title,
+                    itemName = itemName,
+                    price = price,
+                    quantity = quantity,
+                    splitAmount = splitAmount
+                )
+
+                // Add to each member who consumed this item
+                for (memberName in memberNames) {
+                    if (!userConsumptionMap.containsKey(memberName)) {
+                        userConsumptionMap[memberName] = mutableListOf()
+                    }
+                    userConsumptionMap[memberName]?.add(expenseItem)
+                }
+            }
+        }
+
+        // Convert map to list of UserConsumptionDetail
+        val consumptionDetails = userConsumptionMap.map { (userName, items) ->
+            val totalConsumption = items.sumOf { it.splitAmount }
+            val avatarName = participantAvatars[userName] ?: "avatar_1"
+
+            UserConsumptionDetail(
+                userName = userName,
+                avatarName = avatarName,
+                totalConsumption = totalConsumption,
+                items = items.sortedByDescending { it.splitAmount } // Sort by amount, highest first
+            )
+        }.sortedByDescending { it.totalConsumption } // Sort users by total consumption
+
+        Log.d("SummaryViewModel", "Consumption details calculated for ${consumptionDetails.size} users")
+
+        return consumptionDetails
     }
 
     /**
