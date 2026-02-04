@@ -1,9 +1,13 @@
 package com.example.luca.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -12,25 +16,43 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.example.luca.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportBugScreen(onBackClick: () -> Unit) {
+fun ReportBugScreen(
+    onBackClick: () -> Unit,
+    onSubmitSuccess: () -> Unit = {}
+) {
     // State untuk form input (UI Only)
     var subjectText by remember { mutableStateOf("") }
     var descriptionText by remember { mutableStateOf("") }
+    var selectedImageUris by remember { mutableStateOf<List<android.net.Uri>>(emptyList()) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        selectedImageUris = uris
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -70,7 +92,13 @@ fun ReportBugScreen(onBackClick: () -> Unit) {
                     .padding(20.dp)
             ) {
                 Button(
-                    onClick = { /* TODO: Submit Logic */ },
+                    onClick = {
+                        // Validasi saat tombol diklik
+                        if (subjectText.trim().isNotEmpty() && descriptionText.trim().isNotEmpty()) {
+                            showSuccessDialog = true
+                        }
+                        // Jika validation gagal, tidak ada action (user akan lihat field masih kosong)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -158,6 +186,13 @@ fun ReportBugScreen(onBackClick: () -> Unit) {
                     onValueChange = { subjectText = it },
                     placeholder = "e.g., App crashes on split screen"
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "*Required",
+                    style = AppFont.Regular,
+                    fontSize = 12.sp,
+                    color = UIDarkGrey
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -175,6 +210,13 @@ fun ReportBugScreen(onBackClick: () -> Unit) {
                     placeholder = "Tell us what happened, steps to reproduce, etc.",
                     singleLine = false,
                     minLines = 5
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "*Required",
+                    style = AppFont.Regular,
+                    fontSize = 12.sp,
+                    color = UIDarkGrey
                 )
             }
 
@@ -201,44 +243,173 @@ fun ReportBugScreen(onBackClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Add Button Visual
-                Row(
+                // Add Button Visual + Selected Images
+                LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Tombol Upload (Placeholder)
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(UIGrey.copy(alpha = 0.3f))
-                            .clickable { /* TODO: Open Gallery */ }
-                            .border(1.dp, UIDarkGrey.copy(alpha = 0.5f), RoundedCornerShape(12.dp)), // Efek border tipis
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = "Add Photo",
-                                tint = UIDarkGrey
-                            )
-                            Text(
-                                text = "Add",
-                                style = AppFont.Regular,
-                                fontSize = 10.sp,
-                                color = UIDarkGrey
-                            )
+                    // Tombol Upload
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(UIGrey.copy(alpha = 0.3f))
+                                .clickable {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                                .border(1.dp, UIDarkGrey.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = "Add Photo",
+                                    tint = UIDarkGrey
+                                )
+                                Text(
+                                    text = "Add",
+                                    style = AppFont.Regular,
+                                    fontSize = 10.sp,
+                                    color = UIDarkGrey
+                                )
+                            }
                         }
                     }
 
-                    // Contoh jika ada gambar yang sudah diupload (Visual Only)
-                    // Box(
-                    //     modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color.Gray)
-                    // ) { ... }
+                    // Display selected images
+                    items(selectedImageUris) { uri ->
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(UIGrey)
+                        ) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Selected image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            // Delete button
+                            IconButton(
+                                onClick = {
+                                    selectedImageUris = selectedImageUris.filterNot { it == uri }
+                                },
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-8).dp)
+                                    .background(UIBlack.copy(alpha = 0.7f), RoundedCornerShape(50))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Remove image",
+                                    tint = UIWhite,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Display count
+                if (selectedImageUris.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "${selectedImageUris.size} image(s) selected",
+                        style = AppFont.Regular,
+                        fontSize = 12.sp,
+                        color = UIDarkGrey
+                    )
                 }
             }
 
             // Spacer untuk memberi ruang scroll agar tidak tertutup tombol sticky
             Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+
+    // ===== SUCCESS DIALOG =====
+    if (showSuccessDialog) {
+        Dialog(
+            onDismissRequest = { /* Prevent dismiss by tapping outside */ },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .background(UIWhite, RoundedCornerShape(20.dp))
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Success Icon
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(UIAccentYellow.copy(alpha = 0.2f), RoundedCornerShape(50))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Success",
+                            tint = UIAccentYellow,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Title
+                    Text(
+                        text = "Laporan Diterima!",
+                        style = AppFont.Bold,
+                        fontSize = 18.sp,
+                        color = UIBlack,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Description
+                    Text(
+                        text = "Terima kasih telah melaporkan bug. Tim kami akan segera meninjau laporan Anda.",
+                        style = AppFont.Regular,
+                        fontSize = 14.sp,
+                        color = UIDarkGrey,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    // Button
+                    Button(
+                        onClick = {
+                            showSuccessDialog = false
+                            onSubmitSuccess()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = UIAccentYellow,
+                            contentColor = UIBlack
+                        )
+                    ) {
+                        Text(
+                            text = "Kembali ke Home",
+                            style = AppFont.SemiBold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }

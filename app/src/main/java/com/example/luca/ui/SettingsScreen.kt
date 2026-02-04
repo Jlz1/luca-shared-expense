@@ -306,7 +306,9 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onAboutUsClick: () -> Unit,
     onAccountSettingsClick: () -> Unit,
-    onPrivacySecurityClick: () -> Unit = {}
+    onPrivacySecurityClick: () -> Unit = {},
+    onHelpCenterClick: () -> Unit = {},
+    onNotificationSettingsClick: () -> Unit = {}
 ) {
     // State untuk user profile
     var userName by remember { mutableStateOf("Loading...") }
@@ -490,8 +492,8 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Notifications,
                     title = "Notifications",
-                    subtitle = "On, Email & Push",
-                    onClick = { /* TODO */ }
+                    subtitle = "Manage your notification preferences",
+                    onClick = { onNotificationSettingsClick() }
                 )
             }
 
@@ -500,7 +502,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.QuestionAnswer,
                     title = "Help Center",
-                    onClick = { /* TODO */ }
+                    onClick = { onHelpCenterClick() }
                 )
                 SettingsItem(
                     icon = Icons.Default.Info, // Menggunakan icon Info yang ada di AboutUsScreen
