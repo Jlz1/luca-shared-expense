@@ -117,6 +117,9 @@ fun AddActivityScreen2(
     // Use state that can be populated from repo when activity is null
     var eventMembers by remember { mutableStateOf<List<Contact>>(emptyList()) }
 
+    // --- STATE: Edit Participants Dialog ---
+    var showEditParticipantsDialog by remember { mutableStateOf(false) }
+
     // Initialize from provided activity if available (INCLUDE paidBy)
     LaunchedEffect(activity) {
         if (activity != null) {
@@ -153,6 +156,11 @@ fun AddActivityScreen2(
     // --- STATE: Receipt Items ---
     var receiptItems by remember {
         mutableStateOf(listOf<ReceiptItem>())
+    }
+
+    // --- STATE: Backup of items before Equal Split (to restore when toggled OFF) ---
+    var itemsBackupBeforeEqualSplit by remember {
+        mutableStateOf<List<ReceiptItem>?>(null)
     }
 
     // Load items for this Activity when the screen opens
@@ -211,12 +219,19 @@ fun AddActivityScreen2(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isSuccess by viewModel.isSuccess.collectAsStateWithLifecycle()
 
+    // Log every time isSuccess changes
     LaunchedEffect(isSuccess) {
-        if (isSuccess && eventId.isNotEmpty()) {
-            android.util.Log.d("NewActivityScreen2", "✅✅✅ SUCCESS! Navigating back to DetailedEventScreen")
-            onSaveSuccess(eventId)
-            // Reset the success state so it can trigger again next time
-            viewModel.resetSuccessState()
+        android.util.Log.d("NewActivityScreen2", "🔄 LaunchedEffect triggered! isSuccess=$isSuccess, eventId=$eventId")
+        if (isSuccess) {
+            if (eventId.isNotEmpty()) {
+                android.util.Log.d("NewActivityScreen2", "✅✅✅ SUCCESS! Calling onSaveSuccess with eventId=$eventId")
+                onSaveSuccess(eventId)
+                android.util.Log.d("NewActivityScreen2", "✅ onSaveSuccess called, resetting success state...")
+                // Reset the success state so it can trigger again next time
+                viewModel.resetSuccessState()
+            } else {
+                android.util.Log.e("NewActivityScreen2", "❌ ERROR: isSuccess=true but eventId is EMPTY!")
+            }
         }
     }
 
@@ -274,7 +289,7 @@ fun AddActivityScreen2(
                         memberNames = if (isSplitEqual && eventMembers.isNotEmpty()) {
                             eventMembers.map { it.name }
                         } else {
-                            emptyList()
+                            emptyList() 
                         }
                     )
                 }
@@ -356,13 +371,31 @@ fun AddActivityScreen2(
                                 .padding(horizontal = 8.dp, vertical = 8.dp)
                         ) {
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp), // Reduced from 12.dp to 6.dp
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 if (eventMembers.isNotEmpty()) {
                                     items(eventMembers) { member ->
                                         ParticipantAvatarItemSmall(member)
+                                    }
+                                    // Add "Edit" button at the end
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp) // Same size as avatar
+                                                .clip(CircleShape)
+                                                .background(UIAccentYellow.copy(alpha = 0.2f))
+                                                .clickable { showEditParticipantsDialog = true },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Edit,
+                                                contentDescription = "Edit Participants",
+                                                tint = UIAccentYellow,
+                                                modifier = Modifier.size(16.dp) // Proportional icon size
+                                            )
+                                        }
                                     }
                                 } else {
                                     // Fallback display jika tidak ada participants
@@ -396,12 +429,34 @@ fun AddActivityScreen2(
                                 checked = isSplitEqual, // Menggunakan variable state
                                 onCheckedChange = { isChecked ->
                                     isSplitEqual = isChecked
-                                    // Jika equal split diaktifkan, update semua item dengan semua participant
-                                    if (isChecked && eventMembers.isNotEmpty()) {
-                                        receiptItems = receiptItems.map { item ->
-                                            item.copy(
-                                                memberNames = eventMembers.map { it.name }
-                                            )
+
+                                    if (isChecked) {
+                                        // === EQUAL SPLIT ON ===
+                                        // Backup current items state before applying equal split
+                                        if (receiptItems.isNotEmpty()) {
+                                            itemsBackupBeforeEqualSplit = receiptItems
+                                        }
+
+                                        // Apply equal split: assign all participants to all items
+                                        if (eventMembers.isNotEmpty()) {
+                                            receiptItems = receiptItems.map { item ->
+                                                item.copy(
+                                                    memberNames = eventMembers.map { it.name }
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        // === EQUAL SPLIT OFF ===
+                                        // Restore from backup if available
+                                        if (itemsBackupBeforeEqualSplit != null) {
+                                            receiptItems = itemsBackupBeforeEqualSplit!!
+                                            itemsBackupBeforeEqualSplit = null // Clear backup after restore
+                                        }
+                                        // If no backup, clear all member assignments (reset to empty)
+                                        else {
+                                            receiptItems = receiptItems.map { item ->
+                                                item.copy(memberNames = emptyList())
+                                            }
                                         }
                                     }
                                 }, // Update state saat diklik
@@ -724,7 +779,7 @@ fun AddActivityScreen2(
                     Button(
                         onClick = {
                             android.util.Log.d("NewActivityScreen2", "======== CONTINUE BUTTON CLICKED ========")
-                            // Save items to database
+                            // Validate IDs
                             if (eventId.isEmpty()) {
                                 android.util.Log.e("NewActivityScreen2", "❌ ERROR: EventID is EMPTY!")
                                 return@Button
@@ -737,14 +792,6 @@ fun AddActivityScreen2(
                             android.util.Log.d("NewActivityScreen2", "✅ EventID: $eventId")
                             android.util.Log.d("NewActivityScreen2", "✅ ActivityID: $activityId")
                             android.util.Log.d("NewActivityScreen2", "✅ Items count: ${receiptItems.size}")
-
-                            // Only save if there are items
-                            if (receiptItems.isEmpty()) {
-                                android.util.Log.w("NewActivityScreen2", "⚠️ No items to save, proceeding without items")
-                                // Still navigate even if no items
-                                onSaveSuccess(eventId)
-                                return@Button
-                            }
 
                             // Convert ReceiptItem to Map<String, Any> for Firestore
                             val itemsForDb = receiptItems.map { item ->
@@ -764,6 +811,7 @@ fun AddActivityScreen2(
                                 android.util.Log.d("NewActivityScreen2", "Item[$index]: $item")
                             }
 
+                            // Save to database (even if empty list)
                             viewModel.saveActivityItems(
                                 eventId = eventId,
                                 activityId = activityId,
@@ -772,7 +820,7 @@ fun AddActivityScreen2(
                                 discountAmount = globalDiscountAmount
                             )
                             android.util.Log.d("NewActivityScreen2", "======== saveActivityItems CALLED ========")
-                            // isSuccess LaunchedEffect akan handle navigation
+                            // LaunchedEffect(isSuccess) will automatically navigate back to DetailedEventScreen
                         },
                         modifier = Modifier.size(width = 188.dp, height = 50.dp),
                         shape = RoundedCornerShape(25.dp),
@@ -883,6 +931,26 @@ fun AddActivityScreen2(
             },
             onTaxChanged = { globalTaxPercentage = it },
             onDiscountChanged = { globalDiscountAmount = it }
+        )
+    }
+
+    // Edit Participants Dialog
+    if (showEditParticipantsDialog) {
+        EditParticipantsDialog(
+            currentParticipants = eventMembers,
+            availableContacts = viewModel.availableContacts.collectAsState().value,
+            onDismiss = { showEditParticipantsDialog = false },
+            onSave = { updatedParticipants ->
+                eventMembers = updatedParticipants
+                showEditParticipantsDialog = false
+
+                // If Equal Split is active, update all items with new participants
+                if (isSplitEqual && receiptItems.isNotEmpty()) {
+                    receiptItems = receiptItems.map { item ->
+                        item.copy(memberNames = updatedParticipants.map { it.name })
+                    }
+                }
+            }
         )
     }
 }
@@ -1875,6 +1943,157 @@ fun EditItemDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", color = UIDarkGrey, style = AppFont.Medium)
+            }
+        },
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun EditParticipantsDialog(
+    currentParticipants: List<Contact>,
+    availableContacts: List<Contact>,
+    onDismiss: () -> Unit,
+    onSave: (List<Contact>) -> Unit
+) {
+    var selectedParticipants by remember { mutableStateOf(currentParticipants.toSet()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Edit Participants",
+                style = AppFont.SemiBold,
+                fontSize = 20.sp
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                Text(
+                    text = "Select participants for this activity",
+                    style = AppFont.Regular,
+                    fontSize = 14.sp,
+                    color = UIDarkGrey,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Scrollable list of available contacts
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(UIBackground)
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableContacts) { contact ->
+                        val isSelected = selectedParticipants.any { it.name == contact.name }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) UIAccentYellow.copy(alpha = 0.2f) else UIWhite)
+                                .clickable {
+                                    selectedParticipants = if (isSelected) {
+                                        selectedParticipants.filterNot { it.name == contact.name }.toSet()
+                                    } else {
+                                        selectedParticipants + contact
+                                    }
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Avatar
+                            val resourceId = remember(contact.avatarName) {
+                                if (contact.avatarName.isNotBlank()) {
+                                    try {
+                                        getDrawableResourceId(contact.avatarName)
+                                    } catch (_: Exception) {
+                                        R.drawable.avatar_1
+                                    }
+                                } else {
+                                    R.drawable.avatar_1
+                                }
+                            }
+
+                            Image(
+                                painter = painterResource(id = resourceId),
+                                contentDescription = contact.name,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Name
+                            Text(
+                                text = contact.name,
+                                style = AppFont.Medium,
+                                fontSize = 16.sp,
+                                color = UIBlack,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Checkmark indicator
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(UIAccentYellow),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "✓",
+                                        style = AppFont.Bold,
+                                        fontSize = 14.sp,
+                                        color = UIBlack
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Selected count
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "${selectedParticipants.size} participant(s) selected",
+                    style = AppFont.Medium,
+                    fontSize = 14.sp,
+                    color = if (selectedParticipants.isNotEmpty()) UIAccentYellow else Color.Red
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (selectedParticipants.isNotEmpty()) {
+                        onSave(selectedParticipants.toList())
+                    }
+                },
+                enabled = selectedParticipants.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = UIAccentYellow,
+                    contentColor = UIBlack
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Save", style = AppFont.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = AppFont.Medium, color = UIDarkGrey)
             }
         },
         containerColor = UIWhite,
