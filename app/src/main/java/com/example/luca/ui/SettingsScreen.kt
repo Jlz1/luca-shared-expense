@@ -12,9 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -307,7 +305,8 @@ fun PasswordChangeDialogComponent(
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onAboutUsClick: () -> Unit,
-    onAccountSettingsClick: () -> Unit
+    onAccountSettingsClick: () -> Unit,
+    onPrivacySecurityClick: () -> Unit = {}
 ) {
     // State untuk user profile
     var userName by remember { mutableStateOf("Loading...") }
@@ -486,7 +485,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.PrivacyTip,
                     title = "Privacy & Security",
-                    onClick = { /* TODO */ }
+                    onClick = { onPrivacySecurityClick() }
                 )
                 SettingsItem(
                     icon = Icons.Default.Notifications,
@@ -496,23 +495,7 @@ fun SettingsScreen(
                 )
             }
 
-            // ===== 3. GROUP: PREFERENCES =====
-            SettingsGroupContainer(title = "Preferences") {
-                SettingsItem(
-                    icon = Icons.Default.Language,
-                    title = "Language",
-                    subtitle = "English (US)",
-                    onClick = { /* TODO */ }
-                )
-                SettingsItem(
-                    icon = Icons.Default.DarkMode,
-                    title = "Theme",
-                    subtitle = "System Default",
-                    onClick = { /* TODO */ }
-                )
-            }
-
-            // ===== 4. GROUP: SUPPORT & ABOUT =====
+            // ===== 3. GROUP: SUPPORT & ABOUT =====
             SettingsGroupContainer(title = "Support") {
                 SettingsItem(
                     icon = Icons.Default.QuestionAnswer,
@@ -681,6 +664,11 @@ fun SettingsScreen(
 @Composable
 fun SettingsPreview() {
     LucaTheme {
-        SettingsScreen(onBackClick = {}, onAboutUsClick = {}, onAccountSettingsClick = {})
+        SettingsScreen(
+            onBackClick = {},
+            onAboutUsClick = {},
+            onAccountSettingsClick = {},
+            onPrivacySecurityClick = {}
+        )
     }
 }

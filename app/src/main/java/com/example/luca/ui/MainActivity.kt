@@ -342,6 +342,12 @@ fun LucaApp() {
                         )
                     }
 
+                    composable("privacy_security") {
+                        PrivacySecurityScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     composable("settings") {
                         SettingsScreen(
                             onBackClick = { navController.popBackStack() },
@@ -355,6 +361,12 @@ fun LucaApp() {
                                 scope.launch {
                                     drawerState.close()
                                     navController.navigate("account_settings")
+                                }
+                            },
+                            onPrivacySecurityClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("privacy_security")
                                 }
                             }
                         )
