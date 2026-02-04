@@ -439,7 +439,14 @@ fun LucaApp() {
                             eventId = eventId,
                             activityId = activityId,
                             activity = activityData,
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            onSaveSuccess = { savedEventId ->
+                                // Navigate back to DetailedEventScreen after saving
+                                navController.navigate("detailed_event/$savedEventId") {
+                                    popUpTo("detailed_event/$savedEventId") { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            }
                         )
                     }
                     composable("new_activity/{eventId}") { backStackEntry ->
@@ -466,7 +473,20 @@ fun LucaApp() {
                         }
                     }
                     composable("new_activity_2") {
-                        AddActivityScreen2(onBackClick = { navController.popBackStack() })
+                        AddActivityScreen2(
+                            onBackClick = { navController.popBackStack() },
+                            onSaveSuccess = { savedEventId ->
+                                // Navigate back to DetailedEventScreen after saving
+                                if (savedEventId.isNotEmpty()) {
+                                    navController.navigate("detailed_event/$savedEventId") {
+                                        popUpTo("detailed_event/$savedEventId") { inclusive = false }
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    navController.popBackStack()
+                                }
+                            }
+                        )
                     }
                     composable("edit_activity") { NewActivityEditScreen(onBackClick = { navController.popBackStack() }) }
 

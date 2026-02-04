@@ -482,8 +482,7 @@ fun AddActivityScreenContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(20.dp)
-                    .imePadding(),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 PrimaryButton(
