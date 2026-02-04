@@ -98,13 +98,19 @@ class AuthViewModel : ViewModel() {
     // Tahap 3: Bikin Akun (Hanya dipanggil kalau OTP benar)
     private fun createFirebaseAccount() {
         isLoading = true
-        // Kita pakai fungsi manual di sini biar lebih terkontrol flow-nya
         auth.createUserWithEmailAndPassword(tempEmail, tempPassword)
-            .addOnSuccessListener {
-                // Sukses Bikin Akun -> Simpan Nama ke Database
-                // Kita pinjam fungsi updateProfile dari AuthRepository kalau ada,
-                // atau panggil langsung fungsi helper di bawah.
-                saveUserToFirestore(tempName, tempEmail)
+            .addOnSuccessListener { authResult ->
+                // Ambil UID langsung dari hasil, tanpa bergantung pada currentUser
+                val uid = authResult.user?.uid
+                if (uid == null) {
+                    isLoading = false
+                    otpVerificationStatus = null
+                    errorMessage = "Akun berhasil dibuat, tetapi UID tidak tersedia. Coba lagi."
+                    return@addOnSuccessListener
+                }
+
+                // Simpan ke Firestore menggunakan UID (menghindari duplikasi by email)
+                saveUserToFirestore(uid, tempName, tempEmail)
 
                 isNewUser = true // Arahkan ke Fill Profile
                 isLoading = false
@@ -117,10 +123,18 @@ class AuthViewModel : ViewModel() {
     }
 
     // Helper Simpan ke Firestore (Versi Cepat)
-    private fun saveUserToFirestore(name: String, email: String) {
+    private fun saveUserToFirestore(uid: String, name: String, email: String) {
         val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-        val user = hashMapOf("name" to name, "email" to email)
-        db.collection("users").document(email).set(user)
+        val userData = hashMapOf(
+            "uid" to uid,
+            "email" to email,
+            "username" to name,
+            // placeholder avatar, will be updated in Fill Profile
+            "avatarName" to "avatar_1",
+            "createdAt" to System.currentTimeMillis()
+        )
+        // Gunakan UID sebagai document ID agar konsisten dengan flow lain, dan merge agar aman
+        db.collection("users").document(uid).set(userData, com.google.firebase.firestore.SetOptions.merge())
     }
 
     // =================================================================
