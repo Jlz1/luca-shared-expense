@@ -342,6 +342,18 @@ fun LucaApp() {
                         )
                     }
 
+                    composable("privacy_security") {
+                        PrivacySecurityScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("help_center") {
+                        HelpCenterScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     composable("settings") {
                         SettingsScreen(
                             onBackClick = { navController.popBackStack() },
@@ -356,13 +368,36 @@ fun LucaApp() {
                                     drawerState.close()
                                     navController.navigate("account_settings")
                                 }
+                            },
+                            onPrivacySecurityClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("privacy_security")
+                                }
+                            },
+                            onHelpCenterClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("help_center")
+                                }
+                            },
+                            onNotificationSettingsClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("notification_settings")
+                                }
                             }
                         )
                     }
 
                     composable("report_bugs") {
                         ReportBugScreen(
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            onSubmitSuccess = {
+                                navController.navigate("home") {
+                                    popUpTo("report_bugs") { inclusive = true }
+                                }
+                            }
                         )
                     }
 
@@ -375,6 +410,12 @@ fun LucaApp() {
                                     navController.navigate("report_bugs")
                                 }
                             }
+                        )
+                    }
+
+                    composable("notification_settings") {
+                        NotificationSettingsScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 
