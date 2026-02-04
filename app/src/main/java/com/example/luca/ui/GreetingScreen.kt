@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,8 +44,8 @@ fun GreetingScreen(
 ) {
     val context = LocalContext.current
 
-    // Web Client ID
-    val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
+    // Use default_web_client_id from resources via Compose
+    val webClientId = stringResource(id = R.string.default_web_client_id)
 
     Log.d("GreetingScreen", "Initializing with Web Client ID: $webClientId")
 
@@ -159,7 +160,7 @@ fun GreetingScreen(
             }
             Activity.RESULT_CANCELED -> {
                 Log.w("GreetingScreen", "Sign-in cancelled by user (or auto-cancelled)")
-                // Don't show toast for user cancellation to avoid confusion
+                Toast.makeText(context, "Google Sign-In was cancelled. Please try again.", Toast.LENGTH_SHORT).show()
             }
             else -> {
                 Log.e("GreetingScreen", "Unexpected result code: ${result.resultCode}")
@@ -181,18 +182,9 @@ fun GreetingScreen(
 
             val client = GoogleSignIn.getClient(context, gso)
 
-            // Check if already signed in
-            val currentAccount = GoogleSignIn.getLastSignedInAccount(context)
-            Log.d("GreetingScreen", "Current signed in account: ${currentAccount?.email}")
-
-            if (currentAccount != null) {
-                Log.d("GreetingScreen", "User already signed in, signing out first...")
-                client.signOut().addOnCompleteListener {
-                    Log.d("GreetingScreen", "Sign out complete, launching sign in...")
-                    googleLauncher.launch(client.signInIntent)
-                }
-            } else {
-                Log.d("GreetingScreen", "No previous sign in, launching sign in intent...")
+            // Force revoke access to clear any cached sessions that might block ID token issuance
+            client.revokeAccess().addOnCompleteListener {
+                Log.d("GreetingScreen", "Revoke access complete, launching sign in...")
                 googleLauncher.launch(client.signInIntent)
             }
         } catch (e: Exception) {
