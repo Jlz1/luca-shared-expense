@@ -696,35 +696,47 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 Spacer(Modifier.height(8.dp))
                 FloatingAddButton(onClick = onAddActivityClick)
             }
+            // ... bagian if (isEmpty) biarin aja ...
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End, // Posisi di tengah
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Summary Button (Icon)
+                // 1. Tombol SUMMARIZE (Putih + Border Kuning)
                 Surface(
                     modifier = Modifier
-                        .size(60.dp)
+                        .height(60.dp)
+                        .width(160.dp)// Tinggi ngikutin tombol Add
                         .clickable { onSummaryClick() },
-                    shape = CircleShape,
-                    color = UIBlack,
-                    shadowElevation = 6.dp
+                    shape = RoundedCornerShape(50), // Bentuk Pill/Kapsul
+                    color = UIWhite,
+                    border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow), // Border Kuning Tebal
+                    shadowElevation = 4.dp
                 ) {
+
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_summary_button),
-                            contentDescription = "Split Bill",
-                            tint = UIWhite,
-                            modifier = Modifier.size(28.dp)
+                        //buat agar menggunakan drawable ic_summary_butto
+                        Text(
+                            text = "Summarize",
+                            style = AppFont.Bold,
+                            fontSize = 18.sp,
+                            color = UIBlack
                         )
+
                     }
                 }
 
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(16.dp)) // Jarak antar tombol
 
-                // Add Activity Button
-                FloatingAddButton(onClick = onAddActivityClick)
+                // 2. Tombol ADD (Tetep pakai yang lama)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Bottom),
+                    horizontalAlignment = Alignment.End)
+                {
+                    FloatingAddButton(onClick = onAddActivityClick)
+                }
             }
         }
     }
