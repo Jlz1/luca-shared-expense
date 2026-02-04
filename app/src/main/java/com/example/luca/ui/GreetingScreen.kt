@@ -193,19 +193,6 @@ fun GreetingScreen(
         }
     }
 
-    // Handle X (Twitter) Click
-    val onXClick: () -> Unit = {
-        Log.d("GreetingScreen", "=== Twitter Sign-In Button Clicked ===")
-        val activity = context as? Activity
-        if (activity != null) {
-            Log.d("GreetingScreen", "Activity context found, initiating Twitter login")
-            authViewModel.twitterLogin(activity)
-        } else {
-            val msg = "Error: Context is not Activity"
-            Log.e("GreetingScreen", msg)
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize().background(UIWhite)) {
         if (authViewModel.isLoading) {
@@ -217,7 +204,6 @@ fun GreetingScreen(
 
         GreetingScreenContent(
             onGoogleClick = onGoogleClick,
-            onXClick = onXClick,
             onSignUpClick = onNavigateToSignUp,
             onLoginClick = onNavigateToLogin
         )
@@ -228,7 +214,6 @@ fun GreetingScreen(
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
-    onXClick: () -> Unit,
     onSignUpClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
@@ -287,15 +272,6 @@ fun GreetingScreenContent(
                     text = "Continue with Google",
                     iconRes = R.drawable.ic_google_logo,
                     onClick = onGoogleClick,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                SocialButton(
-                    text = "Continue with X",
-                    iconRes = R.drawable.ic_x_logo,
-                    onClick = onXClick,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -400,7 +376,6 @@ fun GreetingScreenPreview() {
     LucaTheme {
         GreetingScreenContent(
             onGoogleClick = {},
-            onXClick = {},
             onSignUpClick = {},
             onLoginClick = {}
         )
