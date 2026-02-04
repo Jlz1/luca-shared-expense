@@ -148,9 +148,16 @@ class AuthViewModel : ViewModel() {
             val cleanEmail = email.trim().lowercase()
             val result = authRepository.loginManual(cleanEmail, pass)
 
-            result.onSuccess {
-                isSuccess = true
+            result.onSuccess { exists ->
+                // Only navigate when Firestore user document exists
+                if (exists) {
+                    isSuccess = true
+                } else {
+                    // Treat as a unified case: account does not exist (deleted or never created)
+                    errorMessage = "Account does not exist"
+                }
             }.onFailure { error ->
+                // Preserve specific auth credential errors from Firebase
                 errorMessage = error.message
             }
             isLoading = false

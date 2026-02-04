@@ -58,15 +58,17 @@ class AuthRepository {
 
             if (user != null) {
                 val doc = db.collection("users").document(user.uid).get().await()
+                // success=true, isNew=true when no doc; success=true, isNew=false when doc exists
                 if (doc.exists()) {
                     Result.success(Pair(true, false))
                 } else {
                     Result.success(Pair(true, true))
                 }
             } else {
-                Result.failure(Exception("Google User Null"))
+                Result.failure(Exception("The supplied auth credential is incorrect, malformed or has expired"))
             }
         } catch (e: Exception) {
+            // Surface Firebase auth errors; greet screen will toast and not navigate
             Result.failure(e)
         }
     }
@@ -94,7 +96,7 @@ class AuthRepository {
     }
 
     suspend fun updateProfile(username: String, avatarName: String): Result<Boolean> {
-        val user = auth.currentUser ?: return Result.failure(Exception("User offline"))
+        val user = auth.currentUser ?: return Result.failure(Exception("User is not authenticated"))
         return try {
             val userData = User(
                 uid = user.uid,
@@ -103,7 +105,6 @@ class AuthRepository {
                 avatarName = avatarName,
                 createdAt = System.currentTimeMillis()
             )
-            // Simpan object User ke Firestore
             db.collection("users").document(user.uid)
                 .set(userData, SetOptions.merge())
                 .await()
