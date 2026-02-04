@@ -2119,3 +2119,12 @@ fun createImageFileForCamera(context: android.content.Context): File {
         context.externalCacheDir
     )
 }
+
+
+
+
+
+
+
+
+

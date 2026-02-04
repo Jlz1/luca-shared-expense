@@ -33,6 +33,7 @@ import coil.request.ImageRequest
 import com.example.luca.R
 import com.example.luca.ui.theme.*
 import com.example.luca.util.AvatarUtils
+import com.example.luca.util.ValidationUtils
 import com.example.luca.viewmodel.AccountSettingsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -570,14 +571,28 @@ fun PasswordChangeDialog(
             Button(
                 onClick = {
                     when {
-                        oldPassword.isEmpty() -> errorMessage = "Current password required"
-                        newPassword.isEmpty() -> errorMessage = "New password required"
-                        confirmPassword.isEmpty() -> errorMessage = "Confirm password required"
-                        newPassword != confirmPassword -> errorMessage = "Passwords don't match"
-                        newPassword.length < 6 -> errorMessage = "Password must be at least 6 characters"
+                        oldPassword.isEmpty() -> {
+                            errorMessage = "Password saat ini tidak boleh kosong"
+                        }
+                        newPassword.isEmpty() -> {
+                            errorMessage = "Password baru tidak boleh kosong"
+                        }
+                        confirmPassword.isEmpty() -> {
+                            errorMessage = "Konfirmasi password tidak boleh kosong"
+                        }
+                        newPassword != confirmPassword -> {
+                            errorMessage = "Password baru tidak cocok"
+                        }
                         else -> {
-                            onConfirm(oldPassword, newPassword)
-                            onDismiss()
+                            // Validasi password baru menggunakan ValidationUtils
+                            val passwordError = ValidationUtils.getPasswordError(newPassword)
+                            if (passwordError != null) {
+                                errorMessage = passwordError
+                            } else {
+                                // Password valid, proceed
+                                onConfirm(oldPassword, newPassword)
+                                onDismiss()
+                            }
                         }
                     }
                 },
