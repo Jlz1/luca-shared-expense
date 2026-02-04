@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -30,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -78,7 +77,8 @@ fun DetailedEventScreen(
     onMenuClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {},
     onNavigateToEditEvent: (String) -> Unit = {},
-    onNavigateToActivityDetail: (String) -> Unit = {}
+    onNavigateToActivityDetail: (String) -> Unit = {}, // [BARU] Navigate ke NewActivityScreen2
+    onNavigateToSummary: () -> Unit = {} // [BARU] Navigate ke SummaryScreen untuk split bill
 ) {
     // 1. Load Data
     LaunchedEffect(eventId) { viewModel.loadEventData(eventId) }
@@ -109,7 +109,8 @@ fun DetailedEventScreen(
         onNavigateToAddActivity = onNavigateToAddActivity,
         onEditClick = { onNavigateToEditEvent(eventId) },
         onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
-        onActivityClick = onNavigateToActivityDetail
+        onActivityClick = onNavigateToActivityDetail,
+        onSummaryClick = onNavigateToSummary
     )
 
     // 5. Tampilkan Dialog (Overlay)
@@ -138,7 +139,8 @@ fun DetailedEventContent(
     onNavigateToAddActivity: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onActivityClick: (String) -> Unit = {}
+    onActivityClick: (String) -> Unit = {},
+    onSummaryClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -180,11 +182,10 @@ fun DetailedEventContent(
                 }
             }
             BottomActionArea(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(24.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp),
                 isEmpty = activitiesState.isEmpty(),
-                onAddActivityClick = onNavigateToAddActivity
+                onAddActivityClick = onNavigateToAddActivity,
+                onSummaryClick = onSummaryClick
             )
         }
     }
@@ -510,7 +511,7 @@ fun SmallCircleButton(icon: androidx.compose.ui.graphics.vector.ImageVector, mod
 }
 
 @Composable
-fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActivityClick: () -> Unit) {
+fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActivityClick: () -> Unit, onSummaryClick: () -> Unit = {}) {
     Box(modifier = modifier.fillMaxWidth()) {
         if (isEmpty) {
             Column(modifier = Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.End) {
@@ -519,7 +520,33 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 FloatingAddButton(onClick = onAddActivityClick)
             }
         } else {
-            FloatingAddButton(modifier = Modifier.align(Alignment.CenterEnd), onClick = onAddActivityClick)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Summary Button (Calculate Settlement)
+                Surface(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .clickable { onSummaryClick() },
+                    shape = RoundedCornerShape(24.dp),
+                    color = UIBlack,
+                    shadowElevation = 6.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                }
+
+                // Add Activity Button
+                FloatingAddButton(onClick = onAddActivityClick)
+            }
         }
     }
 }
