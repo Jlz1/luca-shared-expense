@@ -7,6 +7,7 @@ import android.net.Uri
 import com.example.luca.model.Activity
 import com.example.luca.model.Contact
 import com.example.luca.model.Event
+import com.example.luca.model.NotificationPreferences
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -50,6 +51,10 @@ interface LucaRepository {
     // Settlement Actions
     suspend fun saveSettlementResult(eventId: String, settlementJson: String): Result<Boolean>
     suspend fun getSettlementResult(eventId: String): String?
+
+    // Notification Preferences
+    suspend fun saveNotificationPreferences(userId: String, preferences: NotificationPreferences): Result<Boolean>
+    suspend fun getNotificationPreferences(userId: String): NotificationPreferences?
 }
 
 // Konstruktor menerima Context untuk keperluan kompresi gambar
@@ -477,6 +482,83 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
 
             snapshot.getString("settlementResultJson")
         } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Menyimpan preferensi notifikasi user ke Firestore
+     */
+    override suspend fun saveNotificationPreferences(
+        userId: String,
+        preferences: NotificationPreferences
+    ): Result<Boolean> {
+        return try {
+            val preferencesMap = mapOf(
+                "pushEnabled" to preferences.pushEnabled,
+                "pushNewExpense" to preferences.pushNewExpense,
+                "pushPaymentReminder" to preferences.pushPaymentReminder,
+                "pushGroupInvite" to preferences.pushGroupInvite,
+                "pushExpenseUpdate" to preferences.pushExpenseUpdate,
+                "emailEnabled" to preferences.emailEnabled,
+                "emailWeeklySummary" to preferences.emailWeeklySummary,
+                "emailPaymentReminder" to preferences.emailPaymentReminder,
+                "emailGroupActivity" to preferences.emailGroupActivity,
+                "doNotDisturbEnabled" to preferences.doNotDisturbEnabled,
+                "doNotDisturbStart" to preferences.doNotDisturbStart,
+                "doNotDisturbEnd" to preferences.doNotDisturbEnd
+            )
+
+            db.collection("users")
+                .document(userId)
+                .collection("settings")
+                .document("notifications")
+                .set(preferencesMap)
+                .await()
+
+            android.util.Log.d("LucaRepository", "✅ Notification preferences saved successfully")
+            Result.success(true)
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error saving notification preferences: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Mengambil preferensi notifikasi user dari Firestore
+     */
+    override suspend fun getNotificationPreferences(userId: String): NotificationPreferences? {
+        return try {
+            val snapshot = db.collection("users")
+                .document(userId)
+                .collection("settings")
+                .document("notifications")
+                .get()
+                .await()
+
+            if (snapshot.exists()) {
+                NotificationPreferences(
+                    pushEnabled = snapshot.getBoolean("pushEnabled") ?: true,
+                    pushNewExpense = snapshot.getBoolean("pushNewExpense") ?: true,
+                    pushPaymentReminder = snapshot.getBoolean("pushPaymentReminder") ?: true,
+                    pushGroupInvite = snapshot.getBoolean("pushGroupInvite") ?: true,
+                    pushExpenseUpdate = snapshot.getBoolean("pushExpenseUpdate") ?: true,
+                    emailEnabled = snapshot.getBoolean("emailEnabled") ?: true,
+                    emailWeeklySummary = snapshot.getBoolean("emailWeeklySummary") ?: true,
+                    emailPaymentReminder = snapshot.getBoolean("emailPaymentReminder") ?: true,
+                    emailGroupActivity = snapshot.getBoolean("emailGroupActivity") ?: false,
+                    doNotDisturbEnabled = snapshot.getBoolean("doNotDisturbEnabled") ?: false,
+                    doNotDisturbStart = snapshot.getString("doNotDisturbStart") ?: "22:00",
+                    doNotDisturbEnd = snapshot.getString("doNotDisturbEnd") ?: "07:00"
+                )
+            } else {
+                // Return default preferences if not exists
+                NotificationPreferences()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error getting notification preferences: ${e.message}")
             e.printStackTrace()
             null
         }
