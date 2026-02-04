@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -30,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -110,7 +109,8 @@ fun DetailedEventScreen(
         onNavigateToAddActivity = onNavigateToAddActivity,
         onEditClick = { onNavigateToEditEvent(eventId) },
         onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
-        onActivityClick = onNavigateToActivityDetail
+        onActivityClick = onNavigateToActivityDetail,
+        onSummaryClick = onNavigateToSummary
     )
 
     // 5. Tampilkan Dialog (Overlay)
@@ -139,7 +139,8 @@ fun DetailedEventContent(
     onNavigateToAddActivity: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
-    onActivityClick: (String) -> Unit = {}
+    onActivityClick: (String) -> Unit = {},
+    onSummaryClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -184,7 +185,7 @@ fun DetailedEventContent(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp),
                 isEmpty = activitiesState.isEmpty(),
                 onAddActivityClick = onNavigateToAddActivity,
-                onSummaryClick = onNavigateToSummary
+                onSummaryClick = onSummaryClick
             )
         }
     }
@@ -537,7 +538,7 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                         modifier = Modifier.padding(horizontal = 20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.AttachMoney, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     }
