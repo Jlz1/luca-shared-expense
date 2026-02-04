@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -214,6 +215,8 @@ fun AddActivityScreen2(
         if (isSuccess && eventId.isNotEmpty()) {
             android.util.Log.d("NewActivityScreen2", "✅✅✅ SUCCESS! Navigating back to DetailedEventScreen")
             onSaveSuccess(eventId)
+            // Reset the success state so it can trigger again next time
+            viewModel.resetSuccessState()
         }
     }
 
@@ -267,7 +270,12 @@ fun AddActivityScreen2(
                         itemName = item.itemName,
                         price = item.itemPrice.toLong(),
                         members = emptyList(),
-                        memberNames = emptyList()
+                        // Jika equal split aktif, assign semua members
+                        memberNames = if (isSplitEqual && eventMembers.isNotEmpty()) {
+                            eventMembers.map { it.name }
+                        } else {
+                            emptyList()
+                        }
                     )
                 }
                 receiptItems = receiptItems + scannedItems
@@ -314,6 +322,7 @@ fun AddActivityScreen2(
                 .weight(1f) // Mengisi sisa ruang ke bawah
                 .fillMaxWidth()
                 .background(UIBackground)
+                .imePadding() // Prevent buttons from being pushed up by keyboard
         ) {
 
             // A. SCROLLABLE CONTENT (FORM)
@@ -385,7 +394,17 @@ fun AddActivityScreen2(
                             // --- SWITCH YANG SUDAH DIPERBAIKI ---
                             Switch(
                                 checked = isSplitEqual, // Menggunakan variable state
-                                onCheckedChange = { isSplitEqual = it }, // Update state saat diklik
+                                onCheckedChange = { isChecked ->
+                                    isSplitEqual = isChecked
+                                    // Jika equal split diaktifkan, update semua item dengan semua participant
+                                    if (isChecked && eventMembers.isNotEmpty()) {
+                                        receiptItems = receiptItems.map { item ->
+                                            item.copy(
+                                                memberNames = eventMembers.map { it.name }
+                                            )
+                                        }
+                                    }
+                                }, // Update state saat diklik
                                 modifier = Modifier
                                     .scale(1.2f)
                                     .height(30.dp),
@@ -820,6 +839,7 @@ fun AddActivityScreen2(
             ),
             taxPercentage = globalTaxPercentage,
             discountAmount = globalDiscountAmount,
+            isSplitEqual = isSplitEqual,
             onDismiss = { showAddItemDialog = false },
             onAddItem = { newItem ->
                 receiptItems = receiptItems + newItem
@@ -842,6 +862,7 @@ fun AddActivityScreen2(
             ),
             taxPercentage = globalTaxPercentage,
             discountAmount = globalDiscountAmount,
+            isSplitEqual = isSplitEqual,
             onDismiss = {
                 showEditItemDialog = false
                 editingItemIndex = -1
@@ -1228,6 +1249,7 @@ fun AddItemDialog(
     eventMembers: List<Contact>,
     taxPercentage: Double,
     discountAmount: Double,
+    isSplitEqual: Boolean = false,
     onDismiss: () -> Unit,
     onAddItem: (ReceiptItem) -> Unit,
     onTaxChanged: (Double) -> Unit,
@@ -1236,12 +1258,19 @@ fun AddItemDialog(
     var itemName by remember { mutableStateOf("") }
     var itemPrice by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
-    var selectedMembers by remember { mutableStateOf(setOf<String>()) }
+    // Jika equal split aktif, otomatis pilih semua member
+    var selectedMembers by remember {
+        mutableStateOf(
+            if (isSplitEqual) eventMembers.map { it.name }.toSet()
+            else setOf<String>()
+        )
+    }
     var tempTax by remember { mutableStateOf(taxPercentage.toString()) }
     var tempDiscount by remember { mutableStateOf(discountAmount.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.imePadding(),
         title = {
             Text(
                 text = "Add New Item",
@@ -1295,12 +1324,26 @@ fun AddItemDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Members Selection seperti Add Participants screen
-                Text(
-                    text = "Shared by:",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = UIBlack
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Shared by:",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = UIBlack
+                    )
+                    if (isSplitEqual) {
+                        Text(
+                            text = "Equal Split Active",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = UIAccentYellow
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Container dengan background seperti Add Participants - maksimal 3 items visible
@@ -1320,7 +1363,7 @@ fun AddItemDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clickable(enabled = !isSplitEqual) {
                                         selectedMembers = if (selectedMembers.contains(member.name)) {
                                             selectedMembers - member.name
                                         } else {
@@ -1523,6 +1566,7 @@ fun EditItemDialog(
     eventMembers: List<Contact>,
     taxPercentage: Double,
     discountAmount: Double,
+    isSplitEqual: Boolean = false,
     onDismiss: () -> Unit,
     onSaveItem: (ReceiptItem) -> Unit,
     onDeleteItem: () -> Unit,
@@ -1532,12 +1576,19 @@ fun EditItemDialog(
     var itemName by remember { mutableStateOf(item.itemName) }
     var itemPrice by remember { mutableStateOf(item.price.toString()) }
     var itemQuantity by remember { mutableStateOf(item.quantity.toString()) }
-    var selectedMembers by remember { mutableStateOf(item.memberNames.toSet()) }
+    // Jika equal split aktif, otomatis gunakan semua member
+    var selectedMembers by remember {
+        mutableStateOf(
+            if (isSplitEqual) eventMembers.map { it.name }.toSet()
+            else item.memberNames.toSet()
+        )
+    }
     var tempTax by remember { mutableStateOf(taxPercentage.toString()) }
     var tempDiscount by remember { mutableStateOf(discountAmount.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.imePadding(),
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1603,12 +1654,26 @@ fun EditItemDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Members Selection seperti Add Participants screen
-                Text(
-                    text = "Shared by:",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = UIBlack
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Shared by:",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = UIBlack
+                    )
+                    if (isSplitEqual) {
+                        Text(
+                            text = "Equal Split Active",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = UIAccentYellow
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Container dengan background seperti Add Participants - maksimal 3 items visible
@@ -1627,7 +1692,7 @@ fun EditItemDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clickable(enabled = !isSplitEqual) {
                                         selectedMembers = if (selectedMembers.contains(member.name)) {
                                             selectedMembers - member.name
                                         } else {

@@ -30,6 +30,7 @@ interface LucaRepository {
     suspend fun getParticipantsInActivities(eventId: String): List<String>
     suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double): Result<Boolean>
     suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>>
+    suspend fun deleteActivity(eventId: String, activityId: String): Result<Boolean>
 
     // Data Fetching
     fun getEventsFlow(): Flow<List<Event>>
@@ -403,6 +404,35 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    override suspend fun deleteActivity(eventId: String, activityId: String): Result<Boolean> {
+        val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
+        return try {
+            android.util.Log.d("LucaRepository", "Deleting activity: $activityId from event: $eventId")
+
+            // Delete the activity document and all its subcollections (items)
+            val activityRef = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document(activityId)
+
+            // First delete all items in the activity
+            val itemsSnap = activityRef.collection("items").get().await()
+            itemsSnap.documents.forEach { it.reference.delete().await() }
+
+            // Then delete the activity itself
+            activityRef.delete().await()
+
+            android.util.Log.d("LucaRepository", "✅ Activity deleted successfully")
+            Result.success(true)
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error deleting activity: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
         }
     }
 

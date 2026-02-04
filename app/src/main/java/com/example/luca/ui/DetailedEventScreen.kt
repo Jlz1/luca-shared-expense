@@ -87,9 +87,12 @@ fun DetailedEventScreen(
     val eventState by viewModel.uiEvent.collectAsState()
     val activitiesState by viewModel.uiActivities.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
+    val deleteActivityState by viewModel.deleteActivityState.collectAsState()
 
     // State lokal untuk dialog
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteActivityDialog by remember { mutableStateOf(false) }
+    var activityToDelete by remember { mutableStateOf<String?>(null) }
 
     // 3. LOGIC FIX: Pantau perubahan deleteState di sini
     LaunchedEffect(deleteState) {
@@ -97,6 +100,15 @@ fun DetailedEventScreen(
             showDeleteDialog = false // Tutup dialog paksa
             onBackClick()            // Kembali ke halaman sebelumnya
             viewModel.resetDeleteState()
+        }
+    }
+
+    // Monitor delete activity state
+    LaunchedEffect(deleteActivityState) {
+        if (deleteActivityState is DeleteState.Success) {
+            showDeleteActivityDialog = false
+            activityToDelete = null
+            viewModel.resetDeleteActivityState()
         }
     }
 
@@ -110,7 +122,11 @@ fun DetailedEventScreen(
         onEditClick = { onNavigateToEditEvent(eventId) },
         onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
         onActivityClick = onNavigateToActivityDetail,
-        onSummaryClick = onNavigateToSummary
+        onSummaryClick = onNavigateToSummary,
+        onDeleteActivity = { activityId ->
+            activityToDelete = activityId
+            showDeleteActivityDialog = true
+        }
     )
 
     // 5. Tampilkan Dialog (Overlay)
@@ -127,6 +143,22 @@ fun DetailedEventScreen(
             errorMessage = (deleteState as? DeleteState.Error)?.message
         )
     }
+
+    // Delete Activity Dialog
+    if (showDeleteActivityDialog && activityToDelete != null) {
+        DeleteActivityConfirmationDialog(
+            onDismiss = {
+                showDeleteActivityDialog = false
+                activityToDelete = null
+                viewModel.resetDeleteActivityState()
+            },
+            onConfirm = {
+                viewModel.deleteActivity(eventId, activityToDelete!!)
+            },
+            isLoading = deleteActivityState is DeleteState.Loading,
+            errorMessage = (deleteActivityState as? DeleteState.Error)?.message
+        )
+    }
 }
 
 // --- UI MURNI (Bisa di-Preview tanpa ViewModel) ---
@@ -140,7 +172,8 @@ fun DetailedEventContent(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     onActivityClick: (String) -> Unit = {},
-    onSummaryClick: () -> Unit = {}
+    onSummaryClick: () -> Unit = {},
+    onDeleteActivity: (String) -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -176,7 +209,8 @@ fun DetailedEventContent(
                         activities = activitiesState,
                         isEmpty = activitiesState.isEmpty(),
                         onNavigateToAddActivity = onNavigateToAddActivity,
-                        onNavigateToActivityDetail = onActivityClick
+                        onNavigateToActivityDetail = onActivityClick,
+                        onDeleteActivity = onDeleteActivity
                     )
                     Spacer(Modifier.height(120.dp))
                 }
@@ -470,26 +504,139 @@ fun DeleteConfirmationDialog(
 }
 
 @Composable
-fun ActivitySection(activities: List<UIActivityState>, isEmpty: Boolean, onNavigateToAddActivity: () -> Unit, onNavigateToActivityDetail: (String) -> Unit) {
-    if (isEmpty) EmptyStateMessage(onNavigateToAddActivity)
-    else LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(activities) { ActivityItemCard(it, onNavigateToActivityDetail) }
+fun DeleteActivityConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    isLoading: Boolean,
+    errorMessage: String? = null
+) {
+    Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(UIWhite),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Judul
+                Text(
+                    text = "Delete Activity",
+                    style = AppFont.Bold,
+                    fontSize = 20.sp,
+                    color = UIAccentRed
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Pesan Konfirmasi
+                Text(
+                    text = "Are you sure you want to delete this activity? This action cannot be undone.",
+                    style = AppFont.Regular,
+                    fontSize = 14.sp,
+                    color = UIBlack,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                // Error Message
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = UIAccentRed,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Tombol Action
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Tombol Cancel
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
+                    ) {
+                        Text("Cancel", color = UIBlack, style = AppFont.SemiBold)
+                    }
+
+                    // Tombol Delete
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(containerColor = UIAccentRed),
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = UIWhite,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Text("Delete", color = UIWhite, style = AppFont.SemiBold)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun ActivityItemCard(item: UIActivityState, onNavigateToActivityDetail: (String) -> Unit = {}) {
-    Surface(shape = RoundedCornerShape(20.dp), color = UIWhite, shadowElevation = 1.dp, modifier = Modifier
-        .fillMaxWidth()
-        .height(80.dp)
-        .clickable { onNavigateToActivityDetail(item.id) }) {
-        Row(modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(item.iconColor.copy(0.3f)), contentAlignment = Alignment.Center) {
+fun ActivitySection(
+    activities: List<UIActivityState>,
+    isEmpty: Boolean,
+    onNavigateToAddActivity: () -> Unit,
+    onNavigateToActivityDetail: (String) -> Unit,
+    onDeleteActivity: (String) -> Unit = {}
+) {
+    if (isEmpty) EmptyStateMessage(onNavigateToAddActivity)
+    else LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        items(activities) {
+            ActivityItemCard(
+                item = it,
+                onNavigateToActivityDetail = onNavigateToActivityDetail,
+                onDeleteActivity = onDeleteActivity
+            )
+        }
+    }
+}
+
+@Composable
+fun ActivityItemCard(
+    item: UIActivityState,
+    onNavigateToActivityDetail: (String) -> Unit = {},
+    onDeleteActivity: (String) -> Unit = {}
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = UIWhite,
+        shadowElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .clickable { onNavigateToActivityDetail(item.id) }
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(item.iconColor.copy(0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(Icons.Default.ShoppingCart, null, tint = UIBlack, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(16.dp))
@@ -499,6 +646,36 @@ fun ActivityItemCard(item: UIActivityState, onNavigateToActivityDetail: (String)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(item.price, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UIAccentRed, style = AppFont.Medium)
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Delete button
+            Box {
+                IconButton(
+                    onClick = { showMenu = !showMenu },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_delete_event),
+                        contentDescription = "Delete Activity",
+                        tint = UIAccentRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Confirmation dropdown
+                androidx.compose.material3.DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Delete Activity", color = UIAccentRed) },
+                        onClick = {
+                            showMenu = false
+                            onDeleteActivity(item.id)
+                        }
+                    )
+                }
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.luca.ui
 
 import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,10 +42,11 @@ fun GreetingScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     // Web Client ID
     val webClientId = "119381624546-7f5ctjbbvdnd3f3civn56nct7s8ip4a0.apps.googleusercontent.com"
+
+    Log.d("GreetingScreen", "Initializing with Web Client ID: $webClientId")
 
     // Observer 1: User Lama & Sukses -> Langsung Home
     LaunchedEffect(authViewModel.isSuccess) {
@@ -69,7 +70,7 @@ fun GreetingScreen(
     // Observer 3: Error
     LaunchedEffect(authViewModel.errorMessage) {
         authViewModel.errorMessage?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -77,37 +78,140 @@ fun GreetingScreen(
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account.idToken
-                if (idToken != null) {
-                    authViewModel.googleLogin(idToken)
+        Log.d("GreetingScreen", "=== Google Sign-In Result ===")
+        Log.d("GreetingScreen", "Result Code: ${result.resultCode}")
+        Log.d("GreetingScreen", "RESULT_OK = ${Activity.RESULT_OK}")
+        Log.d("GreetingScreen", "RESULT_CANCELED = ${Activity.RESULT_CANCELED}")
+        Log.d("GreetingScreen", "Data exists: ${result.data != null}")
+
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                Log.d("GreetingScreen", "Sign-in result OK, processing...")
+                result.data?.let { data ->
+                    try {
+                        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                        val account = task.getResult(ApiException::class.java)
+
+                        Log.d("GreetingScreen", "Account: ${account?.email}")
+                        Log.d("GreetingScreen", "Display Name: ${account?.displayName}")
+                        Log.d("GreetingScreen", "ID: ${account?.id}")
+
+                        val idToken = account?.idToken
+                        Log.d("GreetingScreen", "ID Token exists: ${idToken != null}")
+
+                        if (idToken != null) {
+                            Log.d("GreetingScreen", "ID Token length: ${idToken.length}")
+                            authViewModel.googleLogin(idToken)
+                        } else {
+                            val msg = "Failed to get ID token from Google"
+                            Log.e("GreetingScreen", msg)
+                            Log.e("GreetingScreen", "This usually means:")
+                            Log.e("GreetingScreen", "1. Web Client ID is wrong")
+                            Log.e("GreetingScreen", "2. SHA-1 is not properly configured")
+                            Log.e("GreetingScreen", "3. google-services.json is outdated")
+                            Toast.makeText(context, "$msg\nCheck Logcat for details", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: ApiException) {
+                        Log.e("GreetingScreen", "=== Google Sign-In Error ===")
+                        Log.e("GreetingScreen", "Status Code: ${e.statusCode}")
+                        Log.e("GreetingScreen", "Status Message: ${e.statusMessage}")
+                        Log.e("GreetingScreen", "Status: ${e.status}")
+
+                        val errorMsg = when (e.statusCode) {
+                            10 -> {
+                                Log.e("GreetingScreen", "ERROR 10: Developer Error")
+                                Log.e("GreetingScreen", "Causes:")
+                                Log.e("GreetingScreen", "- SHA-1 fingerprint not matching")
+                                Log.e("GreetingScreen", "- Package name mismatch")
+                                Log.e("GreetingScreen", "- google-services.json outdated")
+                                "Developer Error (10)\n\nPossible causes:\n• SHA-1 not matching\n• Rebuild project needed\n• Check Firebase Console"
+                            }
+                            12501 -> {
+                                Log.w("GreetingScreen", "ERROR 12501: User Cancelled or Config Error")
+                                "Sign-in cancelled"
+                            }
+                            12500 -> {
+                                Log.e("GreetingScreen", "ERROR 12500: Sign-in Failed")
+                                "Sign-in failed. Try again"
+                            }
+                            7 -> {
+                                Log.e("GreetingScreen", "ERROR 7: Network Error")
+                                "Network error. Check internet"
+                            }
+                            8 -> {
+                                Log.e("GreetingScreen", "ERROR 8: Internal Error")
+                                "Internal error. Try again"
+                            }
+                            else -> {
+                                Log.e("GreetingScreen", "ERROR ${e.statusCode}: Unknown")
+                                "Error ${e.statusCode}. Try again"
+                            }
+                        }
+                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                    } catch (e: Exception) {
+                        Log.e("GreetingScreen", "Unexpected exception: ${e.message}", e)
+                        Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } ?: run {
+                    Log.e("GreetingScreen", "Result data is NULL!")
+                    Toast.makeText(context, "No data returned from Google", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: ApiException) {
-                Toast.makeText(context, "Google Error: ${e.statusCode}", Toast.LENGTH_SHORT).show()
+            }
+            Activity.RESULT_CANCELED -> {
+                Log.w("GreetingScreen", "Sign-in cancelled by user (or auto-cancelled)")
+                // Don't show toast for user cancellation to avoid confusion
+            }
+            else -> {
+                Log.e("GreetingScreen", "Unexpected result code: ${result.resultCode}")
             }
         }
     }
 
     // Handle Google Click
     val onGoogleClick: () -> Unit = {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(webClientId)
-            .requestEmail()
-            .build()
-        val client = GoogleSignIn.getClient(context, gso)
-        googleLauncher.launch(client.signInIntent)
+        Log.d("GreetingScreen", "=== Google Sign-In Button Clicked ===")
+        Log.d("GreetingScreen", "Web Client ID: $webClientId")
+        Log.d("GreetingScreen", "Package: ${context.packageName}")
+
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId)
+                .requestEmail()
+                .build()
+
+            val client = GoogleSignIn.getClient(context, gso)
+
+            // Check if already signed in
+            val currentAccount = GoogleSignIn.getLastSignedInAccount(context)
+            Log.d("GreetingScreen", "Current signed in account: ${currentAccount?.email}")
+
+            if (currentAccount != null) {
+                Log.d("GreetingScreen", "User already signed in, signing out first...")
+                client.signOut().addOnCompleteListener {
+                    Log.d("GreetingScreen", "Sign out complete, launching sign in...")
+                    googleLauncher.launch(client.signInIntent)
+                }
+            } else {
+                Log.d("GreetingScreen", "No previous sign in, launching sign in intent...")
+                googleLauncher.launch(client.signInIntent)
+            }
+        } catch (e: Exception) {
+            Log.e("GreetingScreen", "Error creating sign-in intent: ${e.message}", e)
+            Toast.makeText(context, "Failed to start Google Sign-In: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     // Handle X (Twitter) Click
     val onXClick: () -> Unit = {
+        Log.d("GreetingScreen", "=== Twitter Sign-In Button Clicked ===")
         val activity = context as? Activity
         if (activity != null) {
+            Log.d("GreetingScreen", "Activity context found, initiating Twitter login")
             authViewModel.twitterLogin(activity)
         } else {
-            Toast.makeText(context, "Error: Context bukan Activity", Toast.LENGTH_SHORT).show()
+            val msg = "Error: Context is not Activity"
+            Log.e("GreetingScreen", msg)
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
     }
 
