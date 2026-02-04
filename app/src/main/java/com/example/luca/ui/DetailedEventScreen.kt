@@ -702,24 +702,26 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Summary Button (Calculate Settlement)
+                // Summary Button (Icon)
                 Surface(
                     modifier = Modifier
-                        .height(48.dp)
+                        .size(60.dp)
                         .clickable { onSummaryClick() },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = CircleShape,
                     color = UIBlack,
                     shadowElevation = 6.dp
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_summary_button),
+                            contentDescription = "Split Bill",
+                            tint = UIWhite,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
+
+                Spacer(Modifier.width(14.dp))
 
                 // Add Activity Button
                 FloatingAddButton(onClick = onAddActivityClick)
