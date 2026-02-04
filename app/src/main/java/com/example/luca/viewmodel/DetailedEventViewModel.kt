@@ -55,6 +55,10 @@ class DetailedEventViewModel : ViewModel() {
     private val _deleteState = MutableStateFlow<DeleteState>(DeleteState.Idle)
     val deleteState = _deleteState.asStateFlow()
 
+    // State Status Delete Activity
+    private val _deleteActivityState = MutableStateFlow<DeleteState>(DeleteState.Idle)
+    val deleteActivityState = _deleteActivityState.asStateFlow()
+
     // Logic Load Data
     fun loadEventData(eventId: String) {
         viewModelScope.launch {
@@ -119,6 +123,31 @@ class DetailedEventViewModel : ViewModel() {
 
     fun resetDeleteState() {
         _deleteState.value = DeleteState.Idle
+    }
+
+    // Logic Delete Activity
+    fun deleteActivity(eventId: String, activityId: String) {
+        _deleteActivityState.value = DeleteState.Loading
+
+        viewModelScope.launch {
+            try {
+                val result = repository.deleteActivity(eventId, activityId)
+                if (result.isSuccess) {
+                    _deleteActivityState.value = DeleteState.Success
+                    // Reload activities after successful deletion
+                    loadEventData(eventId)
+                } else {
+                    val errorMsg = result.exceptionOrNull()?.message ?: "Failed to delete activity."
+                    _deleteActivityState.value = DeleteState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                _deleteActivityState.value = DeleteState.Error(e.message ?: "An unexpected error occurred.")
+            }
+        }
+    }
+
+    fun resetDeleteActivityState() {
+        _deleteActivityState.value = DeleteState.Idle
     }
 
     private fun getCategoryIconRes(categoryName: String): Int {

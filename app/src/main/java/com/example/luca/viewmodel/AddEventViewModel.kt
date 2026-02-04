@@ -225,6 +225,10 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         _showParticipantWarning.value = false
     }
 
+    fun resetSuccessState() {
+        _isSuccess.value = false
+    }
+
     fun resetState() {
         _title.value = ""
         _location.value = ""
