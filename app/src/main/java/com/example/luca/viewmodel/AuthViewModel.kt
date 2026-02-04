@@ -1,6 +1,5 @@
 package com.example.luca.viewmodel
 
-import android.app.Activity
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -138,7 +137,7 @@ class AuthViewModel : ViewModel() {
     }
 
     // =================================================================
-    //  BAGIAN 2: LOGIKA LAMA (Login, Google, Twitter) - TETAP ADA
+    //  BAGIAN 2: LOGIKA LAMA (Login, Google)
     // =================================================================
 
     fun login(email: String, pass: String) {
@@ -173,17 +172,8 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun twitterLogin(activity: Activity) {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-            val result = authRepository.signInWithTwitter(activity)
-            handleSocialResult(result)
-        }
-    }
-
     private fun handleSocialResult(result: Result<Pair<Boolean, Boolean>>) {
-        result.onSuccess { (success, isNew) ->
+        result.onSuccess { (_, isNew) ->
             if (isNew) isNewUser = true else isSuccess = true
         }.onFailure {
             errorMessage = it.message

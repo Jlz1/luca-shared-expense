@@ -1,10 +1,8 @@
 package com.example.luca.data
 
-import android.app.Activity
 import com.example.luca.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
@@ -69,28 +67,6 @@ class AuthRepository {
             }
         } catch (e: Exception) {
             // Surface Firebase auth errors; greet screen will toast and not navigate
-            Result.failure(e)
-        }
-    }
-
-    suspend fun signInWithTwitter(activity: Activity): Result<Pair<Boolean, Boolean>> {
-        return try {
-            val provider = OAuthProvider.newBuilder("twitter.com")
-            provider.addCustomParameter("lang", "id")
-            val result = auth.startActivityForSignInWithProvider(activity, provider.build()).await()
-            val user = result.user
-
-            if (user != null) {
-                val doc = db.collection("users").document(user.uid).get().await()
-                if (doc.exists()) {
-                    Result.success(Pair(true, false))
-                } else {
-                    Result.success(Pair(true, true)) // Ke Fill Profile
-                }
-            } else {
-                Result.failure(Exception("Twitter User Null"))
-            }
-        } catch (e: Exception) {
             Result.failure(e)
         }
     }

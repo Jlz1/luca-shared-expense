@@ -193,19 +193,6 @@ fun GreetingScreen(
         }
     }
 
-    // Handle X (Twitter) Click
-    val onXClick: () -> Unit = {
-        Log.d("GreetingScreen", "=== Twitter Sign-In Button Clicked ===")
-        val activity = context as? Activity
-        if (activity != null) {
-            Log.d("GreetingScreen", "Activity context found, initiating Twitter login")
-            authViewModel.twitterLogin(activity)
-        } else {
-            val msg = "Error: Context is not Activity"
-            Log.e("GreetingScreen", msg)
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize().background(UIWhite)) {
         if (authViewModel.isLoading) {
@@ -217,18 +204,16 @@ fun GreetingScreen(
 
         GreetingScreenContent(
             onGoogleClick = onGoogleClick,
-            onXClick = onXClick,
             onSignUpClick = onNavigateToSignUp,
             onLoginClick = onNavigateToLogin
         )
     }
 }
 
-// --- UI CONTENT (TETAP SAMA) ---
+// --- UI CONTENT ---
 @Composable
 fun GreetingScreenContent(
     onGoogleClick: () -> Unit,
-    onXClick: () -> Unit,
     onSignUpClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
@@ -236,121 +221,88 @@ fun GreetingScreenContent(
         modifier = Modifier
             .fillMaxSize()
             .background(UIWhite)
-            .padding(all = 30.dp),
+            .padding(horizontal = 30.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
+        // Increase top spacer to center the whole block vertically
+        Spacer(modifier = Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                Spacer(modifier = Modifier.height(50.dp))
+        // Header (Logo + Title + Subtitle)
+        Image(
+            painter = painterResource(id = R.drawable.ic_luca_logo),
+            contentDescription = "Luca Logo",
+            modifier = Modifier.size(width = 60.dp, height = 59.dp)
+        )
 
-                Image(
-                    painter = painterResource(id = R.drawable.ic_luca_logo),
-                    contentDescription = "Luca Logo",
-                    modifier = Modifier.size(width = 60.dp, height = 59.dp)
-                )
+        Spacer(modifier = Modifier.height(14.dp))
 
-                Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = "Welcome to Luca!",
+            style = AppFont.SemiBold,
+            fontSize = 28.sp,
+            color = UIBlack,
+            textAlign = TextAlign.Center
+        )
 
-                Text(
-                    text = "Welcome to Luca!",
-                    style = AppFont.SemiBold,
-                    fontSize = 28.sp,
-                    color = UIBlack,
-                    textAlign = TextAlign.Center
-                )
+        Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Splitting bills made easy.",
+            style = AppFont.Medium,
+            fontSize = 16.sp,
+            color = UIDarkGrey,
+            textAlign = TextAlign.Center
+        )
 
-                Text(
-                    text = "Splitting bills made easy.",
-                    style = AppFont.Medium,
-                    fontSize = 16.sp,
-                    color = UIDarkGrey,
-                    textAlign = TextAlign.Center
-                )
+        // Increase spacer to push buttons down a bit
+        Spacer(modifier = Modifier.weight(0.4f))
 
-                Spacer(modifier = Modifier.height(74.dp))
+        // --- Action buttons cluster ---
+        Button(
+            onClick = onSignUpClick,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(49.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack)
+        ) { Text(text = "Sign Up", style = AppFont.SemiBold, fontSize = 14.sp) }
 
-                SocialButton(
-                    text = "Continue with Google",
-                    iconRes = R.drawable.ic_google_logo,
-                    onClick = onGoogleClick,
-                    modifier = Modifier.fillMaxWidth()
-                )
+        Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = onLoginClick,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(49.dp),
+            border = BorderStroke(1.dp, UIAccentYellow)
+        ) { Text(text = "Log in", style = AppFont.SemiBold, fontSize = 14.sp, color = UIBlack) }
 
-                SocialButton(
-                    text = "Continue with X",
-                    iconRes = R.drawable.ic_x_logo,
-                    onClick = onXClick,
-                    modifier = Modifier.fillMaxWidth()
-                )
+        Spacer(modifier = Modifier.height(20.dp))
 
-                Spacer(modifier = Modifier.height(107.dp))
-
-                Button(
-                    onClick = onSignUpClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(49.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = UIAccentYellow,
-                        contentColor = UIBlack
-                    )
-                ) {
-                    Text(
-                        text = "Sign Up",
-                        style = AppFont.SemiBold,
-                        fontSize = 14.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = onLoginClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(49.dp),
-                    border = BorderStroke(1.dp, UIAccentYellow)
-                ) {
-                    Text(
-                        text = "Log in",
-                        style = AppFont.SemiBold,
-                        fontSize = 14.sp,
-                        color = UIBlack
-                    )
-                }
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0), thickness = 1.dp)
+            Text(text = "or", style = AppFont.Medium, fontSize = 14.sp, color = UIDarkGrey, modifier = Modifier.padding(horizontal = 16.dp))
+            Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0), thickness = 1.dp)
         }
 
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Privacy Policy   ·   Terms of Service",
-                style = AppFont.SemiBold,
-                fontSize = 12.sp,
-                color = UIBlack.copy(alpha = 0.6f)
-            )
-        }
+        Spacer(modifier = Modifier.height(18.dp))
+
+        SocialButton(
+            text = "Continue with Google",
+            iconRes = R.drawable.ic_google_logo,
+            onClick = onGoogleClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Reduce bottom spacer slightly so buttons sit lower
+        Spacer(modifier = Modifier.weight(0.8f))
+
+        Text(
+            text = "Privacy Policy   ·   Terms of Service",
+            style = AppFont.SemiBold,
+            fontSize = 12.sp,
+            color = UIBlack.copy(alpha = 0.6f)
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -400,7 +352,6 @@ fun GreetingScreenPreview() {
     LucaTheme {
         GreetingScreenContent(
             onGoogleClick = {},
-            onXClick = {},
             onSignUpClick = {},
             onLoginClick = {}
         )
