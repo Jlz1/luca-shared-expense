@@ -85,7 +85,8 @@ fun DetailedEventScreen(
 
     // 2. Collect State
     val eventState by viewModel.uiEvent.collectAsState()
-    val activitiesState by viewModel.uiActivities.collectAsState()
+    val activitiesState by viewModel.uiActivities.collectAsState(initial = emptyList())
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
     val deleteActivityState by viewModel.deleteActivityState.collectAsState()
 
@@ -116,6 +117,7 @@ fun DetailedEventScreen(
     DetailedEventContent(
         eventState = eventState,
         activitiesState = activitiesState,
+        searchQuery = searchQuery,
         onBackClick = onBackClick,
         onMenuClick = onMenuClick,
         onNavigateToAddActivity = onNavigateToAddActivity,
@@ -126,7 +128,8 @@ fun DetailedEventScreen(
         onDeleteActivity = { activityId ->
             activityToDelete = activityId
             showDeleteActivityDialog = true
-        }
+        },
+        onSearchQueryChange = viewModel::onSearchQueryChange
     )
 
     // 5. Tampilkan Dialog (Overlay)
@@ -166,6 +169,7 @@ fun DetailedEventScreen(
 fun DetailedEventContent(
     eventState: UIEventState,
     activitiesState: List<UIActivityState>,
+    searchQuery: String = "",
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {},
@@ -173,7 +177,8 @@ fun DetailedEventContent(
     onDeleteClick: () -> Unit = {},
     onActivityClick: (String) -> Unit = {},
     onSummaryClick: () -> Unit = {},
-    onDeleteActivity: (String) -> Unit = {}
+    onDeleteActivity: (String) -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -201,8 +206,12 @@ fun DetailedEventContent(
                         onCloseClick = onBackClick
                     )
                     Spacer(Modifier.height(16.dp))
-                    // Pastikan SearchBarModify tersedia atau ganti dengan Text sementara untuk preview
-                    SearchBarModify(placeholder = "Search activities...", readOnly = false)
+                    SearchBarModify(
+                        placeholder = "Search activities...",
+                        readOnly = false,
+                        initialQuery = searchQuery,
+                        onSearchQueryChange = onSearchQueryChange
+                    )
                     Spacer(Modifier.height(16.dp))
 
                     ActivitySection(

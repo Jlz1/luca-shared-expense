@@ -10,6 +10,7 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 // Wrapper State untuk UI
@@ -48,8 +49,38 @@ class DetailedEventViewModel : ViewModel() {
     private val _uiEvent = MutableStateFlow(UIEventState())
     val uiEvent = _uiEvent.asStateFlow()
 
-    private val _uiActivities = MutableStateFlow<List<UIActivityState>>(emptyList())
-    val uiActivities = _uiActivities.asStateFlow()
+    // Raw activities list
+    private val _activities = MutableStateFlow<List<UIActivityState>>(emptyList())
+
+    // Search query state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    // Combined flow for filtered and sorted activities
+    val uiActivities = combine(_activities, _searchQuery) { activities, query ->
+        if (query.isEmpty()) {
+            // Case 1: Empty query - Sort alphabetically by title (A-Z)
+            activities.sortedBy { it.title.lowercase() }
+        } else {
+            // Case 2: Query is not empty
+            // Filter activities containing the query
+            val filtered = activities.filter {
+                it.title.contains(query, ignoreCase = true)
+            }
+
+            // Custom sorting:
+            // 1st Priority: Starts with query
+            // 2nd Priority: Contains query
+            // 3rd Priority: Alphabetical
+            filtered.sortedWith(
+                compareByDescending<UIActivityState> {
+                    it.title.startsWith(query, ignoreCase = true)
+                }.thenBy {
+                    it.title.lowercase()
+                }
+            )
+        }
+    }
 
     // State Status Delete
     private val _deleteState = MutableStateFlow<DeleteState>(DeleteState.Idle)
@@ -75,7 +106,7 @@ class DetailedEventViewModel : ViewModel() {
             }
 
             val activitiesRaw = repository.getActivitiesByEventId(eventId)
-            _uiActivities.value = activitiesRaw.map { act ->
+            _activities.value = activitiesRaw.map { act ->
                 UIActivityState(
                     id = act.id,
                     title = act.title,
@@ -91,6 +122,11 @@ class DetailedEventViewModel : ViewModel() {
                 )
             }
         }
+    }
+
+    // Update search query
+    fun onSearchQueryChange(newQuery: String) {
+        _searchQuery.value = newQuery
     }
 
     // Logic Delete Event
