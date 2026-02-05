@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.repository.ScanRepository
 import com.example.luca.model.ParsedReceiptData
+import com.example.luca.model.ParsedReceiptItem
 import com.example.luca.utils.ReceiptParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,14 +28,34 @@ class ScanViewModel : ViewModel() {
 
             result.onSuccess { response ->
                 when {
-                    response.status == "success" && !response.filteredText.isNullOrEmpty() -> {
-                        _scanState.value = response.filteredText
-                        // Parse the OCR text into structured data
-                        val parsedData = ReceiptParser.parseReceiptText(response.filteredText)
+                    response.status == "success" && response.data != null -> {
+                        val data = response.data
+
+                        // Convert the new API response to ParsedReceiptData format
+                        val items = data.items.map { item ->
+                            ParsedReceiptItem(
+                                itemName = item.name,
+                                itemPrice = item.lineTotal.toDouble(),
+                                itemQuantity = item.qty,
+                                itemDiscount = 0.0,
+                                itemTax = 0.0
+                            )
+                        }
+
+                        val parsedData = ParsedReceiptData(
+                            items = items,
+                            subtotal = data.summary.subtotal.toDouble(),
+                            tax = data.summary.tax.toDouble(),
+                            discount = data.summary.totalDiscount.toDouble(),
+                            totalBill = data.summary.grandTotal.toDouble(),
+                            rawText = response.debug?.rawText ?: ""
+                        )
+
                         _parsedReceiptData.value = parsedData
+                        _scanState.value = "✅ ${data.items.size} item berhasil dipindai!\nStatus: ${data.status}"
                     }
-                    response.status == "success" && response.filteredText.isNullOrEmpty() -> {
-                        _scanState.value = "❌ Tidak ada text terdeteksi.\nCoba ambil foto lagi dengan pencahayaan lebih baik."
+                    response.status == "success" && response.data?.items?.isEmpty() == true -> {
+                        _scanState.value = "❌ Tidak ada item terdeteksi.\nCoba ambil foto lagi dengan pencahayaan lebih baik."
                         _parsedReceiptData.value = null
                     }
                     else -> {

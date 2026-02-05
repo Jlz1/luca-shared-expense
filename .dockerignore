@@ -1,0 +1,58 @@
+# Android build files
+app/build/
+build/
+.gradle/
+*.apk
+*.aab
+
+# IDE files
+.idea/
+*.iml
+local.properties
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Model files (if large)
+model/*.h5
+model/*.pkl
+model/*.pt
+
+# Secrets (IMPORTANT)
+*.json
+!google-services.json
+credentials.json
+service-account.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Android source (not needed in backend container)
+app/src/
+gradle/
+gradlew
+gradlew.bat
+settings.gradle.kts
+

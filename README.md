@@ -1,54 +1,49 @@
-StrukCerdas: Smart OCR Bill Splitter
+# StrukCerdas: Smart OCR Bill Splitter 🧾
 
 This project is a complete smart bill splitting system. Instead of manually inputting receipt items one by one, this application allows users to scan a receipt, and the system will automatically extract all items using OCR.
 
 Afterward, users can assign who ordered which item, and the backend will intelligently calculate the most efficient way to settle the bill with the minimum number of transactions.
 
-🎯 Project Goal
+## 🎯 Project Goal
 
 The main goal is to eliminate the hassle of transferring money back and forth after a group meal. The application will calculate the "who-owes-who" at the end.
 
-Example:
+**Example:**
+- Andi owes Rp 50,000 to Budi.
+- Budi owes Rp 50,000 to Cici.
 
-Andi owes Rp 50,000 to Budi.
-
-Budi owes Rp 50,000 to Cici.
-
-The application will not suggest two separate transfers.
-
-It will optimize this into: Andi pays Rp 50,000 to Cici.
+The application will **not** suggest two separate transfers.
+It will optimize this into: **Andi pays Rp 50,000 to Cici.**
 
 <!--
 [REPLACE WITH YOUR ANDROID APP SCREENSHOT]
 -->
 
-🚀 Key Features
+## 🚀 Key Features
 
-Android App (Kotlin): A mobile interface to capture the receipt photo.
+- **Android App (Kotlin)**: A mobile interface to capture the receipt photo.
+- **OCR Engine (Google Vision API)**: Extracts all items, prices, taxes, discounts, and service fees from the receipt image.
+- **Assignment Interface (Android)**: Allows users to "claim" which items they ordered or shared.
+- **Smart Calculation API (Flask)**: An API endpoint that receives the assignment data and calculates the total debt per person.
+- **Debt Optimization Algorithm**: Calculates the minimum number of transactions required to settle all debts.
 
-OCR Engine (Pytesseract): Extracts all items, prices, taxes, discounts, and service fees from the receipt image.
+## 🛠️ Tech Stack
 
-Assignment Interface (Android): (App Feature) Allows users to "claim" which items they ordered or shared.
+### Frontend (Mobile App)
+- **Platform**: Android
+- **Language**: Kotlin
+- **Tasks**: 
+  1. Send image to `/parse`
+  2. Display OCR results
+  3. Let users assign items to people
+  4. Send assignment data to `/calculate-split`
+  5. Display the final optimized transactions
 
-Smart Calculation API (FastAPI): An API endpoint that receives the assignment data and calculates the total debt per person.
-
-Debt Optimization Algorithm: Calculates the minimum number of transactions required to settle all debts.
-
-🛠️ Tech Stack
-
-Frontend (Mobile App)
-
-Platform: Android
-
-Language: Kotlin
-
-Tasks: (1) Send image to /scan, (2) Display OCR results, (3) Let users assign items to people, (4) Send assignment data to /calculate-split, (5) Display the final optimized transactions.
-
-Backend (API & ML Model)
-
-API Framework: FastAPI (Modern, fast, asynchronous).
-
-OCR Engine: Pytesseract.
+### Backend (API & ML Model)
+- **API Framework**: Flask (Simple, lightweight, perfect for ML models)
+- **OCR Engine**: Google Cloud Vision API
+- **Parser**: Rule-based Pattern Matching (59.5% accuracy on test set)
+- **Deployment**: Hugging Face Spaces (Docker)
 
 Logic: Pure Python business logic for calculating and optimizing debts.
 
