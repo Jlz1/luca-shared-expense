@@ -20,10 +20,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -646,7 +644,12 @@ fun ActivityItemCard(
                     .background(item.iconColor.copy(0.3f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.ShoppingCart, null, tint = UIBlack, modifier = Modifier.size(24.dp))
+                Icon(
+                    painter = painterResource(id = item.categoryIconRes),
+                    contentDescription = item.category,
+                    tint = UIBlack,
+                    modifier = Modifier.size(24.dp)
+                )
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -790,42 +793,54 @@ fun DetailedEventScreenPreview_Populated() {
             title = "Sewa Papan Surfing",
             payer = "Paid by You",
             price = "Rp 150.000",
-            iconColor = Color.Blue
+            category = "Entertainment",
+            categoryIconRes = R.drawable.ic_ticket_outline,
+            iconColor = Color(0xFFEC407A)
         ),
         UIActivityState(
             id = "a2",
             title = "Makan Siang Nasi Padang",
             payer = "Paid by Jeremy",
             price = "Rp 45.000",
-            iconColor = Color.Red
+            category = "Food",
+            categoryIconRes = R.drawable.ic_food_outline,
+            iconColor = Color(0xFFFFA726)
         ),
         UIActivityState(
             id = "a3",
             title = "Tiket Masuk GWK",
             payer = "Paid by Abel",
             price = "Rp 125.000",
-            iconColor = Color.Green
+            category = "Entertainment",
+            categoryIconRes = R.drawable.ic_ticket_outline,
+            iconColor = Color(0xFFEC407A)
         ),
         UIActivityState(
             id = "a4",
-            title = "Tiket Masuk GWK",
-            payer = "Paid by Abel",
-            price = "Rp 125.000",
-            iconColor = Color.Green
+            title = "Belanja Oleh-oleh",
+            payer = "Paid by You",
+            price = "Rp 200.000",
+            category = "Shopping",
+            categoryIconRes = R.drawable.ic_cart_outline,
+            iconColor = Color(0xFFAB47BC)
         ),
         UIActivityState(
             id = "a5",
-            title = "Tiket Masuk GWK",
+            title = "Transportasi Taxi",
             payer = "Paid by Abel",
-            price = "Rp 125.000",
-            iconColor = Color.Green
+            price = "Rp 80.000",
+            category = "Transportation",
+            categoryIconRes = R.drawable.ic_car_outline,
+            iconColor = Color(0xFF42A5F5)
         ),
         UIActivityState(
             id = "a6",
-            title = "Tiket Masuk GWK",
-            payer = "Paid by Abel",
-            price = "Rp 125.000",
-            iconColor = Color.Green
+            title = "Snorkeling Equipment",
+            payer = "Paid by Jeremy",
+            price = "Rp 150.000",
+            category = "Others",
+            categoryIconRes = R.drawable.ic_other_outline,
+            iconColor = Color(0xFFFFCC80)
         )
     )
 
