@@ -696,33 +696,47 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 Spacer(Modifier.height(8.dp))
                 FloatingAddButton(onClick = onAddActivityClick)
             }
+            // ... bagian if (isEmpty) biarin aja ...
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End, // Posisi di tengah
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Summary Button (Calculate Settlement)
+                // 1. Tombol SUMMARIZE (Putih + Border Kuning)
                 Surface(
                     modifier = Modifier
-                        .height(48.dp)
+                        .height(60.dp)
+                        .width(160.dp)// Tinggi ngikutin tombol Add
                         .clickable { onSummaryClick() },
-                    shape = RoundedCornerShape(24.dp),
-                    color = UIBlack,
-                    shadowElevation = 6.dp
+                    shape = RoundedCornerShape(50), // Bentuk Pill/Kapsul
+                    color = UIWhite,
+                    border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow), // Border Kuning Tebal
+                    shadowElevation = 4.dp
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = UIWhite, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Split Bill", color = UIWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+
+                    Box(contentAlignment = Alignment.Center) {
+                        //buat agar menggunakan drawable ic_summary_butto
+                        Text(
+                            text = "Summarize",
+                            style = AppFont.Bold,
+                            fontSize = 18.sp,
+                            color = UIBlack
+                        )
+
                     }
                 }
 
-                // Add Activity Button
-                FloatingAddButton(onClick = onAddActivityClick)
+                Spacer(Modifier.width(16.dp)) // Jarak antar tombol
+
+                // 2. Tombol ADD (Tetep pakai yang lama)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Bottom),
+                    horizontalAlignment = Alignment.End)
+                {
+                    FloatingAddButton(onClick = onAddActivityClick)
+                }
             }
         }
     }
