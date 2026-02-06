@@ -9,7 +9,7 @@ import retrofit2.http.Part
 
 interface ScanApiService {
     @Multipart
-    @POST("parse")
+    @POST("parse")  // ← Changed back to "parse" to match HF API endpoint
     suspend fun scanReceipt(
         @Part file: MultipartBody.Part
     ): Response<ScanResponse>

@@ -2,6 +2,7 @@ package com.example.luca.data.repository
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.example.luca.data.api.ScanApiClient
 import com.example.luca.data.model.ScanResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -12,23 +13,35 @@ import java.io.File
 
 class ScanRepository {
     private val api = ScanApiClient.service
+    private val TAG = "ScanRepository"
 
     suspend fun uploadReceipt(imageFile: File): Result<ScanResponse> {
         return try {
+            Log.d(TAG, "Starting upload for file: ${imageFile.name}, size: ${imageFile.length()} bytes")
+
             // Compress image sebelum upload
             val compressedBytes = compressImage(imageFile)
+            Log.d(TAG, "Image compressed to ${compressedBytes.size} bytes")
 
             val requestFile = compressedBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
             val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
 
+            Log.d(TAG, "Sending request to API...")
             val response = api.scanReceipt(body)
 
+            Log.d(TAG, "Response code: ${response.code()}, Success: ${response.isSuccessful}")
+
             if (response.isSuccessful && response.body() != null) {
+                Log.d(TAG, "Upload successful!")
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Upload gagal: ${response.message()}"))
+                val errorBody = response.errorBody()?.string() ?: "No error details"
+                val errorMsg = "Upload gagal [${response.code()}]: ${response.message()} - $errorBody"
+                Log.e(TAG, errorMsg)
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Exception during upload: ${e.message}", e)
             Result.failure(e)
         }
     }
