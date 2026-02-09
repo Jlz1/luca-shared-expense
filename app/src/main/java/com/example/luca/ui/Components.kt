@@ -1216,29 +1216,146 @@ fun SearchBarModify(
     enabled: Boolean = true,
     databaseLabel: String? = null
 ) {
-    var internalSearchQuery by remember { mutableStateOf(initialQuery) }
-    Surface(modifier = modifier, shape = RoundedCornerShape(50.dp), color = UIWhite, shadowElevation = 2.dp, onClick = if (readOnly) { onSearchClick } else { {} }) {
+    var internalSearchQuery by remember(initialQuery) { mutableStateOf(initialQuery) }
+
+    // Update internal state when initialQuery changes
+    LaunchedEffect(initialQuery) {
+        internalSearchQuery = initialQuery
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50.dp),
+        color = UIWhite,
+        shadowElevation = 2.dp,
+        onClick = if (readOnly) { onSearchClick } else { {} }
+    ) {
         if (readOnly) {
-            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = UIDarkGrey, modifier = Modifier.size(20.dp))
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = UIDarkGrey,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(text = placeholder, style = AppFont.Regular, fontSize = 16.sp, color = UIDarkGrey)
+                Text(
+                    text = placeholder,
+                    style = AppFont.Regular,
+                    fontSize = 16.sp,
+                    color = UIDarkGrey
+                )
             }
         } else {
             BasicTextField(
                 value = internalSearchQuery,
-                onValueChange = { newQuery -> internalSearchQuery = newQuery; onSearchQueryChange(newQuery) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                onValueChange = { newQuery ->
+                    internalSearchQuery = newQuery
+                    onSearchQueryChange(newQuery)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 singleLine = true,
                 textStyle = AppFont.Regular.copy(fontSize = 16.sp, color = UIBlack),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                enabled = enabled,
                 decorationBox = { innerTextField ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = UIDarkGrey, modifier = Modifier.size(20.dp))
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Box(contentAlignment = Alignment.CenterStart) { if (internalSearchQuery.isEmpty()) Text(text = placeholder, style = AppFont.Regular, fontSize = 16.sp, color = UIDarkGrey); innerTextField() }
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (internalSearchQuery.isEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    style = AppFont.Regular,
+                                    fontSize = 16.sp,
+                                    color = UIDarkGrey
+                                )
+                            }
+                            innerTextField()
+                        }
+                        // Show clear button when there's text
+                        if (internalSearchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = {
+                                    internalSearchQuery = ""
+                                    onSearchQueryChange("")
+                                },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear search",
+                                    tint = UIDarkGrey,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
+            )
+        }
+    }
+}
+
+/**
+ * Reusable component to display "Not Found" message when search or filter returns empty results
+ *
+ * @param searchQuery The current search query (optional)
+ * @param emptyStateMessage Message to show when no search is active
+ * @param notFoundMessage Custom message when search returns no results
+ * @param showIcon Whether to show a search icon
+ */
+@Composable
+fun NotFoundMessage(
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    emptyStateMessage: String = "No items found",
+    notFoundMessage: String? = null,
+    showIcon: Boolean = true
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            if (showIcon) {
+                Icon(
+                    imageVector = if (searchQuery.isEmpty()) Icons.Default.Info else Icons.Default.Search,
+                    contentDescription = null,
+                    tint = UIDarkGrey.copy(alpha = 0.5f),
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Text(
+                text = if (searchQuery.isEmpty()) {
+                    emptyStateMessage
+                } else {
+                    notFoundMessage ?: "No results found for \"$searchQuery\""
+                },
+                textAlign = TextAlign.Center,
+                style = AppFont.Regular,
+                color = UIDarkGrey,
+                fontSize = 16.sp,
+                lineHeight = 24.sp
             )
         }
     }

@@ -110,7 +110,7 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
     override fun getEventsFlow(): Flow<List<Event>> = callbackFlow {
         val uid = currentUserId ?: run { close(); return@callbackFlow }
         val subscription = db.collection("users").document(uid).collection("events")
-            .orderBy("date", Query.Direction.ASCENDING)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) trySend(snapshot.toObjects(Event::class.java))
             }
@@ -232,6 +232,7 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 .collection("events")
                 .document(eventId)
                 .collection("activities")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
             snapshot.toObjects(Activity::class.java)

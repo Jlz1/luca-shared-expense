@@ -143,19 +143,12 @@ fun ContactsScreen(
                         CircularProgressIndicator(color = UIAccentYellow)
                     }
                 } else if (filteredContacts.isEmpty()) {
-                    // Empty State
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (searchQuery.isEmpty())
-                                "You define your world,\nstart adding contacts now!"
-                            else
-                                "No contacts found for \"$searchQuery\"",
-                            textAlign = TextAlign.Center,
-                            style = AppFont.Regular,
-                            color = UIDarkGrey,
-                            fontSize = 16.sp
-                        )
-                    }
+                    // Empty State - Using NotFoundMessage component
+                    NotFoundMessage(
+                        searchQuery = searchQuery,
+                        emptyStateMessage = "You define your world,\nstart adding contacts now!",
+                        notFoundMessage = "No contacts found for \"$searchQuery\""
+                    )
                 } else {
                     // Contact List
                     LazyColumn(

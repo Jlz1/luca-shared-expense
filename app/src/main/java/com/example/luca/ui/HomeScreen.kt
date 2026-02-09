@@ -142,8 +142,20 @@ fun HomeScreenContent(
                     )
                 }
             } else if (filteredEvents.isEmpty()) {
-                // TAMPILAN SAAT DATA KOSONG (Tapi sudah tidak loading)
-                EmptyStateView(onAddEventClick = onAddEventClick)
+                // TAMPILAN SAAT DATA KOSONG
+                // Bedakan antara kosong karena search vs benar-benar kosong
+                if (searchQuery.isNotEmpty()) {
+                    // Tidak ada hasil search - tampilkan NotFoundMessage
+                    NotFoundMessage(
+                        searchQuery = searchQuery,
+                        emptyStateMessage = "You haven't made any events.\nClick the + button to add one!",
+                        notFoundMessage = "No events found for \"$searchQuery\"",
+                        showIcon = true
+                    )
+                } else {
+                    // Benar-benar kosong - tampilkan empty state dengan tombol add
+                    EmptyStateView(onAddEventClick = onAddEventClick)
+                }
             } else {
                 // TAMPILAN DATA (CAROUSEL)
                 Box(
@@ -210,6 +222,21 @@ fun BetterSearchBar(
                         )
                     }
                     innerTextField()
+                }
+
+                // Clear button - shows when there's text
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQueryChange("") },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_x_logo),
+                            contentDescription = "Clear search",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

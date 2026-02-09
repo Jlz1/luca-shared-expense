@@ -17,5 +17,8 @@ data class Event(
     val participants: List<ParticipantData> = emptyList(),
 
     // Field legacy (bisa dibiarkan kosong, atau dipakai sebagai backup)
-    val participantAvatars: List<String> = emptyList()
+    val participantAvatars: List<String> = emptyList(),
+
+    // Timestamp untuk sorting (newest first)
+    val createdAt: Long = System.currentTimeMillis()
 )

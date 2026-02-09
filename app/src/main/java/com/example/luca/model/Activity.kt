@@ -9,5 +9,8 @@ data class Activity(
     val category: String = "",
     val categoryColorHex: String = "#FFCC80",
     val participants: List<ParticipantData> = emptyList(),
-    val paidBy: ParticipantData? = null
+    val paidBy: ParticipantData? = null,
+
+    // Timestamp untuk sorting (newest first)
+    val createdAt: Long = System.currentTimeMillis()
 )

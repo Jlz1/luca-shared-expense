@@ -56,29 +56,17 @@ class DetailedEventViewModel : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // Combined flow for filtered and sorted activities
+    // Combined flow for filtered activities (maintaining timestamp order from repository)
     val uiActivities = combine(_activities, _searchQuery) { activities, query ->
         if (query.isEmpty()) {
-            // Case 1: Empty query - Sort alphabetically by title (A-Z)
-            activities.sortedBy { it.title.lowercase() }
+            // Case 1: Empty query - Return activities as-is (already sorted by createdAt DESC from repository)
+            activities
         } else {
-            // Case 2: Query is not empty
-            // Filter activities containing the query
-            val filtered = activities.filter {
+            // Case 2: Query is not empty - Filter activities containing the query
+            // Maintain the timestamp order (newest first)
+            activities.filter {
                 it.title.contains(query, ignoreCase = true)
             }
-
-            // Custom sorting:
-            // 1st Priority: Starts with query
-            // 2nd Priority: Contains query
-            // 3rd Priority: Alphabetical
-            filtered.sortedWith(
-                compareByDescending<UIActivityState> {
-                    it.title.startsWith(query, ignoreCase = true)
-                }.thenBy {
-                    it.title.lowercase()
-                }
-            )
         }
     }
 
