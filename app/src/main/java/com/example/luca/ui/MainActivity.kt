@@ -443,7 +443,10 @@ fun LucaApp() {
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
                         SummaryScreen(
                             eventId = eventId,
-                            onBackClick = { navController.popBackStack() },
+                            onBackClick = {
+                                // Always go back to DetailedEventScreen, regardless of how many times back is clicked
+                                navController.popBackStack("detailed_event/$eventId", inclusive = false)
+                            },
                             onShareClick = {
                                 // TODO: Implement share functionality
                             }

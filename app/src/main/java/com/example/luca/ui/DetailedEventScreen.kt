@@ -215,6 +215,7 @@ fun DetailedEventContent(
                     ActivitySection(
                         activities = activitiesState,
                         isEmpty = activitiesState.isEmpty(),
+                        searchQuery = searchQuery,
                         onNavigateToAddActivity = onNavigateToAddActivity,
                         onNavigateToActivityDetail = onActivityClick,
                         onDeleteActivity = onDeleteActivity
@@ -598,18 +599,37 @@ fun DeleteActivityConfirmationDialog(
 fun ActivitySection(
     activities: List<UIActivityState>,
     isEmpty: Boolean,
+    searchQuery: String = "",
     onNavigateToAddActivity: () -> Unit,
     onNavigateToActivityDetail: (String) -> Unit,
     onDeleteActivity: (String) -> Unit = {}
 ) {
-    if (isEmpty) EmptyStateMessage(onNavigateToAddActivity)
-    else LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(activities) {
-            ActivityItemCard(
-                item = it,
-                onNavigateToActivityDetail = onNavigateToActivityDetail,
-                onDeleteActivity = onDeleteActivity
+    if (isEmpty) {
+        // Check if empty due to search filter or truly empty
+        if (searchQuery.isNotEmpty()) {
+            // Show "not found" message for search
+            NotFoundMessage(
+                searchQuery = searchQuery,
+                emptyStateMessage = "No activities yet.\nAdd your first activity!",
+                notFoundMessage = "No activities found for \"$searchQuery\""
             )
+        } else {
+            // Show original empty state with add button
+            EmptyStateMessage(onNavigateToAddActivity)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 100.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(activities) {
+                ActivityItemCard(
+                    item = it,
+                    onNavigateToActivityDetail = onNavigateToActivityDetail,
+                    onDeleteActivity = onDeleteActivity
+                )
+            }
         }
     }
 }
