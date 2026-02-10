@@ -33,6 +33,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.viewmodel.AuthViewModel
+import kotlinx.coroutines.CoroutineScope
+import com.example.luca.ui.debounceBackClick
 
 // --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
@@ -134,6 +136,8 @@ fun LoginScreenContent(
     onLoginClick: () -> Unit,
     onSignUpClick: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
     Scaffold(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
@@ -171,7 +175,7 @@ fun LoginScreenContent(
                         tint = UIBlack,
                         modifier = Modifier
                             .size(29.dp)
-                            .clickable { onBackClick() }
+                            .clickable { debouncedBackClick() }
                     )
                 }
 

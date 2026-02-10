@@ -622,6 +622,7 @@ fun DeleteAccountDialog(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var deleteErrorMessage by remember { mutableStateOf("") } // Tambahkan state untuk error message
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -668,20 +669,21 @@ fun DeleteAccountDialog(
 
                 CustomTextField(
                     value = password,
-                    onValueChange = { password = it; errorMessage = "" },
+                    onValueChange = { password = it; errorMessage = ""; deleteErrorMessage = "" },
                     placeholder = "Enter password to confirm",
                     isPassword = true,
                     showPassword = showPassword,
                     onShowPasswordToggle = { showPassword = !showPassword }
                 )
 
-                if (errorMessage.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                // Tampilkan error message di sini jika ada
+                if (deleteErrorMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = errorMessage,
-                        color = Color(0xFFE53935),
+                        text = deleteErrorMessage,
                         fontSize = 12.sp,
-                        style = AppFont.Regular
+                        style = AppFont.Regular,
+                        color = Color.Red // Ubah dari hijau ke merah
                     )
                 }
             }

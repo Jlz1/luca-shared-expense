@@ -380,12 +380,6 @@ fun LucaApp() {
                                     drawerState.close()
                                     navController.navigate("help_center")
                                 }
-                            },
-                            onNotificationSettingsClick = {
-                                scope.launch {
-                                    drawerState.close()
-                                    navController.navigate("notification_settings")
-                                }
                             }
                         )
                     }
@@ -413,11 +407,6 @@ fun LucaApp() {
                         )
                     }
 
-                    composable("notification_settings") {
-                        NotificationSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
 
                     composable("detailed_event/{eventId}") { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
