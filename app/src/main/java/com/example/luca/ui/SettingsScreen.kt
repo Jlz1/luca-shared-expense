@@ -14,7 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.QuestionAnswer
@@ -47,6 +46,7 @@ import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -307,8 +307,7 @@ fun SettingsScreen(
     onAboutUsClick: () -> Unit,
     onAccountSettingsClick: () -> Unit,
     onPrivacySecurityClick: () -> Unit = {},
-    onHelpCenterClick: () -> Unit = {},
-    onNotificationSettingsClick: () -> Unit = {}
+    onHelpCenterClick: () -> Unit = {}
 ) {
     // State untuk user profile
     var userName by remember { mutableStateOf("Loading...") }
@@ -321,6 +320,7 @@ fun SettingsScreen(
     var successMessage by remember { mutableStateOf("") }
 
     val scope = rememberCoroutineScope()
+    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
 
     // Load user profile dari Firebase
     LaunchedEffect(Unit) {
@@ -363,7 +363,7 @@ fun SettingsScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = debouncedBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -489,12 +489,7 @@ fun SettingsScreen(
                     title = "Privacy & Security",
                     onClick = { onPrivacySecurityClick() }
                 )
-                SettingsItem(
-                    icon = Icons.Default.Notifications,
-                    title = "Notifications",
-                    subtitle = "Manage your notification preferences",
-                    onClick = { onNotificationSettingsClick() }
-                )
+                // Notifications setting removed because it's no longer used
             }
 
             // ===== 3. GROUP: SUPPORT & ABOUT =====

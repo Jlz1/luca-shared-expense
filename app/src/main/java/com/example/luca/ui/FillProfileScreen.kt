@@ -23,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.luca.R
 import com.example.luca.data.AuthRepository
@@ -31,11 +32,13 @@ import com.example.luca.ui.components.AvatarSelectionOverlay
 import com.example.luca.ui.theme.*
 // Import Utils yang baru dibuat
 import com.example.luca.util.AvatarUtils
+import com.example.luca.ui.debounceBackClick
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FillProfileScreen(
-    onBackClick: () -> Unit = {},
-    onCreateAccountClick: (name: String, avatarName: String) -> Unit = { _, _ -> }
+    onBackClick: () -> Unit,
+    onCreateAccountClick: (String, String) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
 
@@ -49,6 +52,8 @@ fun FillProfileScreen(
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
     var isLoading by remember { mutableStateOf(false) }
+
+    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
 
     val handleCreateAccount: () -> Unit = {
         if (username.isNotEmpty()) {
@@ -82,7 +87,7 @@ fun FillProfileScreen(
         onDismissAvatarDialog = { showAvatarDialog = false },
         onAvatarSelected = { selectedAvatarName = it },
         isLoading = isLoading,
-        onBackClick = onBackClick,
+        onBackClick = debouncedBackClick,
         onCreateAccountClick = handleCreateAccount
     )
 }

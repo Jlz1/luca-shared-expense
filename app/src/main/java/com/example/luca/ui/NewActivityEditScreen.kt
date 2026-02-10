@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
 import com.example.luca.ui.theme.*
+import kotlinx.coroutines.CoroutineScope
+import com.example.luca.ui.debounceBackClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +51,9 @@ fun NewActivityEditScreen(
     var globalDiscPercent by remember { mutableStateOf("0") }
     var globalDiscAmount by remember { mutableStateOf("Rp0") }
 
+    val scope = rememberCoroutineScope()
+    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +64,7 @@ fun NewActivityEditScreen(
         // 2. HEADER
         HeaderSection(
             currentState = HeaderState.EDIT_ACTIVITY, // Pastikan Enum ini ada di code kamu
-            onLeftIconClick = onBackClick
+            onLeftIconClick = debouncedBackClick
         )
         Box(
             modifier = Modifier

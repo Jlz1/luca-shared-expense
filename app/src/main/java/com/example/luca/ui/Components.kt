@@ -58,7 +58,10 @@ import com.example.luca.model.Event
 import com.example.luca.ui.theme.*
 import com.example.luca.util.AvatarUtils
 import com.example.luca.util.BankUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -114,6 +117,21 @@ private fun generateRandomColorHelper(name: String): Color {
     )
     val index = kotlin.math.abs(name.hashCode()) % colors.size
     return colors[index]
+}
+
+/**
+ * Debounce handler untuk navigasi back agar tidak double trigger.
+ */
+fun debounceBackClick(scope: CoroutineScope, delayMs: Long = 500, action: () -> Unit): () -> Unit {
+    var job: Job? = null
+    return {
+        if (job == null || job?.isCompleted == true) {
+            job = scope.launch {
+                action()
+                delay(delayMs)
+            }
+        }
+    }
 }
 
 // --- CORE COMPONENTS ---

@@ -24,6 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
+import kotlinx.coroutines.CoroutineScope
+import com.example.luca.ui.debounceBackClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +33,9 @@ fun HelpSupportScreen(
     onBackClick: () -> Unit,
     onReportBugClick: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -44,7 +49,7 @@ fun HelpSupportScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = debouncedBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
