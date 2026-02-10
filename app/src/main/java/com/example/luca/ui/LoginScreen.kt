@@ -33,8 +33,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.luca.viewmodel.AuthViewModel
-import kotlinx.coroutines.CoroutineScope
-import com.example.luca.ui.debounceBackClick
 
 // --- STATEFUL COMPOSABLE (Contains Business Logic) ---
 @Composable
@@ -42,6 +40,7 @@ fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToSignUp: () -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
@@ -114,7 +113,8 @@ fun LoginScreen(
                 viewModel.login(email, password)
             }
         },
-        onSignUpClick = onNavigateToSignUp
+        onSignUpClick = onNavigateToSignUp,
+        onForgotPasswordClick = onNavigateToForgotPassword
     )
 }
 
@@ -134,7 +134,8 @@ fun LoginScreenContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onBackClick: () -> Unit,
     onLoginClick: () -> Unit,
-    onSignUpClick: () -> Unit
+    onSignUpClick: () -> Unit,
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
@@ -237,7 +238,22 @@ fun LoginScreenContent(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(modifier = Modifier.height(49.dp))
+                        // Forgot Password Link
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Text(
+                                text = "Forgot Password?",
+                                style = AppFont.Medium,
+                                fontSize = 14.sp,
+                                color = UIAccentYellow,
+                                modifier = Modifier.clickable { onForgotPasswordClick() }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(30.dp))
 
                         Button(
                             onClick = onLoginClick,

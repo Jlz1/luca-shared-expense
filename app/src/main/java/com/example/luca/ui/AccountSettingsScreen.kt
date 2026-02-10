@@ -35,6 +35,7 @@ import com.example.luca.ui.theme.*
 import com.example.luca.util.AvatarUtils
 import com.example.luca.util.ValidationUtils
 import com.example.luca.viewmodel.AccountSettingsViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -428,17 +429,9 @@ fun AccountSettingsScreen(
     if (showPasswordDialog) {
         PasswordChangeDialog(
             onDismiss = { showPasswordDialog = false },
-            onConfirm = { oldPassword, newPassword ->
-                scope.launch {
-                    isLoading = true
-                    val success = viewModel.updatePassword(oldPassword, newPassword)
-                    isLoading = false
-                    if (success) {
-                        successMessage = "Password updated successfully"
-                        showSuccessMessage = true
-                    }
-                    showPasswordDialog = false
-                }
+            onPasswordChanged = { message ->
+                successMessage = message
+                showSuccessMessage = true
             }
         )
     }
@@ -490,8 +483,11 @@ fun AccountSettingsScreen(
 @Composable
 fun PasswordChangeDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onPasswordChanged: (String) -> Unit // Callback ketika password berhasil diubah
 ) {
+    // Step 1: Verify current password, Step 2: Enter new password
+    var currentStep by remember { mutableStateOf(1) }
+
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -499,14 +495,16 @@ fun PasswordChangeDialog(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var isVerifying by remember { mutableStateOf(false) }
+    var isUpdating by remember { mutableStateOf(false) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isVerifying && !isUpdating) onDismiss() },
         containerColor = UIWhite,
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = "Change Password",
+                text = if (currentStep == 1) "Verifikasi Password" else "Password Baru",
                 style = AppFont.Bold,
                 fontSize = 20.sp,
                 color = UIBlack
@@ -514,50 +512,57 @@ fun PasswordChangeDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Enter your current password and new password",
-                    fontSize = 14.sp,
-                    style = AppFont.Regular,
-                    color = UIDarkGrey,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
+                if (currentStep == 1) {
+                    // Step 1: Verify current password
+                    Text(
+                        text = "Masukkan password saat ini untuk melanjutkan",
+                        fontSize = 14.sp,
+                        style = AppFont.Regular,
+                        color = UIDarkGrey,
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
 
-                // Old Password
-                CustomTextField(
-                    value = oldPassword,
-                    onValueChange = { oldPassword = it; errorMessage = "" },
-                    placeholder = "Current Password",
-                    isPassword = true,
-                    showPassword = showOldPassword,
-                    onShowPasswordToggle = { showOldPassword = !showOldPassword }
-                )
+                    CustomTextField(
+                        value = oldPassword,
+                        onValueChange = { oldPassword = it; errorMessage = "" },
+                        placeholder = "Password Saat Ini",
+                        isPassword = true,
+                        showPassword = showOldPassword,
+                        onShowPasswordToggle = { showOldPassword = !showOldPassword }
+                    )
+                } else {
+                    // Step 2: Enter new password
+                    Text(
+                        text = "Password terverifikasi! Masukkan password baru Anda",
+                        fontSize = 14.sp,
+                        style = AppFont.Regular,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    CustomTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it; errorMessage = "" },
+                        placeholder = "Password Baru",
+                        isPassword = true,
+                        showPassword = showNewPassword,
+                        onShowPasswordToggle = { showNewPassword = !showNewPassword }
+                    )
 
-                // New Password
-                CustomTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it; errorMessage = "" },
-                    placeholder = "New Password",
-                    isPassword = true,
-                    showPassword = showNewPassword,
-                    onShowPasswordToggle = { showNewPassword = !showNewPassword }
-                )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Confirm Password
-                CustomTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it; errorMessage = "" },
-                    placeholder = "Confirm New Password",
-                    isPassword = true,
-                    showPassword = showConfirmPassword,
-                    onShowPasswordToggle = { showConfirmPassword = !showConfirmPassword }
-                )
+                    CustomTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it; errorMessage = "" },
+                        placeholder = "Konfirmasi Password Baru",
+                        isPassword = true,
+                        showPassword = showConfirmPassword,
+                        onShowPasswordToggle = { showConfirmPassword = !showConfirmPassword }
+                    )
+                }
 
                 if (errorMessage.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = errorMessage,
                         color = Color(0xFFE53935),
@@ -570,45 +575,125 @@ fun PasswordChangeDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    when {
-                        oldPassword.isEmpty() -> {
-                            errorMessage = "Password saat ini tidak boleh kosong"
+                    if (currentStep == 1) {
+                        // Step 1: Verify old password
+                        if (oldPassword.isEmpty()) {
+                            errorMessage = "Password tidak boleh kosong"
+                            return@Button
                         }
-                        newPassword.isEmpty() -> {
-                            errorMessage = "Password baru tidak boleh kosong"
+
+                        isVerifying = true
+                        errorMessage = ""
+
+                        val user = FirebaseAuth.getInstance().currentUser
+                        if (user != null && user.email != null) {
+                            val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(
+                                user.email!!,
+                                oldPassword
+                            )
+
+                            user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
+                                isVerifying = false
+                                if (reauthTask.isSuccessful) {
+                                    // Password correct, go to step 2
+                                    currentStep = 2
+                                    errorMessage = ""
+                                } else {
+                                    // Password wrong
+                                    errorMessage = when {
+                                        reauthTask.exception?.message?.contains("password", ignoreCase = true) == true ->
+                                            "Password salah. Silakan coba lagi."
+                                        reauthTask.exception?.message?.contains("network", ignoreCase = true) == true ->
+                                            "Tidak ada koneksi internet"
+                                        else -> "Password salah. Silakan coba lagi."
+                                    }
+                                }
+                            }
+                        } else {
+                            isVerifying = false
+                            errorMessage = "User tidak ditemukan. Silakan login kembali."
                         }
-                        confirmPassword.isEmpty() -> {
-                            errorMessage = "Konfirmasi password tidak boleh kosong"
-                        }
-                        newPassword != confirmPassword -> {
-                            errorMessage = "Password baru tidak cocok"
-                        }
-                        else -> {
-                            // Validasi password baru menggunakan ValidationUtils
-                            val passwordError = ValidationUtils.getPasswordError(newPassword)
-                            if (passwordError != null) {
-                                errorMessage = passwordError
-                            } else {
-                                // Password valid, proceed
-                                onConfirm(oldPassword, newPassword)
-                                onDismiss()
+                    } else {
+                        // Step 2: Update to new password
+                        when {
+                            newPassword.isEmpty() -> {
+                                errorMessage = "Password baru tidak boleh kosong"
+                            }
+                            confirmPassword.isEmpty() -> {
+                                errorMessage = "Konfirmasi password tidak boleh kosong"
+                            }
+                            newPassword != confirmPassword -> {
+                                errorMessage = "Password baru tidak cocok"
+                            }
+                            else -> {
+                                // Validasi password baru menggunakan ValidationUtils
+                                val passwordError = ValidationUtils.getPasswordError(newPassword)
+                                if (passwordError != null) {
+                                    errorMessage = passwordError
+                                } else {
+                                    // Password valid, update di Firebase
+                                    isUpdating = true
+                                    errorMessage = ""
+
+                                    val user = FirebaseAuth.getInstance().currentUser
+                                    user?.updatePassword(newPassword)?.addOnCompleteListener { updateTask ->
+                                        isUpdating = false
+                                        if (updateTask.isSuccessful) {
+                                            onPasswordChanged("Password berhasil diubah")
+                                            onDismiss()
+                                        } else {
+                                            errorMessage = "Gagal mengubah password: ${updateTask.exception?.message}"
+                                        }
+                                    } ?: run {
+                                        isUpdating = false
+                                        errorMessage = "User tidak ditemukan"
+                                    }
+                                }
                             }
                         }
                     }
                 },
+                enabled = !isVerifying && !isUpdating,
                 colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Change", color = UIBlack, style = AppFont.SemiBold)
+                if (isVerifying || isUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = UIBlack,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (currentStep == 1) "Verifikasi" else "Ubah Password",
+                        color = UIBlack,
+                        style = AppFont.SemiBold
+                    )
+                }
             }
         },
         dismissButton = {
             Button(
-                onClick = onDismiss,
+                onClick = {
+                    if (currentStep == 2) {
+                        // Go back to step 1
+                        currentStep = 1
+                        newPassword = ""
+                        confirmPassword = ""
+                        errorMessage = ""
+                    } else {
+                        onDismiss()
+                    }
+                },
+                enabled = !isVerifying && !isUpdating,
                 colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Cancel", color = UIBlack, style = AppFont.Medium)
+                Text(
+                    text = if (currentStep == 2) "Kembali" else "Batal",
+                    color = UIBlack,
+                    style = AppFont.Medium
+                )
             }
         }
     )

@@ -44,10 +44,12 @@ import com.example.luca.ui.theme.UIBlack
 import com.example.luca.ui.theme.UIWhite
 import com.example.luca.viewmodel.AuthViewModel
 import com.example.luca.viewmodel.ContactsViewModel
+import com.example.luca.viewmodel.ForgotPasswordViewModel
 import com.example.luca.viewmodel.HomeViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +68,7 @@ fun LucaApp() {
     // =================================================================
     val contactsViewModel: ContactsViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
+    val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel()
 
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -250,7 +253,20 @@ fun LucaApp() {
                         LoginScreen(
                             onNavigateToHome = { navController.navigate("final_login") { popUpTo("greeting") { inclusive = true } } },
                             onNavigateToSignUp = { navController.navigate("sign_up") },
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToForgotPassword = { navController.navigate("forgot_password") }
+                        )
+                    }
+                    // Forgot Password Screen
+                    composable("forgot_password") {
+                        ForgotPasswordScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("greeting") { inclusive = false }
+                                }
+                            },
+                            viewModel = forgotPasswordViewModel
                         )
                     }
                     composable("sign_up") {
