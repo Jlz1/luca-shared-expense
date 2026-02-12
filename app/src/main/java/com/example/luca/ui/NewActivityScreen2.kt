@@ -120,6 +120,15 @@ fun AddActivityScreen2(
     // --- STATE: Edit Participants Dialog ---
     var showEditParticipantsDialog by remember { mutableStateOf(false) }
 
+    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onBackClick()
+        }
+    }
+
     // Initialize from provided activity if available (INCLUDE paidBy)
     LaunchedEffect(activity) {
         if (activity != null) {
@@ -328,7 +337,7 @@ fun AddActivityScreen2(
         // 2. HEADER
         HeaderSection(
             currentState = HeaderState.EDIT_ACTIVITY,
-            onLeftIconClick = onBackClick
+            onLeftIconClick = handleBackClick
         )
 
         // 3. KONTEN AREA (PUTIH & ROUNDED)
