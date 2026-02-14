@@ -1,5 +1,6 @@
 package com.example.luca.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.luca.data.repository.ScanRepository
@@ -13,6 +14,15 @@ import java.io.File
 
 class ScanViewModel : ViewModel() {
     private val repository = ScanRepository()
+    private val TAG = "ScanViewModel"
+
+    // Helper function untuk parse Indonesian number format
+    private fun parseIndonesianNumber(value: String?): Double {
+        if (value == null || value.isEmpty() || value == "0") return 0.0
+        // "56.936" → remove all dots → "56936" → 56936.0
+        val cleaned = value.replace(".", "").replace(",", ".")
+        return cleaned.toDoubleOrNull() ?: 0.0
+    }
 
     private val _scanState = MutableStateFlow("Menunggu Scan...")
     val scanState: StateFlow<String> = _scanState
@@ -35,29 +45,32 @@ class ScanViewModel : ViewModel() {
                         // Note: Fields are now String (or nullable), not Int
                         val items = data.items.map { item ->
                             // Parse price from String to Double
-                            val priceStr = item.price ?: item.lineTotal ?: "0"
-                            val price = priceStr.replace(".", "").toDoubleOrNull() ?: 0.0
+                            val price = parseIndonesianNumber(item.price ?: item.lineTotal ?: "0")
 
                             ParsedReceiptItem(
                                 itemName = item.name,
                                 itemPrice = price,
-                                itemQuantity = item.qty.toIntOrNull() ?: 1,  // qty is now String
+                                itemQuantity = item.qty.toIntOrNull() ?: 1,
                                 itemDiscount = 0.0,
                                 itemTax = 0.0
                             )
                         }
 
-                        // Parse summary values from String to Double
+                        // Parse summary values using helper function
                         val summary = data.summary
-                        val subtotal = (summary?.subtotal ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
-                        val tax = (summary?.tax ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
-                        val discount = (summary?.totalDiscount ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
-                        val total = (summary?.total ?: summary?.grandTotal ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
+                        val subtotal = parseIndonesianNumber(summary?.subtotal)
+                        val tax = parseIndonesianNumber(summary?.tax)
+                        val serviceCharge = parseIndonesianNumber(summary?.serviceCharge ?: summary?.service)
+                        val discount = parseIndonesianNumber(summary?.totalDiscount)
+                        val total = parseIndonesianNumber(summary?.total ?: summary?.grandTotal)
+
+                        Log.d(TAG, "✓ Parsed: subtotal=$subtotal, tax=$tax, service=$serviceCharge, total=$total")
 
                         val parsedData = ParsedReceiptData(
                             items = items,
                             subtotal = subtotal,
                             tax = tax,
+                            serviceCharge = serviceCharge,
                             discount = discount,
                             totalBill = total,
                             rawText = response.debug?.rawText ?: ""

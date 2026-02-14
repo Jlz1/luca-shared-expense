@@ -47,6 +47,7 @@ fun ScanResultScreen(
 
     var receiptItems by remember { mutableStateOf(parsedData.items) }
     var globalTax by remember { mutableStateOf(parsedData.tax) }
+    var globalServiceCharge by remember { mutableStateOf(parsedData.serviceCharge) }
     var globalDiscount by remember { mutableStateOf(parsedData.discount) }
     var isSplitEqual by remember { mutableStateOf(false) }
 
@@ -56,7 +57,7 @@ fun ScanResultScreen(
 
     // Calculate subtotal and total
     val subtotal = receiptItems.sumOf { it.itemPrice * it.itemQuantity - it.itemDiscount }
-    val totalBill = subtotal + globalTax - globalDiscount
+    val totalBill = subtotal + globalTax + globalServiceCharge - globalDiscount
 
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
@@ -344,6 +345,16 @@ fun ScanResultScreen(
                     ) {
                         Text(text = "Tax", fontSize = 12.sp, color = UIDarkGrey)
                         Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalTax)}", fontSize = 12.sp, color = UIDarkGrey)
+                    }
+                    if (globalServiceCharge > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Service Charge", fontSize = 12.sp, color = UIDarkGrey)
+                            Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalServiceCharge)}", fontSize = 12.sp, color = UIDarkGrey)
+                        }
                     }
                     if (globalDiscount > 0) {
                         Spacer(modifier = Modifier.height(2.dp))

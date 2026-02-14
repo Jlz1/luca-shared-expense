@@ -4,6 +4,7 @@ data class ParsedReceiptData(
     val items: List<ParsedReceiptItem> = emptyList(),
     val subtotal: Double = 0.0,
     val tax: Double = 0.0,
+    val serviceCharge: Double = 0.0,  // Added
     val discount: Double = 0.0,
     val totalBill: Double = 0.0,
     val rawText: String = ""
