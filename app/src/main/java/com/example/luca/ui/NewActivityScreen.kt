@@ -71,6 +71,15 @@ fun AddActivityScreen(
     val isSuccess by viewModel.isSuccess.collectAsState()
     val createdActivityId by viewModel.createdActivityId.collectAsState()
 
+    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onBackClick()
+        }
+    }
+
     // Handle success - LANGSUNG navigate saat isSuccess berubah jadi true
     LaunchedEffect(isSuccess) {
         if (isSuccess && createdActivityId.isNotEmpty()) {
@@ -122,7 +131,7 @@ fun AddActivityScreen(
             selectedPayer = contact
             viewModel.onPayerChange(contact)
         },
-        onBackClick = onBackClick,
+        onBackClick = handleBackClick,
         onDoneClick = {
             viewModel.saveActivity()
         },

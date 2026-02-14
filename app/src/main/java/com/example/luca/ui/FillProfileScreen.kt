@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -23,7 +22,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.luca.R
 import com.example.luca.data.AuthRepository
@@ -32,7 +30,6 @@ import com.example.luca.ui.components.AvatarSelectionOverlay
 import com.example.luca.ui.theme.*
 // Import Utils yang baru dibuat
 import com.example.luca.util.AvatarUtils
-import com.example.luca.ui.debounceBackClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +50,18 @@ fun FillProfileScreen(
     val authRepo = remember { AuthRepository() }
     var isLoading by remember { mutableStateOf(false) }
 
-    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
+    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onBackClick()
+        }
+    }
+
+    // Named functions for opening/closing avatar dialog (reduces analyzer warnings)
+    val openAvatarDialog: () -> Unit = { showAvatarDialog = true }
+    val closeAvatarDialog: () -> Unit = { showAvatarDialog = false }
 
     val handleCreateAccount: () -> Unit = {
         if (username.isNotEmpty()) {
@@ -83,11 +91,11 @@ fun FillProfileScreen(
         onUsernameChange = { username = it },
         selectedAvatarName = selectedAvatarName,
         showAvatarDialog = showAvatarDialog,
-        onShowAvatarDialog = { showAvatarDialog = true },
-        onDismissAvatarDialog = { showAvatarDialog = false },
+        onShowAvatarDialog = openAvatarDialog,
+        onDismissAvatarDialog = closeAvatarDialog,
         onAvatarSelected = { selectedAvatarName = it },
         isLoading = isLoading,
-        onBackClick = debouncedBackClick,
+        onBackClick = handleBackClick,
         onCreateAccountClick = handleCreateAccount
     )
 }

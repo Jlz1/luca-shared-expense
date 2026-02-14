@@ -93,6 +93,15 @@ fun AddScreen(
     var showContactSelectionOverlay by remember { mutableStateOf(false) }
     var showAddNewContactOverlay by remember { mutableStateOf(false) }
 
+    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onNavigateBack()
+        }
+    }
+
     AddScreenContent(
         title = title,
         location = location,
@@ -107,7 +116,7 @@ fun AddScreen(
         onChangePhotoClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onAddParticipantClick = { showContactSelectionOverlay = true },
         onContinueClick = { viewModel.saveEvent() },
-        onBackClick = onNavigateBack
+        onBackClick = handleBackClick
     )
 
     if (showContactSelectionOverlay) {
