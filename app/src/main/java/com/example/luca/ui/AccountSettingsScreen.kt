@@ -60,6 +60,15 @@ fun AccountSettingsScreen(
 
     val scope = rememberCoroutineScope()
 
+    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onBackClick()
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.loadCurrentUserData()
     }
@@ -87,7 +96,7 @@ fun AccountSettingsScreen(
                 // Header
                 HeaderSection(
                     currentState = HeaderState.ACCOUNT_SETTINGS,
-                    onLeftIconClick = onBackClick
+                    onLeftIconClick = handleBackClick
                 )
 
                 // Scrollable Content

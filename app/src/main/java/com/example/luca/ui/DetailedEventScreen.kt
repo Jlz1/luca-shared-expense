@@ -93,11 +93,37 @@ fun DetailedEventScreen(
     var showDeleteActivityDialog by remember { mutableStateOf(false) }
     var activityToDelete by remember { mutableStateOf<String?>(null) }
 
+    // Guard untuk mencegah klik berkali-kali yang menyebabkan bug navigation
+    val backClicked = remember { mutableStateOf(false) }
+    val editClicked = remember { mutableStateOf(false) }
+    val addActivityClicked = remember { mutableStateOf(false) }
+
+    val handleBackClick: () -> Unit = {
+        if (!backClicked.value) {
+            backClicked.value = true
+            onBackClick()
+        }
+    }
+
+    val handleEditClick: () -> Unit = {
+        if (!editClicked.value) {
+            editClicked.value = true
+            onNavigateToEditEvent(eventId)
+        }
+    }
+
+    val handleAddActivityClick: () -> Unit = {
+        if (!addActivityClicked.value) {
+            addActivityClicked.value = true
+            onNavigateToAddActivity()
+        }
+    }
+
     // 3. LOGIC FIX: Pantau perubahan deleteState di sini
     LaunchedEffect(deleteState) {
         if (deleteState is DeleteState.Success) {
             showDeleteDialog = false // Tutup dialog paksa
-            onBackClick()            // Kembali ke halaman sebelumnya
+            handleBackClick()        // Kembali ke halaman sebelumnya dengan guard
             viewModel.resetDeleteState()
         }
     }
@@ -116,10 +142,10 @@ fun DetailedEventScreen(
         eventState = eventState,
         activitiesState = activitiesState,
         searchQuery = searchQuery,
-        onBackClick = onBackClick,
+        onBackClick = handleBackClick,
         onMenuClick = onMenuClick,
-        onNavigateToAddActivity = onNavigateToAddActivity,
-        onEditClick = { onNavigateToEditEvent(eventId) },
+        onNavigateToAddActivity = handleAddActivityClick,
+        onEditClick = handleEditClick,
         onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
         onActivityClick = onNavigateToActivityDetail,
         onSummaryClick = onNavigateToSummary,
