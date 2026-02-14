@@ -10,6 +10,14 @@ from google.oauth2 import service_account
 import io
 from PIL import Image
 
+# New imports for Mindee
+try:
+    from mindee_parser import init_mindee_model, parse_with_mindee
+except Exception:
+    # mindee_parser may not be present in some branches; handle gracefully
+    init_mindee_model = None
+    parse_with_mindee = None
+
 # ==============================================================================
 # FLASK APP
 # ==============================================================================
@@ -54,10 +62,13 @@ def init_vision_client():
 print("🚀 Initializing Google Vision API...")
 vision_client = init_vision_client()
 
-if vision_client:
-    print("✅ Google Vision Ready!")
-else:
-    print("❌ Google Vision initialization failed!")
+# Initialize Mindee (if available)
+mindee_model = None
+if init_mindee_model:
+    try:
+        init_mindee_model()
+    except Exception as e:
+        print(f"[WARN] Mindee init raised: {e}")
 
 # ==============================================================================
 # GOOGLE VISION OCR
@@ -516,6 +527,59 @@ def parse_receipt():
             "message": str(e),
             "type": type(e).__name__
         }), 500
+
+@app.route('/parse-mindee', methods=['POST'])
+def parse_mindee_endpoint():
+    """Endpoint to parse receipt using Mindee model (ML-based). Expects multipart form with 'file'."""
+    if not parse_with_mindee:
+        return jsonify({"status": "error", "message": "Mindee parser not available."}), 500
+
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file uploaded. Use field name 'file'"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"status": "error", "message": f"Invalid format. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"}), 400
+
+    # Save to a temp path and call Mindee
+    import tempfile
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+            tmp.write(file.read())
+            tmp_path = tmp.name
+
+        # Ensure mindee model was initialized and available
+        try:
+            # parse_with_mindee returns fields or raises
+            result_fields = parse_with_mindee(tmp_path)
+            # Convert result_fields to a serializable dict if needed
+            try:
+                # Some Mindee responses are nested dataclasses - try to convert
+                def serialize_field(obj):
+                    if hasattr(obj, 'to_dict'):
+                        return obj.to_dict()
+                    if isinstance(obj, dict):
+                        return {k: serialize_field(v) for k, v in obj.items()}
+                    if hasattr(obj, '__dict__'):
+                        return {k: serialize_field(v) for k, v in obj.__dict__.items()}
+                    return obj
+                data = serialize_field(result_fields)
+            except Exception:
+                data = str(result_fields)
+
+            return jsonify({"status": "success", "data": data}), 200
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"status": "error", "message": f"Mindee parsing error: {str(e)}"}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
 # ==============================================================================
 # LAUNCH

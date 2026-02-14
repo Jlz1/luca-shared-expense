@@ -32,22 +32,34 @@ class ScanViewModel : ViewModel() {
                         val data = response.data
 
                         // Convert the new API response to ParsedReceiptData format
+                        // Note: Fields are now String (or nullable), not Int
                         val items = data.items.map { item ->
+                            // Parse price from String to Double
+                            val priceStr = item.price ?: item.lineTotal ?: "0"
+                            val price = priceStr.replace(".", "").toDoubleOrNull() ?: 0.0
+
                             ParsedReceiptItem(
                                 itemName = item.name,
-                                itemPrice = item.lineTotal.toDouble(),
-                                itemQuantity = item.qty,
+                                itemPrice = price,
+                                itemQuantity = item.qty.toIntOrNull() ?: 1,  // qty is now String
                                 itemDiscount = 0.0,
                                 itemTax = 0.0
                             )
                         }
 
+                        // Parse summary values from String to Double
+                        val summary = data.summary
+                        val subtotal = (summary?.subtotal ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
+                        val tax = (summary?.tax ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
+                        val discount = (summary?.totalDiscount ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
+                        val total = (summary?.total ?: summary?.grandTotal ?: "0").replace(".", "").toDoubleOrNull() ?: 0.0
+
                         val parsedData = ParsedReceiptData(
                             items = items,
-                            subtotal = data.summary.subtotal.toDouble(),
-                            tax = data.summary.tax.toDouble(),
-                            discount = data.summary.totalDiscount.toDouble(),
-                            totalBill = data.summary.grandTotal.toDouble(),
+                            subtotal = subtotal,
+                            tax = tax,
+                            discount = discount,
+                            totalBill = total,
                             rawText = response.debug?.rawText ?: ""
                         )
 

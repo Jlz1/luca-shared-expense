@@ -18,13 +18,13 @@ data class ScanResponse(
 
 data class ReceiptData(
     @SerializedName("items")
-    val items: List<ReceiptItem>,
+    val items: List<ReceiptItem> = emptyList(),
 
     @SerializedName("summary")
-    val summary: ReceiptSummary,
+    val summary: ReceiptSummary? = null,  // Make nullable
 
     @SerializedName("status")
-    val status: String
+    val status: String? = null
 )
 
 data class ReceiptItem(
@@ -32,36 +32,45 @@ data class ReceiptItem(
     val name: String,
 
     @SerializedName("qty")
-    val qty: Int,
+    val qty: String,  // Changed from Int to String (HF returns "2" not 2)
+
+    @SerializedName("price")
+    val price: String? = null,  // HF uses "price" not "unit_price"
 
     @SerializedName("unit_price")
-    val unitPrice: Int,
+    val unitPrice: String? = null,  // Keep for backward compatibility
 
     @SerializedName("line_total")
-    val lineTotal: Int
+    val lineTotal: String? = null
 )
 
 data class ReceiptSummary(
     @SerializedName("subtotal")
-    val subtotal: Int,
+    val subtotal: String? = null,  // Changed to String and nullable
 
     @SerializedName("total_discount")
-    val totalDiscount: Int,
+    val totalDiscount: String? = null,
 
     @SerializedName("tax")
-    val tax: Int,
+    val tax: String? = null,
 
     @SerializedName("service")
-    val service: Int,
+    val service: String? = null,
+
+    @SerializedName("service_charge")
+    val serviceCharge: String? = null,  // HF uses "service_charge"
 
     @SerializedName("grand_total")
-    val grandTotal: Int,
+    val grandTotal: String? = null,
 
     @SerializedName("calculated_total")
-    val calculatedTotal: Int,
+    val calculatedTotal: String? = null,
+
+    @SerializedName("total")
+    val total: String? = null,  // HF uses "total" directly
 
     @SerializedName("diff")
-    val diff: Int
+    val diff: String? = null
 )
 
 data class DebugInfo(
