@@ -508,6 +508,15 @@ def parse_receipt():
         # Step 4: Parse to JSON
         json_result = parse_receipt_to_json(clean_text)
 
+        print(f"\n=== DEBUG: json_result structure ===")
+        print(f"Type: {type(json_result)}")
+        print(f"Keys: {json_result.keys() if isinstance(json_result, dict) else 'N/A'}")
+        print(f"Has summary: {'summary' in json_result if isinstance(json_result, dict) else False}")
+        if isinstance(json_result, dict) and 'summary' in json_result:
+            print(f"Summary value: {json_result['summary']}")
+        print(f"Full result: {json_result}")
+        print("=== END DEBUG ===\n")
+
         return jsonify({
             "status": "success",
             "data": json_result,
@@ -527,6 +536,11 @@ def parse_receipt():
             "message": str(e),
             "type": type(e).__name__
         }), 500
+
+@app.route('/scan', methods=['POST'])
+def scan_receipt_endpoint():
+    """Alias for /parse endpoint to match Android app expectations"""
+    return parse_receipt()
 
 @app.route('/parse-mindee', methods=['POST'])
 def parse_mindee_endpoint():

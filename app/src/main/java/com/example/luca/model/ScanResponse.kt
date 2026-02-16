@@ -21,7 +21,29 @@ data class ReceiptData(
     val items: List<ReceiptItem> = emptyList(),
 
     @SerializedName("summary")
-    val summary: ReceiptSummary? = null,  // Make nullable
+    val summary: ReceiptSummary? = null,
+
+    // Direct fields (HuggingFace format) - at same level as items
+    @SerializedName("subtotal")
+    val subtotal: Any? = null,
+
+    @SerializedName("tax")
+    val tax: Any? = null,
+
+    @SerializedName("service")
+    val service: Any? = null,
+
+    @SerializedName("service_charge")
+    val serviceCharge: Any? = null,
+
+    @SerializedName("total")
+    val total: Any? = null,
+
+    @SerializedName("total_discount")
+    val totalDiscount: Any? = null,
+
+    @SerializedName("grand_total")
+    val grandTotal: Any? = null,
 
     @SerializedName("status")
     val status: String? = null
@@ -32,45 +54,45 @@ data class ReceiptItem(
     val name: String,
 
     @SerializedName("qty")
-    val qty: String,  // Changed from Int to String (HF returns "2" not 2)
+    val qty: Any = 1,  // Accept both Int and String
 
     @SerializedName("price")
-    val price: String? = null,  // HF uses "price" not "unit_price"
+    val price: Any? = null,  // Accept Int or String
 
     @SerializedName("unit_price")
-    val unitPrice: String? = null,  // Keep for backward compatibility
+    val unitPrice: Any? = null,
 
     @SerializedName("line_total")
-    val lineTotal: String? = null
+    val lineTotal: Any? = null
 )
 
 data class ReceiptSummary(
     @SerializedName("subtotal")
-    val subtotal: String? = null,  // Changed to String and nullable
+    val subtotal: Any? = null,  // Accept both Int and String
 
     @SerializedName("total_discount")
-    val totalDiscount: String? = null,
+    val totalDiscount: Any? = null,
 
     @SerializedName("tax")
-    val tax: String? = null,
+    val tax: Any? = null,
 
     @SerializedName("service")
-    val service: String? = null,
+    val service: Any? = null,
 
     @SerializedName("service_charge")
-    val serviceCharge: String? = null,  // HF uses "service_charge"
+    val serviceCharge: Any? = null,
 
     @SerializedName("grand_total")
-    val grandTotal: String? = null,
+    val grandTotal: Any? = null,
 
     @SerializedName("calculated_total")
-    val calculatedTotal: String? = null,
+    val calculatedTotal: Any? = null,
 
     @SerializedName("total")
-    val total: String? = null,  // HF uses "total" directly
+    val total: Any? = null,
 
     @SerializedName("diff")
-    val diff: String? = null
+    val diff: Any? = null
 )
 
 data class DebugInfo(
