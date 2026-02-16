@@ -34,6 +34,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.luca.ui.theme.*
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +48,7 @@ fun ReportBugScreen(
     onSubmitSuccess: () -> Unit = {}
 ) {
     // State untuk form input (UI Only)
+    val context = LocalContext.current
     var subjectText by remember { mutableStateOf("") }
     var descriptionText by remember { mutableStateOf("") }
     var selectedImageUris by remember { mutableStateOf<List<android.net.Uri>>(emptyList()) }
@@ -93,11 +100,66 @@ fun ReportBugScreen(
             ) {
                 Button(
                     onClick = {
-                        // Validasi saat tombol diklik
+                        // 1. Validasi Input
                         if (subjectText.trim().isNotEmpty() && descriptionText.trim().isNotEmpty()) {
-                            showSuccessDialog = true
+
+                            // Siapkan instance Firebase
+                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
+
+                            // Siapkan data dasar
+                            val reportData = hashMapOf(
+                                "subject" to subjectText,
+                                "description" to descriptionText,
+                                "deviceModel" to android.os.Build.MODEL,
+                                "androidVersion" to android.os.Build.VERSION.RELEASE,
+                                "timestamp" to com.google.firebase.Timestamp.now(),
+                                "imageUrls" to mutableListOf<String>() // Nanti diisi kalau ada gambar
+                            )
+
+                            // Fungsi helper kecil untuk simpan ke Firestore (biar codingan rapi)
+                            fun saveToFirestore(data: HashMap<String, Any>) {
+                                db.collection("bug_reports") // Nama folder di database
+                                    .add(data)
+                                    .addOnSuccessListener {
+                                        showSuccessDialog = true // SUKSES! Muncul dialog
+                                    }
+                                    .addOnFailureListener { e ->
+                                        android.widget.Toast.makeText(context, "Gagal kirim: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                            }
+
+                            // 2. Cek apakah user memilih gambar?
+                            if (selectedImageUris.isNotEmpty()) {
+                                // KASUS A: ADA GAMBAR (Ambil gambar pertama saja dulu untuk simpelnya)
+                                // Kalau mau upload banyak, butuh logic looping (agak rumit dikit)
+                                val imageUri = selectedImageUris.first()
+                                val filename = "bugs/${UUID.randomUUID()}.jpg"
+                                val ref = storage.reference.child(filename)
+
+                                // Upload Gambar
+                                ref.putFile(imageUri)
+                                    .addOnSuccessListener {
+                                        // Upload berhasil, sekarang minta link download-nya
+                                        ref.downloadUrl.addOnSuccessListener { uri ->
+                                            // Masukkan link gambar ke data laporan
+                                            reportData["imageUrls"] = listOf(uri.toString())
+
+                                            // Lanjut simpan ke database
+                                            saveToFirestore(reportData)
+                                        }
+                                    }
+                                    .addOnFailureListener {
+                                        android.widget.Toast.makeText(context, "Gagal upload gambar", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                            } else {
+                                // KASUS B: TIDAK ADA GAMBAR (Langsung kirim teks)
+                                saveToFirestore(reportData)
+                            }
+
+                        } else {
+                            android.widget.Toast.makeText(context, "Mohon isi Judul dan Deskripsi", android.widget.Toast.LENGTH_SHORT).show()
                         }
-                        // Jika validation gagal, tidak ada action (user akan lihat field masih kosong)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
