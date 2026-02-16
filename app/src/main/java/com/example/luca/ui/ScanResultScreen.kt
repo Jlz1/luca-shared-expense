@@ -346,15 +346,13 @@ fun ScanResultScreen(
                         Text(text = "Tax", fontSize = 12.sp, color = UIDarkGrey)
                         Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalTax)}", fontSize = 12.sp, color = UIDarkGrey)
                     }
-                    if (globalServiceCharge > 0) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = "Service Charge", fontSize = 12.sp, color = UIDarkGrey)
-                            Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalServiceCharge)}", fontSize = 12.sp, color = UIDarkGrey)
-                        }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Service Charge", fontSize = 12.sp, color = UIDarkGrey)
+                        Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalServiceCharge)}", fontSize = 12.sp, color = UIDarkGrey)
                     }
                     if (globalDiscount > 0) {
                         Spacer(modifier = Modifier.height(2.dp))

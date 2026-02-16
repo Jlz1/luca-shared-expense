@@ -32,8 +32,20 @@ class ScanRepository {
             Log.d(TAG, "Response code: ${response.code()}, Success: ${response.isSuccessful}")
 
             if (response.isSuccessful && response.body() != null) {
+                val responseBody = response.body()!!
                 Log.d(TAG, "Upload successful!")
-                Result.success(response.body()!!)
+                Log.d(TAG, "=== RAW RESPONSE JSON ===")
+                Log.d(TAG, "Response body: $responseBody")
+                Log.d(TAG, "Response.data: ${responseBody.data}")
+                Log.d(TAG, "Response.data.summary: ${responseBody.data?.summary}")
+
+                // Log raw JSON string
+                val rawJsonString = response.raw().request.url.toString()
+                Log.d(TAG, "Request URL: $rawJsonString")
+                Log.d(TAG, "Response message: ${response.message()}")
+                Log.d(TAG, "Response headers: ${response.headers()}")
+
+                Result.success(responseBody)
             } else {
                 val errorBody = response.errorBody()?.string() ?: "No error details"
                 val errorMsg = "Upload gagal [${response.code()}]: ${response.message()} - $errorBody"
