@@ -75,8 +75,8 @@ fun DetailedEventScreen(
     onMenuClick: () -> Unit = {},
     onNavigateToAddActivity: () -> Unit = {},
     onNavigateToEditEvent: (String) -> Unit = {},
-    onNavigateToActivityDetail: (String) -> Unit = {}, // [BARU] Navigate ke NewActivityScreen2
-    onNavigateToSummary: () -> Unit = {} // [BARU] Navigate ke SummaryScreen untuk split bill
+    onNavigateToActivityDetail: (String) -> Unit = {},
+    onNavigateToSummary: () -> Unit = {}
 ) {
     // 1. Load Data
     LaunchedEffect(eventId) { viewModel.loadEventData(eventId) }
@@ -93,7 +93,7 @@ fun DetailedEventScreen(
     var showDeleteActivityDialog by remember { mutableStateOf(false) }
     var activityToDelete by remember { mutableStateOf<String?>(null) }
 
-    // Guard untuk mencegah klik berkali-kali yang menyebabkan bug navigation
+    // Guard navigation
     val backClicked = remember { mutableStateOf(false) }
     val editClicked = remember { mutableStateOf(false) }
     val addActivityClicked = remember { mutableStateOf(false) }
@@ -119,16 +119,16 @@ fun DetailedEventScreen(
         }
     }
 
-    // 3. LOGIC FIX: Pantau perubahan deleteState di sini
+    // 3. Monitor Delete State (Event)
     LaunchedEffect(deleteState) {
         if (deleteState is DeleteState.Success) {
-            showDeleteDialog = false // Tutup dialog paksa
-            handleBackClick()        // Kembali ke halaman sebelumnya dengan guard
+            showDeleteDialog = false
+            handleBackClick()
             viewModel.resetDeleteState()
         }
     }
 
-    // Monitor delete activity state
+    // Monitor Delete State (Activity)
     LaunchedEffect(deleteActivityState) {
         if (deleteActivityState is DeleteState.Success) {
             showDeleteActivityDialog = false
@@ -137,7 +137,7 @@ fun DetailedEventScreen(
         }
     }
 
-    // 4. Panggil UI Murni (DetailedEventContent)
+    // 4. UI Content
     DetailedEventContent(
         eventState = eventState,
         activitiesState = activitiesState,
@@ -146,17 +146,20 @@ fun DetailedEventScreen(
         onMenuClick = onMenuClick,
         onNavigateToAddActivity = handleAddActivityClick,
         onEditClick = handleEditClick,
-        onDeleteClick = { showDeleteDialog = true }, // Buka dialog saat diklik
+        onDeleteClick = { showDeleteDialog = true },
         onActivityClick = onNavigateToActivityDetail,
         onSummaryClick = onNavigateToSummary,
         onDeleteActivity = { activityId ->
+            // Saat icon delete ditekan, simpan ID dan tampilkan dialog
             activityToDelete = activityId
             showDeleteActivityDialog = true
         },
         onSearchQueryChange = viewModel::onSearchQueryChange
     )
 
-    // 5. Tampilkan Dialog (Overlay)
+    // 5. Dialogs
+
+    // Dialog Delete Event
     if (showDeleteDialog) {
         DeleteConfirmationDialog(
             onDismiss = {
@@ -164,14 +167,14 @@ fun DetailedEventScreen(
                 viewModel.resetDeleteState()
             },
             onConfirm = {
-                viewModel.deleteEvent(eventId) // Panggil fungsi delete baru
+                viewModel.deleteEvent(eventId)
             },
             isLoading = deleteState is DeleteState.Loading,
             errorMessage = (deleteState as? DeleteState.Error)?.message
         )
     }
 
-    // Delete Activity Dialog
+    // Dialog Delete Activity (Muncul saat showDeleteActivityDialog = true)
     if (showDeleteActivityDialog && activityToDelete != null) {
         DeleteActivityConfirmationDialog(
             onDismiss = {
@@ -188,7 +191,7 @@ fun DetailedEventScreen(
     }
 }
 
-// --- UI MURNI (Bisa di-Preview tanpa ViewModel) ---
+// --- UI MURNI ---
 @Composable
 fun DetailedEventContent(
     eventState: UIEventState,
@@ -277,7 +280,7 @@ fun FigmaEventCard(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(20.dp))
-                .background(UIAccentYellow) // Fallback color
+                .background(UIAccentYellow)
         ) {
             if (event.imageUrl.isNotEmpty()) {
                 AsyncImage(
@@ -287,7 +290,6 @@ fun FigmaEventCard(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                // Placeholder pattern or color if no image
                 Box(modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Gray))
@@ -302,10 +304,6 @@ fun FigmaEventCard(
                 .size(40.dp)
                 .align(Alignment.TopStart)
         ) {
-            // Gunakan resource drawable kamu, fallback ke Icon default jika error/belum ada
-            // Image(painter = painterResource(id = R.drawable.ic_close_event), contentDescription = "Close")
-
-            // UNTUK SEMENTARA SAYA PAKAI SURFACE + ICON AGAR AMAN JIKA DRAWABLE BELUM ADA
             Surface(
                 shape = CircleShape,
                 color = UIWhite.copy(alpha = 0.8f),
@@ -327,12 +325,10 @@ fun FigmaEventCard(
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Edit Button
             IconButton(
                 onClick = onEditClick,
                 modifier = Modifier.size(40.dp)
             ) {
-                // Image(painter = painterResource(id = R.drawable.ic_edit_event), contentDescription = "Edit")
                 Surface(
                     shape = CircleShape,
                     color = UIWhite.copy(alpha = 0.8f),
@@ -347,12 +343,10 @@ fun FigmaEventCard(
                 }
             }
 
-            // Delete Button
             IconButton(
                 onClick = onDeleteClick,
                 modifier = Modifier.size(40.dp)
             ) {
-                // Image(painter = painterResource(id = R.drawable.ic_delete_event), contentDescription = "Delete")
                 Surface(
                     shape = CircleShape,
                     color = UIWhite.copy(alpha = 0.8f),
@@ -368,19 +362,17 @@ fun FigmaEventCard(
             }
         }
 
-        // 4. Event Info at Bottom (Overlay)
+        // 4. Event Info at Bottom
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Left side: Event Title and Location stacked
             Column(
                 modifier = Modifier.align(Alignment.BottomStart),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Event Title
                 Surface(
                     color = UIWhite,
                     shape = RoundedCornerShape(12.dp)
@@ -396,7 +388,6 @@ fun FigmaEventCard(
                     )
                 }
 
-                // Location Info with White Background
                 Surface(
                     color = UIWhite,
                     shape = RoundedCornerShape(12.dp)
@@ -405,10 +396,6 @@ fun FigmaEventCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        // Gunakan resource drawable location pin kamu
-                        // Icon(painter = painterResource(id = R.drawable.ic_location_pin), ...)
-
-                        // Fallback icon
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Location",
@@ -426,16 +413,13 @@ fun FigmaEventCard(
                 }
             }
 
-            // Right side: Profile Icons and Date stacked
             Column(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Profile Icons Row (Dynamic)
                 StackedAvatarRow(avatars = event.participantAvatars, itemSize = 34.dp)
 
-                // Date with White Background
                 Surface(
                     color = UIWhite,
                     shape = RoundedCornerShape(12.dp)
@@ -456,7 +440,7 @@ fun FigmaEventCard(
 @Composable
 fun DeleteConfirmationDialog(
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit, // Tidak butuh parameter String password lagi
+    onConfirm: () -> Unit,
     isLoading: Boolean,
     errorMessage: String? = null
 ) {
@@ -472,17 +456,13 @@ fun DeleteConfirmationDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Judul
                 Text(
                     text = "Delete Event",
                     style = AppFont.Bold,
                     fontSize = 20.sp,
                     color = UIAccentRed
                 )
-
                 Spacer(Modifier.height(16.dp))
-
-                // Pesan Konfirmasi (Pengganti Input Password)
                 Text(
                     text = "Are you sure you want to delete this event? This action cannot be undone.",
                     style = AppFont.Regular,
@@ -490,8 +470,6 @@ fun DeleteConfirmationDialog(
                     color = UIBlack,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-
-                // Error Message (Opsional, misal gagal koneksi)
                 if (errorMessage != null) {
                     Text(
                         text = errorMessage,
@@ -500,12 +478,8 @@ fun DeleteConfirmationDialog(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-
                 Spacer(Modifier.height(24.dp))
-
-                // Tombol Action
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Tombol Cancel
                     Button(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
@@ -514,10 +488,8 @@ fun DeleteConfirmationDialog(
                     ) {
                         Text("Cancel", color = UIBlack, style = AppFont.SemiBold)
                     }
-
-                    // Tombol Delete
                     Button(
-                        onClick = onConfirm, // Langsung panggil fungsi confirm
+                        onClick = onConfirm,
                         colors = ButtonDefaults.buttonColors(containerColor = UIAccentRed),
                         modifier = Modifier.weight(1f),
                         enabled = !isLoading
@@ -556,17 +528,13 @@ fun DeleteActivityConfirmationDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Judul
                 Text(
                     text = "Delete Activity",
                     style = AppFont.Bold,
                     fontSize = 20.sp,
                     color = UIAccentRed
                 )
-
                 Spacer(Modifier.height(16.dp))
-
-                // Pesan Konfirmasi
                 Text(
                     text = "Are you sure you want to delete this activity? This action cannot be undone.",
                     style = AppFont.Regular,
@@ -574,8 +542,6 @@ fun DeleteActivityConfirmationDialog(
                     color = UIBlack,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-
-                // Error Message
                 if (errorMessage != null) {
                     Text(
                         text = errorMessage,
@@ -584,12 +550,8 @@ fun DeleteActivityConfirmationDialog(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-
                 Spacer(Modifier.height(24.dp))
-
-                // Tombol Action
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Tombol Cancel
                     Button(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
@@ -598,8 +560,6 @@ fun DeleteActivityConfirmationDialog(
                     ) {
                         Text("Cancel", color = UIBlack, style = AppFont.SemiBold)
                     }
-
-                    // Tombol Delete
                     Button(
                         onClick = onConfirm,
                         colors = ButtonDefaults.buttonColors(containerColor = UIAccentRed),
@@ -631,16 +591,13 @@ fun ActivitySection(
     onDeleteActivity: (String) -> Unit = {}
 ) {
     if (isEmpty) {
-        // Check if empty due to search filter or truly empty
         if (searchQuery.isNotEmpty()) {
-            // Show "not found" message for search
             NotFoundMessage(
                 searchQuery = searchQuery,
                 emptyStateMessage = "No activities yet.\nAdd your first activity!",
                 notFoundMessage = "No activities found for \"$searchQuery\""
             )
         } else {
-            // Show original empty state with add button
             EmptyStateMessage(onNavigateToAddActivity)
         }
     } else {
@@ -666,7 +623,8 @@ fun ActivityItemCard(
     onNavigateToActivityDetail: (String) -> Unit = {},
     onDeleteActivity: (String) -> Unit = {}
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    // Tidak butuh state dropdown lagi
+    // var showMenu by remember { mutableStateOf(false) }
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -706,34 +664,28 @@ fun ActivityItemCard(
             Text(item.price, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UIAccentRed, style = AppFont.Medium)
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Delete button
-            Box {
-                IconButton(
-                    onClick = { showMenu = !showMenu },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_delete_event),
-                        contentDescription = "Delete Activity",
-                        tint = UIAccentRed,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Confirmation dropdown
-                androidx.compose.material3.DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Delete Activity", color = UIAccentRed) },
-                        onClick = {
-                            showMenu = false
-                            onDeleteActivity(item.id)
-                        }
-                    )
-                }
+            // ================= FINAL ADJUSTED DELETE BUTTON =================
+            // Ukuran Lingkaran diperbesar: 48dp (Touch target luas & visual besar)
+            // Icon diperbesar: 26dp
+            // Dropdown dihapus, langsung panggil onDeleteActivity (yang memicu dialog)
+            Box(
+                modifier = Modifier
+                    .size(48.dp)  // Diperbesar dari 40dp
+                    .clip(CircleShape)
+                    .background(UIAccentRed.copy(alpha = 0.1f))
+                    .clickable {
+                        onDeleteActivity(item.id) // Langsung muncul Dialog
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete_event),
+                    contentDescription = "Delete Activity",
+                    tint = UIAccentRed,
+                    modifier = Modifier.size(26.dp) // Diperbesar dari 22dp
+                )
             }
+            // =============================================================
         }
     }
 }
@@ -754,40 +706,34 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 Spacer(Modifier.height(8.dp))
                 FloatingAddButton(onClick = onAddActivityClick)
             }
-            // ... bagian if (isEmpty) biarin aja ...
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End, // Posisi di tengah
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Tombol SUMMARIZE (Putih + Border Kuning)
                 Surface(
                     modifier = Modifier
                         .height(60.dp)
-                        .width(160.dp)// Tinggi ngikutin tombol Add
+                        .width(160.dp)
                         .clickable { onSummaryClick() },
-                    shape = RoundedCornerShape(50), // Bentuk Pill/Kapsul
+                    shape = RoundedCornerShape(50),
                     color = UIWhite,
-                    border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow), // Border Kuning Tebal
+                    border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow),
                     shadowElevation = 4.dp
                 ) {
-
                     Box(contentAlignment = Alignment.Center) {
-                        //buat agar menggunakan drawable ic_summary_butto
                         Text(
                             text = "Summarize",
                             style = AppFont.Bold,
                             fontSize = 18.sp,
                             color = UIBlack
                         )
-
                     }
                 }
 
-                Spacer(Modifier.width(16.dp)) // Jarak antar tombol
+                Spacer(Modifier.width(16.dp))
 
-                // 2. Tombol ADD (Tetep pakai yang lama)
                 Column(
                     modifier = Modifier
                         .align(Alignment.Bottom),
@@ -823,16 +769,14 @@ fun EmptyStateMessage(onNavigateToAddActivity: () -> Unit) {
 @Preview(showBackground = true, heightDp = 800)
 @Composable
 fun DetailedEventScreenPreview_Populated() {
-    // Dummy Data Event
     val dummyEvent = UIEventState(
         title = "Liburan ke Bali",
         location = "Kuta, Bali",
         date = "12 Dec 2025",
-        imageUrl = "", // Kosongkan biar muncul placeholder abu-abu
+        imageUrl = "",
         participantAvatars = listOf("avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5")
     )
 
-    // Dummy Data Activities
     val dummyActivities = listOf(
         UIActivityState(
             id = "a1",
@@ -851,42 +795,6 @@ fun DetailedEventScreenPreview_Populated() {
             category = "Food",
             categoryIconRes = R.drawable.ic_food_outline,
             iconColor = Color(0xFFFFA726)
-        ),
-        UIActivityState(
-            id = "a3",
-            title = "Tiket Masuk GWK",
-            payer = "Paid by Abel",
-            price = "Rp 125.000",
-            category = "Entertainment",
-            categoryIconRes = R.drawable.ic_ticket_outline,
-            iconColor = Color(0xFFEC407A)
-        ),
-        UIActivityState(
-            id = "a4",
-            title = "Belanja Oleh-oleh",
-            payer = "Paid by You",
-            price = "Rp 200.000",
-            category = "Shopping",
-            categoryIconRes = R.drawable.ic_cart_outline,
-            iconColor = Color(0xFFAB47BC)
-        ),
-        UIActivityState(
-            id = "a5",
-            title = "Transportasi Taxi",
-            payer = "Paid by Abel",
-            price = "Rp 80.000",
-            category = "Transportation",
-            categoryIconRes = R.drawable.ic_car_outline,
-            iconColor = Color(0xFF42A5F5)
-        ),
-        UIActivityState(
-            id = "a6",
-            title = "Snorkeling Equipment",
-            payer = "Paid by Jeremy",
-            price = "Rp 150.000",
-            category = "Others",
-            categoryIconRes = R.drawable.ic_other_outline,
-            iconColor = Color(0xFFFFCC80)
         )
     )
 
@@ -912,7 +820,7 @@ fun DetailedEventScreenPreview_Empty() {
     LucaTheme {
         DetailedEventContent(
             eventState = dummyEvent,
-            activitiesState = emptyList() // List kosong untuk tes Empty State
+            activitiesState = emptyList()
         )
     }
 }
