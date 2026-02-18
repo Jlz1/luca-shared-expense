@@ -1,32 +1,16 @@
 package com.example.luca.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DataSaverOff
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockClock
-import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
- import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,9 +94,9 @@ fun PrivacySecurityScreen(
         ) {
 
             // ===== 1. INTRO SECTION =====
-            PrivacySecuritySection(title = "Tentang Privacy & Security Luca") {
+            PrivacySecuritySection(title = "About Privacy & Security in Luca") {
                 Text(
-                    text = "Luca adalah aplikasi manajemen pengeluaran bersama yang dirancang dengan fokus utama pada keamanan dan privasi data pengguna. Kami berkomitmen untuk melindungi informasi pribadi Anda dengan standar keamanan tertinggi.",
+                    text = "Luca is a shared expense management app designed with a primary focus on user data security and privacy. We are committed to protecting your personal information with the highest security standards.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIDarkGrey,
@@ -121,89 +105,89 @@ fun PrivacySecurityScreen(
             }
 
             // ===== 2. DATA PROTECTION =====
-            PrivacySecuritySection(title = "Perlindungan Data") {
+            PrivacySecuritySection(title = "Data Protection") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PrivacyBulletPoint(
-                        title = "Enkripsi End-to-End",
-                        description = "Semua transaksi dan data pengeluaran Anda dienkripsi menggunakan algoritma AES-256. Hanya Anda dan anggota grup yang dapat mengakses detail pengeluaran."
+                        title = "End-to-End Encryption",
+                        description = "All your transactions and expense data are encrypted using the AES-256 algorithm. Only you and your group members can access the expense details."
                     )
                     PrivacyBulletPoint(
-                        title = "Database Terenkripsi",
-                        description = "Data sensitif disimpan di server terenkripsi dengan protokol keamanan berlapis dan backup otomatis untuk mencegah kehilangan data."
+                        title = "Encrypted Database",
+                        description = "Sensitive data is stored on encrypted servers with multi-layered security protocols and automatic backups to prevent data loss."
                     )
                     PrivacyBulletPoint(
-                        title = "Otentikasi Aman",
-                        description = "Kami menggunakan Firebase Authentication untuk memastikan hanya pengguna yang berwenang dapat mengakses akun mereka."
+                        title = "Secure Authentication",
+                        description = "We use Firebase Authentication to ensure that only authorized users can access their accounts."
                     )
                 }
             }
 
             // ===== 3. PRIVACY POLICY =====
-            PrivacySecuritySection(title = "Kebijakan Privasi") {
+            PrivacySecuritySection(title = "Privacy Policy") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PrivacyBulletPoint(
-                        title = "Penggunaan Data Minimal",
-                        description = "Kami hanya mengumpulkan data yang diperlukan untuk fungsi aplikasi. Kami tidak membagikan data pribadi Anda kepada pihak ketiga tanpa persetujuan eksplisit."
+                        title = "Minimal Data Usage",
+                        description = "We only collect data necessary for the app's functionality. We do not share your personal data with third parties without your explicit consent."
                     )
                     PrivacyBulletPoint(
-                        title = "Kontrol Penuh Pengguna",
-                        description = "Anda memiliki kendali penuh atas data Anda. Kapan saja Anda dapat menghapus akun dan semua data terkait akan dihapus secara permanen dari server kami."
+                        title = "Full User Control",
+                        description = "You have full control over your data. You can delete your account at any time and all related data will be permanently removed from our servers."
                     )
                     PrivacyBulletPoint(
-                        title = "Transparansi Lengkap",
-                        description = "Kami transparan tentang bagaimana data Anda digunakan. Tidak ada pengumpulan data tersembunyi atau pelacakan pengguna yang tidak sah."
+                        title = "Complete Transparency",
+                        description = "We are transparent about how your data is used. There is no hidden data collection or unauthorized user tracking."
                     )
                 }
             }
 
             // ===== 4. USER SECURITY =====
-            PrivacySecuritySection(title = "Keamanan Pengguna") {
+            PrivacySecuritySection(title = "User Security") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PrivacyBulletPoint(
-                        title = "Manajemen Sesi",
-                        description = "Sesi Anda akan otomatis berakhir setelah 15 menit tidak aktif untuk mencegah akses tidak sah jika perangkat Anda ditinggalkan."
+                        title = "Session Management",
+                        description = "Your session will automatically end after 15 minutes of inactivity to prevent unauthorized access if your device is left unattended."
                     )
                     PrivacyBulletPoint(
-                        title = "Verifikasi Identitas",
-                        description = "Ketika melakukan aktivitas sensitif seperti perubahan password, kami meminta verifikasi melalui email untuk memastikan keamanan akun Anda."
+                        title = "Identity Verification",
+                        description = "When performing sensitive activities such as password changes, we require verification via email to ensure your account's security."
                     )
                     PrivacyBulletPoint(
-                        title = "Monitoring Aktivitas",
-                        description = "Kami memantau aktivitas mencurigakan dan akan memberitahu Anda jika ada login dari perangkat atau lokasi yang tidak dikenali."
+                        title = "Activity Monitoring",
+                        description = "We monitor suspicious activity and will notify you if there is a login from an unrecognized device or location."
                     )
                 }
             }
 
             // ===== 5. COMPLIANCE =====
-            PrivacySecuritySection(title = "Kepatuhan & Standar") {
+            PrivacySecuritySection(title = "Compliance & Standards") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PrivacyBulletPoint(
                         title = "GDPR Compliant",
-                        description = "Aplikasi kami mematuhi Regulasi Perlindungan Data Umum (GDPR) untuk memastikan perlindungan data pengguna di seluruh dunia."
+                        description = "Our app complies with the General Data Protection Regulation (GDPR) to ensure user data protection worldwide."
                     )
                     PrivacyBulletPoint(
-                        title = "Sertifikat Keamanan",
-                        description = "Infrastructure kami menggunakan sertifikat SSL/TLS dan mengikuti best practices keamanan industri terkini."
+                        title = "Security Certificates",
+                        description = "Our infrastructure uses SSL/TLS certificates and follows the latest industry security best practices."
                     )
                     PrivacyBulletPoint(
-                        title = "Audit Keamanan Berkala",
-                        description = "Kami melakukan audit keamanan berkala dan penetration testing untuk mengidentifikasi dan memperbaiki potensi kerentanan."
+                        title = "Regular Security Audits",
+                        description = "We conduct regular security audits and penetration testing to identify and fix potential vulnerabilities."
                     )
                 }
             }
 
             // ===== 6. CONTACT SUPPORT =====
-            PrivacySecuritySection(title = "Pertanyaan Privasi & Keamanan") {
+            PrivacySecuritySection(title = "Privacy & Security Questions") {
                 Text(
-                    text = "Jika Anda memiliki pertanyaan atau kekhawatiran tentang privasi dan keamanan data Anda, silakan hubungi tim dukungan kami melalui menu Help & Support di aplikasi atau kirimkan email ke support lucasharedexpense@gmail.com.",
+                    text = "If you have any questions or concerns about your data privacy and security, please contact our support team via the Help & Support menu in the app or send an email to support lucasharedexpense@gmail.com.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIDarkGrey,
