@@ -713,41 +713,33 @@ fun BottomActionArea(modifier: Modifier = Modifier, isEmpty: Boolean, onAddActiv
                 FloatingAddButton(onClick = onAddActivityClick)
             }
         } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+            // Summarize button centered
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .height(60.dp)
+                    .width(160.dp)
+                    .clickable { onSummaryClick() },
+                shape = RoundedCornerShape(50),
+                color = UIWhite,
+                border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow),
+                shadowElevation = 4.dp
             ) {
-                Surface(
-                    modifier = Modifier
-                        .height(60.dp)
-                        .width(160.dp)
-                        .clickable { onSummaryClick() },
-                    shape = RoundedCornerShape(50),
-                    color = UIWhite,
-                    border = androidx.compose.foundation.BorderStroke(3.dp, UIAccentYellow),
-                    shadowElevation = 4.dp
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "Summarize",
-                            style = AppFont.Bold,
-                            fontSize = 18.sp,
-                            color = UIBlack
-                        )
-                    }
-                }
-
-                Spacer(Modifier.width(16.dp))
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Bottom),
-                    horizontalAlignment = Alignment.End)
-                {
-                    FloatingAddButton(onClick = onAddActivityClick)
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Summarize",
+                        style = AppFont.Bold,
+                        fontSize = 18.sp,
+                        color = UIBlack
+                    )
                 }
             }
+
+            // Add Activity button at bottom right
+            FloatingAddButton(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                onClick = onAddActivityClick
+            )
         }
     }
 }

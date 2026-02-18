@@ -268,21 +268,23 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         activityId: String,
         items: List<Any>, // List of ReceiptItem
         taxPercentage: Double,
-        discountAmount: Double
+        discountAmount: Double,
+        isSplitEqual: Boolean = false
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 android.util.Log.d("AddEventViewModel", "======== saveActivityItems START ========")
                 android.util.Log.d("AddEventViewModel", "EventID: $eventId, ActivityID: $activityId, Items: ${items.size}")
-                android.util.Log.d("AddEventViewModel", "Tax: $taxPercentage%, Discount: $discountAmount")
+                android.util.Log.d("AddEventViewModel", "Tax: $taxPercentage%, Discount: $discountAmount, isSplitEqual: $isSplitEqual")
 
                 val result = repository.saveActivityItems(
                     eventId = eventId,
                     activityId = activityId,
                     items = items,
                     taxPercentage = taxPercentage,
-                    discountAmount = discountAmount
+                    discountAmount = discountAmount,
+                    isSplitEqual = isSplitEqual
                 )
 
                 if (result.isSuccess) {
