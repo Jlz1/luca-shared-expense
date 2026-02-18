@@ -388,7 +388,7 @@ fun AddActivityScreen2(
                         memberNames = if (isSplitEqual && eventMembers.isNotEmpty()) {
                             eventMembers.map { it.name }
                         } else {
-                            emptyList() 
+                            emptyList()
                         }
                     )
                 }
@@ -453,24 +453,24 @@ fun AddActivityScreen2(
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Participants and Split toggle section
+// Participants and Split toggle section
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(110.dp),
+                            .height(110.dp), // Height ini mungkin juga perlu disesuaikan jika ingin benar-benar lebih pendek
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Participants list - SCROLLABLE HORIZONTAL
+                        // 1. PARTICIPANTS LIST - SCROLLABLE HORIZONTAL
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(UIWhite)
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                                .padding(vertical = 4.dp, horizontal = 6.dp) // Perubahan di sini: vertical padding diperkecil
                         ) {
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy((-4).dp), // Negative spacing for overlapping effect
+                                horizontalArrangement = Arrangement.spacedBy((-4).dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxSize()
                             ) {
@@ -478,94 +478,99 @@ fun AddActivityScreen2(
                                     items(eventMembers) { member ->
                                         ParticipantAvatarItemSmall(member)
                                     }
-                                    // Add "Edit" button at the end
+
+                                    // Tombol Edit Participant
                                     item {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(32.dp) // Same size as avatar
-                                                .clip(CircleShape)
-                                                .background(UIAccentYellow.copy(alpha = 0.2f))
-                                                .clickable { showEditParticipantsDialog = true },
-                                            contentAlignment = Alignment.Center
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.width(65.dp)
                                         ) {
-                                            Icon(
-                                                Icons.Default.Edit,
-                                                contentDescription = "Edit Participants",
-                                                tint = UIAccentYellow,
-                                                modifier = Modifier.size(16.dp) // Proportional icon size
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(UIAccentYellow.copy(alpha = 0.2f))
+                                                    .clickable { showEditParticipantsDialog = true },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Edit,
+                                                    contentDescription = "Edit Participants",
+                                                    tint = UIAccentYellow,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(1.dp))
+                                            Text(
+                                                text = "Edit",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = UIBlack,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.fillMaxWidth()
                                             )
                                         }
                                     }
                                 } else {
-                                    // Fallback display jika tidak ada participants
-                                    item { ParticipantAvatarItemSmall(Contact(name = "You", avatarName = "avatar_1")) }
-                                    item { ParticipantAvatarItemSmall(Contact(name = "Jeremy E", avatarName = "avatar_2")) }
-                                    item { ParticipantAvatarItemSmall(Contact(name = "Abel M", avatarName = "avatar_3")) }
+                                    // Fallback jika kosong
+                                    item { ParticipantAvatarItemSmall(Contact(name = "You")) }
                                 }
                             }
                         }
 
-                        // Equal Split toggle
+                        // 2. EQUAL SPLIT TOGGLE (YANG DIPERBAIKI)
                         Column(
                             modifier = Modifier
                                 .width(100.dp)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(UIWhite),
+                                .background(UIWhite)
+                                .padding(vertical = 4.dp, horizontal = 6.dp), // Perubahan di sini: vertical padding diperkecil
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Text(
                                 text = "Equal Split",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = UIBlack
+                                color = UIBlack,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 16.sp
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
 
-                            // --- SWITCH YANG SUDAH DIPERBAIKI ---
                             Switch(
-                                checked = isSplitEqual, // Menggunakan variable state
+                                checked = isSplitEqual,
                                 onCheckedChange = { isChecked ->
                                     isSplitEqual = isChecked
 
                                     if (isChecked) {
-                                        // === EQUAL SPLIT ON ===
-                                        // Backup current items state before applying equal split
                                         if (receiptItems.isNotEmpty()) {
                                             itemsBackupBeforeEqualSplit = receiptItems
                                         }
-
-                                        // Apply equal split: assign all participants to all items
                                         if (eventMembers.isNotEmpty()) {
                                             receiptItems = receiptItems.map { item ->
-                                                item.copy(
-                                                    memberNames = eventMembers.map { it.name }
-                                                )
+                                                item.copy(memberNames = eventMembers.map { it.name })
                                             }
                                         }
                                     } else {
-                                        // === EQUAL SPLIT OFF ===
-                                        // Restore from backup if available
                                         if (itemsBackupBeforeEqualSplit != null) {
                                             receiptItems = itemsBackupBeforeEqualSplit!!
-                                            itemsBackupBeforeEqualSplit = null // Clear backup after restore
-                                        }
-                                        // If no backup, clear all member assignments (reset to empty)
-                                        else {
+                                            itemsBackupBeforeEqualSplit = null
+                                        } else {
                                             receiptItems = receiptItems.map { item ->
                                                 item.copy(memberNames = emptyList())
                                             }
                                         }
                                     }
-                                }, // Update state saat diklik
+                                },
                                 modifier = Modifier
-                                    .scale(1.2f)
+                                    .scale(0.8f)
                                     .height(30.dp),
                                 colors = SwitchDefaults.colors(
                                     uncheckedThumbColor = UIWhite,
                                     uncheckedTrackColor = UIGrey,
-                                    checkedTrackColor = UIAccentYellow, // Warna saat ON
+                                    checkedTrackColor = UIAccentYellow,
                                     uncheckedBorderColor = Color.Transparent,
                                     checkedBorderColor = Color.Transparent
                                 )
@@ -586,7 +591,7 @@ fun AddActivityScreen2(
                             modifier = Modifier.fillMaxWidth().height(30.dp),
                             alignment = Alignment.BottomCenter
                         )
-                        
+
                         Spacer(modifier = Modifier.fillMaxWidth().height(10.dp).background(UIWhite))
 
                         Column(
