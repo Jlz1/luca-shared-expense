@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -19,8 +21,6 @@ import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -405,7 +406,8 @@ fun SettingsScreen(
     onAboutUsClick: () -> Unit,
     onAccountSettingsClick: () -> Unit,
     onPrivacySecurityClick: () -> Unit = {},
-    onHelpCenterClick: () -> Unit = {}
+    onHelpCenterClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
     // State untuk user profile
     var userName by remember { mutableStateOf("Loading...") }
@@ -414,6 +416,7 @@ fun SettingsScreen(
 
     // State untuk password change dan success message
     var showPasswordChangeDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf(false) }
     var successMessage by remember { mutableStateOf("") }
 
@@ -612,7 +615,7 @@ fun SettingsScreen(
                     .padding(horizontal = 24.dp, vertical = 12.dp)
                     .background(UIWhite, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { /* TODO: Logout Logic */ }
+                    .clickable { showLogoutConfirmDialog = true }
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -698,6 +701,99 @@ fun SettingsScreen(
                 successMessage = message
                 showSuccessMessage = true
             }
+        )
+    }
+
+    // Logout Confirmation Dialog
+    if (showLogoutConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmDialog = false },
+            containerColor = UIWhite,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .background(UIAccentYellow.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Logout",
+                        tint = UIAccentYellow,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Keluar Akun?",
+                    style = AppFont.Bold,
+                    fontSize = 20.sp,
+                    color = UIBlack,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Kamu harus login ulang untuk mengakses data Luca.",
+                        color = UIDarkGrey,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { showLogoutConfirmDialog = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIGrey,
+                                contentColor = UIBlack
+                            ),
+                            shape = RoundedCornerShape(50.dp),
+                            elevation = ButtonDefaults.buttonElevation(0.dp),
+                            modifier = Modifier.height(48.dp).weight(1f)
+                        ) {
+                            Text(
+                                text = "No",
+                                style = AppFont.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = {
+                                showLogoutConfirmDialog = false
+                                onLogoutClick()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UIAccentYellow,
+                                contentColor = UIBlack
+                            ),
+                            shape = RoundedCornerShape(50),
+                            elevation = ButtonDefaults.buttonElevation(0.dp),
+                            modifier = Modifier.height(48.dp).weight(1f)
+                        ) {
+                            Text(
+                                text = "Yes",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
         )
     }
 }
