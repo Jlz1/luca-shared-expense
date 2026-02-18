@@ -23,13 +23,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import coil.compose.SubcomposeAsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.example.luca.R
 import com.example.luca.data.AuthRepository
-// Import Component Overlay yang baru dibuat
-import com.example.luca.ui.components.AvatarSelectionOverlay
 import com.example.luca.ui.theme.*
-// Import Utils yang baru dibuat
-import com.example.luca.util.AvatarUtils
+
+// --- UTILS Helper untuk URL ---
+object AvatarUtils {
+    fun getDiceBearUrl(seed: String): String {
+        return "https://api.dicebear.com/9.x/avataaars/png?seed=$seed"
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,18 +45,18 @@ fun FillProfileScreen(
 ) {
     var username by remember { mutableStateOf("") }
 
-    // Default Avatar (Kosong, tampilkan placeholder abu-abu dengan icon camera)
-    var selectedAvatarName by remember { mutableStateOf("") }
+    // Avatar Seed (String acak untuk DiceBear)
+    var selectedAvatarSeed by remember { mutableStateOf("") }
 
-    // State untuk kontrol muncul/tidaknya overlay dialog
-    var showAvatarDialog by remember { mutableStateOf(false) }
+    // Counter untuk variasi saat dipencet
+    var tapCount by remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val authRepo = remember { AuthRepository() }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
+    // Guard navigasi back
     val backClicked = remember { mutableStateOf(false) }
     val handleBackClick: () -> Unit = {
         if (!backClicked.value) {
@@ -59,21 +65,32 @@ fun FillProfileScreen(
         }
     }
 
-    // Named functions for opening/closing avatar dialog (reduces analyzer warnings)
-    val openAvatarDialog: () -> Unit = { showAvatarDialog = true }
-    val closeAvatarDialog: () -> Unit = { showAvatarDialog = false }
+    // LOGIKA UTAMA: Ganti Avatar saat diklik
+    val handleAvatarTap: () -> Unit = {
+        // Ambil nama dasar, kalau kosong pakai "User"
+        val baseName = username.ifEmpty { "User" }
+
+        // Naikkan counter (0 -> 1 -> 2...)
+        tapCount++
+
+        // Bikin seed baru: "Jeremy1", "Jeremy2", dst
+        selectedAvatarSeed = "$baseName$tapCount"
+    }
 
     val handleCreateAccount: () -> Unit = {
         if (username.isNotEmpty()) {
             isLoading = true
             scope.launch {
-                // UPDATE: Kirim String AvatarName, bukan URI
-                val result = authRepo.updateProfile(username, selectedAvatarName)
+                // Tentukan seed final yang akan disimpan
+                val finalSeed = if (selectedAvatarSeed.isNotEmpty()) selectedAvatarSeed else username
+
+                // Simpan username dan SEED ke database
+                val result = authRepo.updateProfile(username, finalSeed)
                 isLoading = false
 
                 result.onSuccess {
                     Toast.makeText(context, "Profile Disimpan!", Toast.LENGTH_SHORT).show()
-                    onCreateAccountClick(username, selectedAvatarName)
+                    onCreateAccountClick(username, finalSeed)
                 }
 
                 result.onFailure { exception ->
@@ -88,12 +105,13 @@ fun FillProfileScreen(
 
     FillProfileScreenContent(
         username = username,
-        onUsernameChange = { username = it },
-        selectedAvatarName = selectedAvatarName,
-        showAvatarDialog = showAvatarDialog,
-        onShowAvatarDialog = openAvatarDialog,
-        onDismissAvatarDialog = closeAvatarDialog,
-        onAvatarSelected = { selectedAvatarName = it },
+        onUsernameChange = { newName ->
+            username = newName
+            // Opsional: Kalau mau avatar berubah saat ngetik, bisa hapus baris tapCount reset
+        },
+        // Logic Display: Kalau belum pernah dipencet, tampilin sesuai username
+        displaySeed = if (selectedAvatarSeed.isNotEmpty()) selectedAvatarSeed else (username.ifEmpty { "User" }),
+        onAvatarTap = handleAvatarTap,
         isLoading = isLoading,
         onBackClick = handleBackClick,
         onCreateAccountClick = handleCreateAccount
@@ -105,11 +123,8 @@ fun FillProfileScreen(
 fun FillProfileScreenContent(
     username: String,
     onUsernameChange: (String) -> Unit,
-    selectedAvatarName: String,
-    showAvatarDialog: Boolean,
-    onShowAvatarDialog: () -> Unit,
-    onDismissAvatarDialog: () -> Unit,
-    onAvatarSelected: (String) -> Unit,
+    displaySeed: String, // Seed untuk URL DiceBear
+    onAvatarTap: () -> Unit,
     isLoading: Boolean,
     onBackClick: () -> Unit,
     onCreateAccountClick: () -> Unit
@@ -165,41 +180,65 @@ fun FillProfileScreenContent(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // --- AREA FOTO PROFIL (KLIK UNTUK GANTI) ---
+                    // --- AREA DICEBEAR AVATAR (TAP TO SHUFFLE) ---
+                    val avatarUrl = remember(displaySeed) { AvatarUtils.getDiceBearUrl(displaySeed) }
+
                     Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(140.dp)
                             .clip(CircleShape)
-                            .background(UIGrey)
-                            .clickable { onShowAvatarDialog() },
-                        contentAlignment = Alignment.Center
+                            .background(UIGrey) // Background abu-abu
+                            .clickable { onAvatarTap() } // AKSI KLIK DISINI
                     ) {
-                        if (selectedAvatarName.isNotEmpty()) {
-                            // Tampilkan avatar yang dipilih
-                            Image(
-                                painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
-                                contentDescription = "Selected Avatar",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            // Tampilkan icon camera saat belum pilih avatar
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_camera_form),
-                                contentDescription = "Edit",
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
+                        // Menggunakan SubcomposeAsyncImage agar bisa Loading Muter-muter
+                        SubcomposeAsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(avatarUrl)
+                                .crossfade(true)
+                                .diskCachePolicy(CachePolicy.ENABLED)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .build(),
+                            contentDescription = "Avatar Seed: $displaySeed",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+
+                            // LOGIKA LOADING SPINNER
+                            loading = {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(30.dp),
+                                        color = UIBlack,
+                                        strokeWidth = 3.dp
+                                    )
+                                }
+                            },
+
+                            // LOGIKA ERROR (Fallback Icon)
+                            error = {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_launcher_foreground), // Pastikan icon ini ada
+                                        contentDescription = "Error",
+                                        modifier = Modifier.size(40.dp),
+                                        alpha = 0.5f
+                                    )
+                                }
+                            }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(15.dp))
 
                     Text(
-                        text = "Tap to change avatar",
+                        text = "Tap avatar to shuffle style",
                         style = AppFont.Medium,
                         fontSize = 12.sp,
                         color = UIAccentYellow
                     )
+
+                    // Debug text (Boleh dihapus)
+                    // Text(text = displaySeed, fontSize = 10.sp, color = Color.Gray)
 
                     Spacer(modifier = Modifier.height(40.dp))
 
@@ -244,17 +283,6 @@ fun FillProfileScreenContent(
                         }
                     }
                 }
-            }
-
-            // --- PANGGIL OVERLAY DI SINI ---
-            if (showAvatarDialog) {
-                AvatarSelectionOverlay(
-                    currentSelection = selectedAvatarName,
-                    onDismiss = onDismissAvatarDialog,
-                    onAvatarSelected = { newName ->
-                        onAvatarSelected(newName)
-                    }
-                )
             }
         }
     }
@@ -320,13 +348,10 @@ fun ProfileInputForm(
 fun FillProfileScreenPreview() {
     LucaTheme {
         FillProfileScreenContent(
-            username = "",
+            username = "Test",
             onUsernameChange = {},
-            selectedAvatarName = "",
-            showAvatarDialog = false,
-            onShowAvatarDialog = {},
-            onDismissAvatarDialog = {},
-            onAvatarSelected = {},
+            displaySeed = "Test",
+            onAvatarTap = {},
             isLoading = false,
             onBackClick = {},
             onCreateAccountClick = {}

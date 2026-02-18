@@ -29,6 +29,7 @@ import com.example.luca.ui.theme.*
 import com.example.luca.util.AvatarUtils
 import com.example.luca.viewmodel.ContactsViewModel
 import kotlinx.coroutines.launch
+import com.example.luca.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -373,21 +374,32 @@ fun ContactRowItem(
             .clickable { onContactClicked(contact) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar Display (image or letter)
+        // Avatar Display (DiceBear atau Letter)
         Box(
             modifier = Modifier
                 .size(50.dp)
-                .clip(CircleShape),
+                .clip(CircleShape)
+                .background(UIGrey), // Background sementara
             contentAlignment = Alignment.Center
         ) {
             if (contact.avatarName.isNotEmpty()) {
-                Image(
-                    painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)),
+                // --- KODE BARU (DICEBEAR) ---
+                val avatarUrl = remember(contact.avatarName) {
+                    "https://api.dicebear.com/9.x/avataaars/png?seed=${contact.avatarName}"
+                }
+
+                coil.compose.AsyncImage(
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(avatarUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Contact Avatar",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                    modifier = Modifier.fillMaxSize(),
+                    placeholder = painterResource(R.drawable.ic_user_form),
+                    error = painterResource(R.drawable.ic_user_form)              )
             } else {
+                // Fallback ke inisial huruf
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -396,17 +408,29 @@ fun ContactRowItem(
                 ) {
                     Text(
                         text = contact.name.take(1).uppercase(),
-                        style = AppFont.SemiBold,
+                        style = AppFont.SemiBold, // Pastikan AppFont terimport
                         color = UIWhite,
                         fontSize = 20.sp
                     )
                 }
             }
         }
+
         Spacer(modifier = Modifier.width(16.dp))
+
         Column {
-            Text(text = contact.name, style = AppFont.Regular, fontSize = 16.sp, color = UIBlack)
-            Text(text = contact.phoneNumber, style = AppFont.Regular, fontSize = 14.sp, color = UIDarkGrey)
+            Text(
+                text = contact.name,
+                style = AppFont.SemiBold, // Sedikit ditebalkan biar lebih jelas
+                fontSize = 16.sp,
+                color = UIBlack
+            )
+            Text(
+                text = contact.phoneNumber,
+                style = AppFont.Regular,
+                fontSize = 14.sp,
+                color = UIDarkGrey
+            )
         }
     }
 }
