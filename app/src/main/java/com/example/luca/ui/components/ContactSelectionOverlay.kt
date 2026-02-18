@@ -1,6 +1,5 @@
 package com.example.luca.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,13 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.luca.model.Contact
 import com.example.luca.ui.theme.*
-import com.example.luca.util.AvatarUtils
 
 @Composable
 fun ContactSelectionOverlay(
@@ -47,11 +48,16 @@ fun ContactSelectionOverlay(
             Text("Add Participants", style = AppFont.Bold, fontSize = 20.sp, color = UIBlack)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // List Kontak (hanya dari availableContacts, tanpa "You" dan "Add New Contact")
+            // List Kontak
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (availableContacts.isEmpty()) {
                     item {
-                        Text("No contacts found.", style = AppFont.Regular, color = UIDarkGrey, modifier = Modifier.padding(vertical = 12.dp))
+                        Text(
+                            "No contacts found.",
+                            style = AppFont.Regular,
+                            color = UIDarkGrey,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
                     }
                 }
 
@@ -88,14 +94,31 @@ fun ContactSelectionOverlay(
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // --- FIX: Gunakan AsyncImage untuk DiceBear ---
                         val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "avatar_1"
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp).clip(CircleShape)
+
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = contact.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                            error = painterResource(android.R.drawable.ic_menu_report_image)
                         )
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(contact.name, style = AppFont.Medium, color = UIBlack, modifier = Modifier.weight(1f))
+
+                        Text(
+                            text = contact.name,
+                            style = AppFont.Medium,
+                            color = UIBlack,
+                            modifier = Modifier.weight(1f)
+                        )
 
                         Icon(
                             imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
