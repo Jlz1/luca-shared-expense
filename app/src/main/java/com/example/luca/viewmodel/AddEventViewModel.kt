@@ -268,6 +268,8 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         activityId: String,
         items: List<Any>, // List of ReceiptItem
         taxPercentage: Double,
+        globalTax: Double = 0.0,
+        serviceCharge: Double = 0.0,
         discountAmount: Double,
         isSplitEqual: Boolean = false
     ) {
@@ -276,13 +278,15 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
             try {
                 android.util.Log.d("AddEventViewModel", "======== saveActivityItems START ========")
                 android.util.Log.d("AddEventViewModel", "EventID: $eventId, ActivityID: $activityId, Items: ${items.size}")
-                android.util.Log.d("AddEventViewModel", "Tax: $taxPercentage%, Discount: $discountAmount, isSplitEqual: $isSplitEqual")
+                android.util.Log.d("AddEventViewModel", "Tax%: $taxPercentage%, GlobalTax: $globalTax, Service: $serviceCharge, Discount: $discountAmount, isSplitEqual: $isSplitEqual")
 
                 val result = repository.saveActivityItems(
                     eventId = eventId,
                     activityId = activityId,
                     items = items,
                     taxPercentage = taxPercentage,
+                    globalTax = globalTax,
+                    serviceCharge = serviceCharge,
                     discountAmount = discountAmount,
                     isSplitEqual = isSplitEqual
                 )

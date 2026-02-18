@@ -173,8 +173,10 @@ fun AddActivityScreen2(
         mutableStateOf<List<ReceiptItem>?>(null)
     }
 
-    // --- STATE: Tax and Discount yang diperbaiki ---
+    // --- STATE: Tax, Service Charge, and Discount yang diperbaiki ---
     var globalTaxPercentage by remember { mutableStateOf(0.0) }
+    var globalTax by remember { mutableStateOf(0.0) } // Global tax amount (seperti di ScanResultScreen)
+    var globalServiceCharge by remember { mutableStateOf(0.0) }
     var globalDiscountAmount by remember { mutableStateOf(0.0) }
 
     // Load items for this Activity when the screen opens
@@ -188,19 +190,35 @@ fun AddActivityScreen2(
                 repo.getActivityData(eventId, activityId)
             }
 
-            // Restore tax and discount from Activity document
+            // Restore tax, service charge, and discount from Activity document
             if (activityData != null) {
                 val taxFromActivity = activityData["taxPercentage"]
+                val globalTaxFromActivity = activityData["globalTax"]
+                val serviceChargeFromActivity = activityData["serviceCharge"]
                 val discFromActivity = activityData["discountAmount"]
                 val isSplitEqualFromActivity = activityData["isSplitEqual"]
 
-                android.util.Log.d("NewActivityScreen2", "🔍 Activity data - Tax: $taxFromActivity, Discount: $discFromActivity, isSplitEqual: $isSplitEqualFromActivity")
+                android.util.Log.d("NewActivityScreen2", "🔍 Activity data - Tax%: $taxFromActivity, GlobalTax: $globalTaxFromActivity, Service: $serviceChargeFromActivity, Discount: $discFromActivity, isSplitEqual: $isSplitEqualFromActivity")
 
                 globalTaxPercentage = when (taxFromActivity) {
                     is Double -> taxFromActivity
                     is Int -> taxFromActivity.toDouble()
                     is Long -> taxFromActivity.toDouble()
                     is String -> taxFromActivity.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                globalTax = when (globalTaxFromActivity) {
+                    is Double -> globalTaxFromActivity
+                    is Int -> globalTaxFromActivity.toDouble()
+                    is Long -> globalTaxFromActivity.toDouble()
+                    is String -> globalTaxFromActivity.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                globalServiceCharge = when (serviceChargeFromActivity) {
+                    is Double -> serviceChargeFromActivity
+                    is Int -> serviceChargeFromActivity.toDouble()
+                    is Long -> serviceChargeFromActivity.toDouble()
+                    is String -> serviceChargeFromActivity.toDoubleOrNull() ?: 0.0
                     else -> 0.0
                 }
                 globalDiscountAmount = when (discFromActivity) {
@@ -215,7 +233,7 @@ fun AddActivityScreen2(
                     is String -> isSplitEqualFromActivity.toBoolean()
                     else -> false
                 }
-                android.util.Log.d("NewActivityScreen2", "✅ Restored from Activity doc - tax: $globalTaxPercentage%, discount: $globalDiscountAmount, isSplitEqual: $isSplitEqual")
+                android.util.Log.d("NewActivityScreen2", "✅ Restored from Activity doc - tax%: $globalTaxPercentage%, globalTax: $globalTax, service: $globalServiceCharge, discount: $globalDiscountAmount, isSplitEqual: $isSplitEqual")
             }
 
             // Load items
@@ -225,12 +243,14 @@ fun AddActivityScreen2(
 
             android.util.Log.d("NewActivityScreen2", "📥 Loaded ${items.size} items from Firestore")
 
-            // Fallback: if Activity document doesn't have tax/discount, try to get from first item
-            if (globalTaxPercentage == 0.0 && globalDiscountAmount == 0.0 && items.isNotEmpty()) {
+            // Fallback: if Activity document doesn't have tax/service/discount, try to get from first item
+            if (globalTaxPercentage == 0.0 && globalTax == 0.0 && globalServiceCharge == 0.0 && globalDiscountAmount == 0.0 && items.isNotEmpty()) {
                 val firstItem = items.first()
                 android.util.Log.d("NewActivityScreen2", "🔍 Fallback: Reading from first item")
 
                 val taxValue = firstItem["taxPercentage"]
+                val globalTaxValue = firstItem["globalTax"]
+                val serviceValue = firstItem["serviceCharge"]
                 val discValue = firstItem["discountAmount"]
 
                 globalTaxPercentage = when (taxValue) {
@@ -240,6 +260,20 @@ fun AddActivityScreen2(
                     is String -> taxValue.toDoubleOrNull() ?: 0.0
                     else -> 0.0
                 }
+                globalTax = when (globalTaxValue) {
+                    is Double -> globalTaxValue
+                    is Int -> globalTaxValue.toDouble()
+                    is Long -> globalTaxValue.toDouble()
+                    is String -> globalTaxValue.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                globalServiceCharge = when (serviceValue) {
+                    is Double -> serviceValue
+                    is Int -> serviceValue.toDouble()
+                    is Long -> serviceValue.toDouble()
+                    is String -> serviceValue.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
                 globalDiscountAmount = when (discValue) {
                     is Double -> discValue
                     is Int -> discValue.toDouble()
@@ -247,7 +281,7 @@ fun AddActivityScreen2(
                     is String -> discValue.toDoubleOrNull() ?: 0.0
                     else -> 0.0
                 }
-                android.util.Log.d("NewActivityScreen2", "✅ Restored from item - tax: $globalTaxPercentage%, discount: $globalDiscountAmount")
+                android.util.Log.d("NewActivityScreen2", "✅ Restored from item - tax%: $globalTaxPercentage%, globalTax: $globalTax, service: $globalServiceCharge, discount: $globalDiscountAmount")
             }
 
             // Map Firestore item documents to UI ReceiptItem
@@ -393,7 +427,8 @@ fun AddActivityScreen2(
                     )
                 }
                 receiptItems = receiptItems + scannedItems
-                globalTaxPercentage = data.tax
+                globalTax = data.tax  // Fix: assign to globalTax instead of globalTaxPercentage
+                globalServiceCharge = data.serviceCharge
                 globalDiscountAmount = data.discount
 
                 // Show success message
@@ -830,8 +865,8 @@ fun AddActivityScreen2(
                         val subtotal = receiptItems.sumOf { (it.price.toDouble() * it.quantity) }
                         val totalItemTax = receiptItems.sumOf { it.itemTax }
                         val totalItemDiscount = receiptItems.sumOf { it.itemDiscount }
-                        // Total Bill hanya dari sum per-item tax dan discount
-                        val totalBill = subtotal + totalItemTax - totalItemDiscount
+                        // Total Bill = subtotal + all taxes + service charge - all discounts (matching ScanResultScreen)
+                        val totalBill = subtotal + totalItemTax + globalTax + globalServiceCharge - totalItemDiscount - globalDiscountAmount
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -840,26 +875,37 @@ fun AddActivityScreen2(
                             Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
                             Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", subtotal)}", fontSize = 12.sp, color = UIDarkGrey)
                         }
-                        // Tampilkan Tax hanya jika ada
-                        if (totalItemTax > 0) {
+                        // Tampilkan Tax (Total) hanya jika ada - gabungan item tax + global tax
+                        if (totalItemTax + globalTax > 0) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "Tax (Total)", fontSize = 12.sp, color = UIDarkGrey)
-                                Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalItemTax)}", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalItemTax + globalTax)}", fontSize = 12.sp, color = UIDarkGrey)
                             }
                         }
-                        // Tampilkan Discount hanya jika ada
-                        if (totalItemDiscount > 0) {
+                        // Tampilkan Service Charge hanya jika ada
+                        if (globalServiceCharge > 0) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "Service Charge", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalServiceCharge)}", fontSize = 12.sp, color = UIDarkGrey)
+                            }
+                        }
+                        // Tampilkan Discount (Total) hanya jika ada - gabungan item discount + global discount
+                        if (totalItemDiscount + globalDiscountAmount > 0) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "Discount (Total)", fontSize = 12.sp, color = UIDarkGrey)
-                                Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", totalItemDiscount)}", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", totalItemDiscount + globalDiscountAmount)}", fontSize = 12.sp, color = UIDarkGrey)
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -931,7 +977,9 @@ fun AddActivityScreen2(
 
                             // Log untuk debugging
                             android.util.Log.d("NewActivityScreen2", "💾 Saving ${itemsForDb.size} items...")
-                            android.util.Log.d("NewActivityScreen2", "💾 Tax: $globalTaxPercentage% (type: ${globalTaxPercentage.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Tax%: $globalTaxPercentage% (type: ${globalTaxPercentage.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Global Tax: $globalTax (type: ${globalTax.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Service Charge: $globalServiceCharge (type: ${globalServiceCharge.javaClass.simpleName})")
                             android.util.Log.d("NewActivityScreen2", "💾 Discount: $globalDiscountAmount (type: ${globalDiscountAmount.javaClass.simpleName})")
                             android.util.Log.d("NewActivityScreen2", "💾 Equal Split: $isSplitEqual")
                             itemsForDb.forEachIndexed { index, item ->
@@ -944,6 +992,8 @@ fun AddActivityScreen2(
                                 activityId = activityId,
                                 items = itemsForDb,
                                 taxPercentage = globalTaxPercentage,
+                                globalTax = globalTax,
+                                serviceCharge = globalServiceCharge,
                                 discountAmount = globalDiscountAmount,
                                 isSplitEqual = isSplitEqual
                             )
@@ -1500,7 +1550,7 @@ fun AddItemDialog(
                     androidx.compose.material3.TextField(
                         value = itemName,
                         onValueChange = { itemName = it },
-                        placeholder = { Text("e.g. Nasi Goreng", color = UIGrey) },
+                        placeholder = { Text("e.g. Nasi Goreng", color = UIGrey, fontWeight = FontWeight.SemiBold) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(
@@ -1535,7 +1585,7 @@ fun AddItemDialog(
                         androidx.compose.material3.TextField(
                             value = itemPrice,
                             onValueChange = { itemPrice = it },
-                            placeholder = { Text("Rp 0", color = UIGrey) },
+                            placeholder = { Text("Rp 0", color = UIGrey, fontWeight = FontWeight.SemiBold) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             textStyle = androidx.compose.ui.text.TextStyle(
@@ -1563,7 +1613,7 @@ fun AddItemDialog(
                         androidx.compose.material3.TextField(
                             value = itemQuantity,
                             onValueChange = { itemQuantity = it },
-                            placeholder = { Text("1", color = UIGrey) },
+                            placeholder = { Text("1", color = UIGrey, fontWeight = FontWeight.SemiBold) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             textStyle = androidx.compose.ui.text.TextStyle(
@@ -1595,7 +1645,7 @@ fun AddItemDialog(
                     androidx.compose.material3.TextField(
                         value = itemDiscount,
                         onValueChange = { itemDiscount = it },
-                        placeholder = { Text("0", color = UIGrey) },
+                        placeholder = { Text("0", color = UIGrey, fontWeight = FontWeight.SemiBold) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(
@@ -1626,7 +1676,7 @@ fun AddItemDialog(
                     androidx.compose.material3.TextField(
                         value = itemTax,
                         onValueChange = { itemTax = it },
-                        placeholder = { Text("0", color = UIGrey) },
+                        placeholder = { Text("0", color = UIGrey, fontWeight = FontWeight.SemiBold) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         textStyle = androidx.compose.ui.text.TextStyle(
@@ -1728,26 +1778,26 @@ fun AddItemDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val price = itemPrice.toLongOrNull() ?: 0L
+                    val price = itemPrice.toDoubleOrNull() ?: 0.0
                     val quantity = itemQuantity.toIntOrNull() ?: 1
                     val taxVal = itemTax.toDoubleOrNull() ?: 0.0
-                    val discVal = itemDiscount.toLongOrNull() ?: 0L
+                    val discVal = itemDiscount.toDoubleOrNull() ?: 0.0
 
                     onTaxChanged(taxVal)
-                    onDiscountChanged(discVal.toDouble())
+                    onDiscountChanged(discVal)
 
-                    val itemTotalPrice = price.toDouble() * quantity
+                    val itemTotalPrice = price * quantity
                     val itemTaxAmount = itemTotalPrice * taxVal / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val newItem = ReceiptItem(
                             quantity = quantity,
                             itemName = itemName,
-                            price = price,
+                            price = price.toLong(),
                             members = emptyList(), // Placeholder
                             memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discVal.toDouble()
+                            itemDiscount = discVal
                         )
                         onAddItem(newItem)
                     }
@@ -2061,22 +2111,22 @@ fun EditItemDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val price = itemPrice.toLongOrNull() ?: 0L
+                    val price = itemPrice.toDoubleOrNull() ?: 0.0
                     val quantity = itemQuantity.toIntOrNull() ?: 1
                     val taxVal = itemTax.toDoubleOrNull() ?: 0.0
-                    val discVal = itemDiscount.toLongOrNull() ?: 0L
-                    val itemTotalPrice = price.toDouble() * quantity
+                    val discVal = itemDiscount.toDoubleOrNull() ?: 0.0
+                    val itemTotalPrice = price * quantity
                     val itemTaxAmount = itemTotalPrice * taxVal / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val updatedItem = ReceiptItem(
                             quantity = quantity,
                             itemName = itemName,
-                            price = price,
+                            price = price.toLong(),
                             members = emptyList(), // Placeholder
                             memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discVal.toDouble()
+                            itemDiscount = discVal
                         )
                         onSaveItem(updatedItem)
                     }
