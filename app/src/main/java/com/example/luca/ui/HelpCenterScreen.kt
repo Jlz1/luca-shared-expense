@@ -149,9 +149,9 @@ fun HelpCenterScreen(
         ) {
 
             // ===== 1. WELCOME SECTION =====
-            HelpCenterSection(title = "Selamat Datang") {
+            HelpCenterSection(title = "Welcome") {
                 Text(
-                    text = "Kami di sini untuk membantu Anda mendapatkan hasil maksimal dari Luca. Jika Anda mengalami masalah atau memiliki pertanyaan, jangan ragu untuk menghubungi tim dukungan kami.",
+                    text = "We are here to help you get the most out of Luca. If you encounter issues or have questions, feel free to contact our support team.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIDarkGrey,
@@ -160,58 +160,58 @@ fun HelpCenterScreen(
             }
 
             // ===== 2. COMMON ISSUES =====
-            HelpCenterSection(title = "Masalah Umum") {
+            HelpCenterSection(title = "Common Issues") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     HelpCard(
                         icon = Icons.Default.ErrorOutline,
-                        title = "Tidak Bisa Login",
-                        description = "Pastikan Anda menggunakan email yang benar dan password Anda aman. Gunakan fitur 'Lupa Password' jika diperlukan."
+                        title = "Cannot Login",
+                        description = "Ensure you use the correct email and your password is secure. Use the 'Forgot Password' feature if needed."
                     )
                     HelpCard(
                         icon = Icons.Default.ErrorOutline,
-                        title = "Masalah Sinkronisasi Data",
-                        description = "Coba refresh aplikasi atau login kembali. Pastikan koneksi internet Anda stabil."
+                        title = "Data Sync Issues",
+                        description = "Try refreshing the app or logging in again. Ensure your internet connection is stable."
                     )
                     HelpCard(
                         icon = Icons.Default.ErrorOutline,
-                        title = "Tidak Bisa Membuat Grup",
-                        description = "Pastikan Anda memiliki koneksi internet yang baik dan sudah mengisi profil lengkap."
+                        title = "Cannot Create Group",
+                        description = "Ensure you have a good internet connection and have completed your profile details."
                     )
                     HelpCard(
                         icon = Icons.Default.ErrorOutline,
-                        title = "Masalah Pembayaran",
-                        description = "Hubungi tim dukungan kami untuk bantuan lebih lanjut mengenai masalah pembayaran atau transaksi."
+                        title = "Payment Issues",
+                        description = "Contact our support team for further assistance regarding payment or transaction issues."
                     )
                 }
             }
 
             // ===== 3. QUICK TIPS =====
-            HelpCenterSection(title = "Tips Cepat") {
+            HelpCenterSection(title = "Quick Tips") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     HelpCard(
                         icon = Icons.Default.Help,
-                        title = "Kelola Grup Dengan Baik",
-                        description = "Pastikan semua anggota grup memiliki peran yang jelas dan persetujuan untuk setiap pengeluaran bersama."
+                        title = "Manage Groups Effectively",
+                        description = "Ensure all group members have clear roles and approval for every shared expense."
                     )
                     HelpCard(
                         icon = Icons.Default.Help,
-                        title = "Gunakan Kategori",
-                        description = "Gunakan kategori pengeluaran untuk melacak pengeluaran dengan lebih mudah dan membuat laporan lebih detail."
+                        title = "Use Categories",
+                        description = "Use expense categories to track spending easily and create more detailed reports."
                     )
                     HelpCard(
                         icon = Icons.Default.Help,
-                        title = "Periksa Laporan Reguler",
-                        description = "Tinjau laporan pengeluaran secara teratur untuk memastikan akurasi dan mendeteksi masalah lebih awal."
+                        title = "Check Reports Regularly",
+                        description = "Review expense reports regularly to ensure accuracy and detect issues early."
                     )
                 }
             }
 
             // ===== 4. CONTACT SUPPORT =====
-            HelpCenterSection(title = "Hubungi Kami") {
+            HelpCenterSection(title = "Contact Us") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -232,14 +232,15 @@ fun HelpCenterScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Butuh Bantuan?",
+                            text = "Need Help?",
                             style = AppFont.Bold,
                             fontSize = 18.sp,
                             color = UIBlack,
                             textAlign = TextAlign.Center
                         )
+                        // Perbaikan Layout: Email ditampilkan di sini agar bisa wrap text jika font besar
                         Text(
-                            text = "Kirimkan email kepada tim dukungan kami untuk bantuan lebih lanjut.",
+                            text = "Email us at lucasharedexpense@gmail.com for further assistance.",
                             style = AppFont.Regular,
                             fontSize = 14.sp,
                             color = UIDarkGrey,
@@ -248,14 +249,14 @@ fun HelpCenterScreen(
                         )
                     }
 
-                    // Email Button
+                    // Email Button - Diubah teksnya agar aman untuk semua ukuran font
                     Button(
                         onClick = {
                             val intent = Intent(Intent.ACTION_SENDTO).apply {
                                 data = Uri.parse("mailto:lucasharedexpense@gmail.com")
-                                putExtra(Intent.EXTRA_SUBJECT, "Bantuan Luca - Shared Expense")
+                                putExtra(Intent.EXTRA_SUBJECT, "Luca Support - Shared Expense")
                             }
-                            context.startActivity(Intent.createChooser(intent, "Kirim Email"))
+                            context.startActivity(Intent.createChooser(intent, "Send Email"))
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -273,8 +274,9 @@ fun HelpCenterScreen(
                                 .size(20.dp)
                                 .padding(end = 8.dp)
                         )
+                        // Teks tombol dipersingkat agar tidak terpotong
                         Text(
-                            text = "lucasharedexpense@gmail.com",
+                            text = "Send Email",
                             style = AppFont.SemiBold,
                             fontSize = 14.sp,
                             color = UIBlack
@@ -282,7 +284,7 @@ fun HelpCenterScreen(
                     }
 
                     Text(
-                        text = "Balas kami dalam 24 jam",
+                        text = "We typically reply within 24 hours",
                         style = AppFont.Regular,
                         fontSize = 12.sp,
                         color = UIDarkGrey,
@@ -292,7 +294,7 @@ fun HelpCenterScreen(
             }
 
             // ===== 5. ADDITIONAL INFO =====
-            HelpCenterSection(title = "Informasi Tambahan") {
+            HelpCenterSection(title = "Additional Information") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -313,7 +315,7 @@ fun HelpCenterScreen(
                                 .padding(top = 2.dp)
                         )
                         Text(
-                            text = "Kami berkomitmen untuk memberikan dukungan terbaik kepada Anda. Respons cepat dan solusi efektif adalah prioritas kami.",
+                            text = "We are committed to providing you with the best support. Fast response and effective solutions are our priority.",
                             style = AppFont.Regular,
                             fontSize = 13.sp,
                             color = UIDarkGrey,
@@ -338,7 +340,7 @@ fun HelpCenterScreen(
                                 .padding(top = 2.dp)
                         )
                         Text(
-                            text = "Baca FAQ kami di Privacy & Security dan Help & Support untuk jawaban cepat atas pertanyaan umum.",
+                            text = "Read our FAQ in Privacy & Security and Help & Support for quick answers to common questions.",
                             style = AppFont.Regular,
                             fontSize = 13.sp,
                             color = UIDarkGrey,
