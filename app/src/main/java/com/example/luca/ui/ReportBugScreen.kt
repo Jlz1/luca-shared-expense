@@ -1,5 +1,7 @@
 package com.example.luca.ui
 
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -34,9 +37,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.luca.ui.theme.*
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import java.util.UUID
@@ -47,14 +48,18 @@ fun ReportBugScreen(
     onBackClick: () -> Unit,
     onSubmitSuccess: () -> Unit = {}
 ) {
-    // State untuk form input (UI Only)
     val context = LocalContext.current
+
+    // State UI
     var subjectText by remember { mutableStateOf("") }
     var descriptionText by remember { mutableStateOf("") }
-    var selectedImageUris by remember { mutableStateOf<List<android.net.Uri>>(emptyList()) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    // Image picker launcher
+    // State Dialog & Loading
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Image Picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
@@ -91,7 +96,7 @@ fun ReportBugScreen(
         },
         containerColor = UIBackground,
         bottomBar = {
-            // Sticky Bottom Button
+            // Sticky Bottom Section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -99,66 +104,74 @@ fun ReportBugScreen(
                     .padding(20.dp)
             ) {
                 Button(
+                    // Disable button saat sedang loading agar tidak spam klik
+                    enabled = !isLoading,
                     onClick = {
                         // 1. Validasi Input
                         if (subjectText.trim().isNotEmpty() && descriptionText.trim().isNotEmpty()) {
 
-                            // Siapkan instance Firebase
-                            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
+                            // Mulai Loading
+                            isLoading = true
 
-                            // Siapkan data dasar
+                            // Instance Firebase
+                            val db = FirebaseFirestore.getInstance()
+                            val storage = FirebaseStorage.getInstance()
+
+                            // Data Dasar
                             val reportData = hashMapOf(
                                 "subject" to subjectText,
                                 "description" to descriptionText,
                                 "deviceModel" to android.os.Build.MODEL,
                                 "androidVersion" to android.os.Build.VERSION.RELEASE,
-                                "timestamp" to com.google.firebase.Timestamp.now(),
-                                "imageUrls" to mutableListOf<String>() // Nanti diisi kalau ada gambar
+                                "timestamp" to Timestamp.now(),
+                                "imageUrls" to mutableListOf<String>()
                             )
 
-                            // Fungsi helper kecil untuk simpan ke Firestore (biar codingan rapi)
+                            // Helper Function: Simpan ke Firestore
                             fun saveToFirestore(data: HashMap<String, Any>) {
-                                db.collection("bug_reports") // Nama folder di database
+                                db.collection("bug_reports")
                                     .add(data)
                                     .addOnSuccessListener {
-                                        showSuccessDialog = true // SUKSES! Muncul dialog
+                                        isLoading = false // Stop loading
+                                        showSuccessDialog = true
                                     }
                                     .addOnFailureListener { e ->
-                                        android.widget.Toast.makeText(context, "Gagal kirim: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                        isLoading = false // Stop loading (Error)
+                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                                     }
                             }
 
-                            // 2. Cek apakah user memilih gambar?
+                            // 2. Logic Upload Gambar vs Tanpa Gambar
                             if (selectedImageUris.isNotEmpty()) {
-                                // KASUS A: ADA GAMBAR (Ambil gambar pertama saja dulu untuk simpelnya)
-                                // Kalau mau upload banyak, butuh logic looping (agak rumit dikit)
+                                // Upload gambar pertama
                                 val imageUri = selectedImageUris.first()
                                 val filename = "bugs/${UUID.randomUUID()}.jpg"
                                 val ref = storage.reference.child(filename)
 
-                                // Upload Gambar
                                 ref.putFile(imageUri)
                                     .addOnSuccessListener {
-                                        // Upload berhasil, sekarang minta link download-nya
+                                        // Upload Sukses -> Ambil URL
                                         ref.downloadUrl.addOnSuccessListener { uri ->
-                                            // Masukkan link gambar ke data laporan
                                             reportData["imageUrls"] = listOf(uri.toString())
-
-                                            // Lanjut simpan ke database
                                             saveToFirestore(reportData)
+                                        }.addOnFailureListener {
+                                            // Gagal ambil URL
+                                            isLoading = false
+                                            Toast.makeText(context, "Failed to get image URL", Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                     .addOnFailureListener {
-                                        android.widget.Toast.makeText(context, "Gagal upload gambar", android.widget.Toast.LENGTH_SHORT).show()
+                                        // Upload Gagal
+                                        isLoading = false
+                                        Toast.makeText(context, "Failed to upload image", Toast.LENGTH_SHORT).show()
                                     }
                             } else {
-                                // KASUS B: TIDAK ADA GAMBAR (Langsung kirim teks)
+                                // Tidak ada gambar, langsung simpan teks
                                 saveToFirestore(reportData)
                             }
 
                         } else {
-                            android.widget.Toast.makeText(context, "Mohon isi Judul dan Deskripsi", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Please fill in the Title and Description", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier
@@ -167,15 +180,27 @@ fun ReportBugScreen(
                     shape = RoundedCornerShape(25.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = UIAccentYellow,
-                        contentColor = UIBlack
+                        contentColor = UIBlack,
+                        disabledContainerColor = UIAccentYellow.copy(alpha = 0.7f),
+                        disabledContentColor = UIBlack.copy(alpha = 0.5f)
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
-                    Text(
-                        text = "Submit Report",
-                        style = AppFont.SemiBold,
-                        fontSize = 16.sp
-                    )
+                    if (isLoading) {
+                        // Tampilkan Loading Spinner
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = UIBlack,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        // Teks Normal
+                        Text(
+                            text = "Submit Report",
+                            style = AppFont.SemiBold,
+                            fontSize = 16.sp
+                        )
+                    }
                 }
             }
         }
@@ -187,7 +212,7 @@ fun ReportBugScreen(
                 .padding(innerPadding)
         ) {
 
-            // ===== 1. HEADER ILUSTRASI / INTRO =====
+            // ===== 1. HEADER ILUSTRASI =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -205,7 +230,7 @@ fun ReportBugScreen(
                     Icon(
                         imageVector = Icons.Default.BugReport,
                         contentDescription = null,
-                        tint = UIBlack, // Atau warna aksen gelap
+                        tint = UIBlack,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -305,7 +330,6 @@ fun ReportBugScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Add Button Visual + Selected Images
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -374,7 +398,6 @@ fun ReportBugScreen(
                     }
                 }
 
-                // Display count
                 if (selectedImageUris.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -386,7 +409,7 @@ fun ReportBugScreen(
                 }
             }
 
-            // Spacer untuk memberi ruang scroll agar tidak tertutup tombol sticky
+            // Spacer untuk memberi ruang scroll bottom bar
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
@@ -394,7 +417,7 @@ fun ReportBugScreen(
     // ===== SUCCESS DIALOG =====
     if (showSuccessDialog) {
         Dialog(
-            onDismissRequest = { /* Prevent dismiss by tapping outside */ },
+            onDismissRequest = { },
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
         ) {
             Box(
@@ -408,7 +431,6 @@ fun ReportBugScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Success Icon
                     Box(
                         modifier = Modifier
                             .size(80.dp)
@@ -426,9 +448,8 @@ fun ReportBugScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Title
                     Text(
-                        text = "Laporan Diterima!",
+                        text = "Report received!",
                         style = AppFont.Bold,
                         fontSize = 18.sp,
                         color = UIBlack,
@@ -437,9 +458,8 @@ fun ReportBugScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Description
                     Text(
-                        text = "Terima kasih telah melaporkan bug. Tim kami akan segera meninjau laporan Anda.",
+                        text = "Thank you for reporting the bug. Our team will review your report immediately.",
                         style = AppFont.Regular,
                         fontSize = 14.sp,
                         color = UIDarkGrey,
@@ -449,7 +469,6 @@ fun ReportBugScreen(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // Button
                     Button(
                         onClick = {
                             showSuccessDialog = false
@@ -465,7 +484,7 @@ fun ReportBugScreen(
                         )
                     ) {
                         Text(
-                            text = "Kembali ke Home",
+                            text = "Back To Home",
                             style = AppFont.SemiBold,
                             fontSize = 14.sp
                         )
@@ -476,10 +495,7 @@ fun ReportBugScreen(
     }
 }
 
-// ==========================================
-// CUSTOM TEXT FIELD (Agar konsisten & bersih)
-// ==========================================
-
+// Helper Text Field (Sama seperti sebelumnya)
 @Composable
 fun LucaTextField(
     value: String,
@@ -519,12 +535,4 @@ fun LucaTextField(
         singleLine = singleLine,
         minLines = minLines
     )
-}
-
-@Preview
-@Composable
-fun ReportBugsPreview() {
-    LucaTheme {
-        ReportBugScreen(onBackClick = {})
-    }
 }
