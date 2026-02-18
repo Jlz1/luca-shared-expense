@@ -71,6 +71,7 @@ fun AddScreen(
     val isSuccess by viewModel.isSuccess.collectAsState()
     val showParticipantWarning by viewModel.showParticipantWarning.collectAsState()
     val removedParticipants by viewModel.removedParticipantsInActivity.collectAsState()
+    val showMinimumParticipantError by viewModel.showMinimumParticipantError.collectAsState()
 
     val context = LocalContext.current
 
@@ -169,6 +170,28 @@ fun AddScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.dismissParticipantWarning() },
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                ) {
+                    Text("OK", color = UIBlack, style = AppFont.Bold)
+                }
+            }
+        )
+    }
+
+    // Error Dialog untuk Minimum Participant
+    if (showMinimumParticipantError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissMinimumParticipantError() },
+            title = { Text("Minimum Participants Required", style = AppFont.Bold) },
+            text = {
+                Text(
+                    text = "Setidaknya harus ada 2 anggota untuk membuat event. Silakan tambahkan minimal 1 anggota lagi.",
+                    style = AppFont.Regular
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissMinimumParticipantError() },
                     colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
                 ) {
                     Text("OK", color = UIBlack, style = AppFont.Bold)
