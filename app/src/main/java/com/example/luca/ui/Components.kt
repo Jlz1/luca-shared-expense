@@ -260,7 +260,7 @@ fun FloatingNavbar(
             .width(225.dp)
             .height(75.dp),
         shape = RoundedCornerShape(50.dp),
-        color = Color(0xFFFDBF50),
+        color = UIAccentYellow,
         shadowElevation = 8.dp
     ) {
         Box(
