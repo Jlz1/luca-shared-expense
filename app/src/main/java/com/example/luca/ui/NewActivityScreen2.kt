@@ -1143,7 +1143,6 @@ fun ParticipantAvatarItem(contact: Contact) {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.width(60.dp)
     ) {
-        // Avatar dengan profile picture atau fallback ke initial
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -1151,76 +1150,39 @@ fun ParticipantAvatarItem(contact: Contact) {
                 .background(UIDarkGrey),
             contentAlignment = Alignment.Center
         ) {
-            // Load profile picture dari database jika ada
-            if (contact.avatarName.isNotBlank()) {
-                // Cek resource ID tanpa try-catch di dalam composable
-                val resourceId = getDrawableResourceId(contact.avatarName)
-                if (resourceId != 0) {
-                    Image(
-                        painter = painterResource(id = resourceId),
-                        contentDescription = contact.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    // Fallback ke initial jika resource tidak ditemukan
-                    val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
-                    Text(
-                        text = initial.toString(),
-                        color = UIWhite,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            } else {
-                // Fallback ke initial jika tidak ada profile picture
-                val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
-                Text(
-                    text = initial.toString(),
-                    color = UIWhite,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            // FIX: Gunakan AsyncImage untuk DiceBear
+            val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "User"
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = contact.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                error = painterResource(android.R.drawable.ic_menu_report_image)
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        // Nama dengan text yang kecil
         Text(
             text = contact.name,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
-
 @Composable
 fun ParticipantAvatarItemSmall(contact: Contact) {
-    // Hitung resourceId di luar composable
-    val resourceId = remember(contact.avatarName) {
-        if (contact.avatarName.isNotBlank()) {
-            try {
-                getDrawableResourceId(contact.avatarName)
-            } catch (e: Exception) {
-                0
-            }
-        } else {
-            0
-        }
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.width(65.dp)
     ) {
-        // Avatar dengan profile picture atau fallback ke initial
         Box(
             modifier = Modifier
                 .size(32.dp)
@@ -1228,36 +1190,28 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
                 .background(UIDarkGrey),
             contentAlignment = Alignment.Center
         ) {
-            // Load profile picture dari database jika ada
-            if (resourceId != 0) {
-                Image(
-                    painter = painterResource(id = resourceId),
-                    contentDescription = contact.name,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                // Fallback ke initial
-                val initial = contact.name.firstOrNull()?.uppercaseChar() ?: "?"
-                Text(
-                    text = initial.toString(),
-                    color = UIWhite,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            // FIX: Gunakan AsyncImage untuk DiceBear
+            val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "User"
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = contact.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                error = painterResource(android.R.drawable.ic_menu_report_image)
+            )
         }
         Spacer(modifier = Modifier.height(2.dp))
-        // Nama dengan text yang kecil
         Text(
             text = contact.name,
             fontSize = 9.sp,
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth()
         )
@@ -1311,18 +1265,6 @@ fun MiniAvatar() {
 
 @Composable
 fun MiniAvatarWithImage(contact: Contact) {
-    val resourceId = remember(contact.avatarName) {
-        if (contact.avatarName.isNotBlank()) {
-            try {
-                getDrawableResourceId(contact.avatarName)
-            } catch (e: Exception) {
-                0
-            }
-        } else {
-            0
-        }
-    }
-
     Box(
         modifier = Modifier
             .size(20.dp)
@@ -1330,18 +1272,19 @@ fun MiniAvatarWithImage(contact: Contact) {
             .background(UIDarkGrey),
         contentAlignment = Alignment.Center
     ) {
-        if (resourceId != 0) {
-            Image(
-                painter = painterResource(id = resourceId),
-                contentDescription = contact.name,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Icon(Icons.Default.Person, null, tint = UIWhite, modifier = Modifier.size(12.dp))
-        }
+        // FIX: Gunakan AsyncImage untuk DiceBear
+        val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "User"
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                .crossfade(true)
+                .build(),
+            contentDescription = contact.name,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+            error = painterResource(android.R.drawable.ic_menu_report_image)
+        )
     }
 }
 
@@ -1478,7 +1421,7 @@ fun AddItemDialog(
     var itemName by remember { mutableStateOf("") }
     var itemPrice by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
-    // Jika equal split aktif, otomatis pilih semua member
+
     var selectedMembers by remember {
         mutableStateOf(
             if (isSplitEqual) eventMembers.map { it.name }.toSet()
@@ -1492,12 +1435,7 @@ fun AddItemDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.imePadding(),
         title = {
-            Text(
-                text = "Add New Item",
-                style = AppFont.SemiBold,
-                fontSize = 18.sp,
-                color = UIBlack
-            )
+            Text("Add New Item", style = AppFont.SemiBold, fontSize = 18.sp, color = UIBlack)
         },
         text = {
             Column(
@@ -1505,7 +1443,6 @@ fun AddItemDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                // Item Name with rounded corners
                 OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
@@ -1517,7 +1454,6 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Price and Quantity Row with rounded corners
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1543,30 +1479,19 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Members Selection seperti Add Participants screen
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Shared by:",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = UIBlack
-                    )
+                    Text("Shared by:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = UIBlack)
                     if (isSplitEqual) {
-                        Text(
-                            text = "Equal Split Active",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp,
-                            color = UIAccentYellow
-                        )
+                        Text("Equal Split Active", fontWeight = FontWeight.Medium, fontSize = 12.sp, color = UIAccentYellow)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Container dengan background seperti Add Participants - maksimal 3 items visible
+                // LIST AVATAR DI DALAM DIALOG
                 val containerHeight = if (eventMembers.size > 3) 180.dp else 120.dp
                 Column(
                     modifier = Modifier
@@ -1576,9 +1501,7 @@ fun AddItemDialog(
                         .padding(8.dp)
                         .height(containerHeight)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(eventMembers) { member ->
                             Row(
                                 modifier = Modifier
@@ -1598,19 +1521,7 @@ fun AddItemDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Avatar dengan profile picture dari database
-                                    val resourceId = remember(member.avatarName) {
-                                        if (member.avatarName.isNotBlank()) {
-                                            try {
-                                                getDrawableResourceId(member.avatarName)
-                                            } catch (_: Exception) {
-                                                0
-                                            }
-                                        } else {
-                                            0
-                                        }
-                                    }
-
+                                    // FIX: AsyncImage DiceBear
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
@@ -1618,78 +1529,41 @@ fun AddItemDialog(
                                             .background(UIDarkGrey),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (resourceId != 0) {
-                                            Image(
-                                                painter = painterResource(id = resourceId),
-                                                contentDescription = member.name,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            // Fallback ke initial letter
-                                            val initial = member.name.firstOrNull()?.uppercaseChar() ?: "?"
-                                            Text(
-                                                text = initial.toString(),
-                                                color = UIWhite,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
+                                        val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = member.name,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = painterResource(android.R.drawable.ic_menu_gallery)
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
-
-                                    Text(
-                                        text = member.name,
-                                        fontSize = 16.sp,
-                                        color = UIBlack,
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    Text(text = member.name, fontSize = 16.sp, color = UIBlack, fontWeight = FontWeight.Medium)
                                 }
 
-                                // Selection indicator - checkmark or plus
                                 if (selectedMembers.contains(member.name)) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF4CAF50)),
+                                        modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF4CAF50)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "✓",
-                                            color = UIWhite,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Text("✓", color = UIWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                     }
                                 } else {
                                     Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(UIGrey.copy(alpha = 0.3f)),
+                                        modifier = Modifier.size(28.dp).clip(CircleShape).background(UIGrey.copy(alpha = 0.3f)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = "Add",
-                                            tint = UIDarkGrey,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                        Icon(Icons.Default.Add, contentDescription = "Add", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
-
-                            // Divider between participants (except for last item)
                             if (member != eventMembers.last()) {
-                                HorizontalDivider(
-                                    thickness = 1.dp,
-                                    color = UIGrey.copy(alpha = 0.3f),
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
+                                HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 12.dp))
                             }
                         }
                     }
@@ -1697,19 +1571,10 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tax and Discount with rounded corners - OPTIONAL FIELDS
-                Text(
-                    text = "Optional:",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = UIDarkGrey
-                )
+                Text("Optional:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = UIDarkGrey)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = tempTax,
                         onValueChange = { tempTax = it },
@@ -1719,14 +1584,9 @@ fun AddItemDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
                     )
-
                     OutlinedTextField(
                         value = tempDiscount,
-                        onValueChange = {
-                            // Format as Rupiah input
-                            val numbersOnly = it.replace("[^\\d]".toRegex(), "")
-                            tempDiscount = numbersOnly
-                        },
+                        onValueChange = { tempDiscount = it.replace("[^\\d]".toRegex(), "") },
                         label = { Text("Discount (Rp)") },
                         placeholder = { Text("0") },
                         prefix = { Text("Rp") },
@@ -1742,37 +1602,31 @@ fun AddItemDialog(
                 onClick = {
                     val price = itemPrice.toDoubleOrNull() ?: 0.0
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val taxPercentage = tempTax.toDoubleOrNull() ?: 0.0
-                    val discount = tempDiscount.toDoubleOrNull() ?: 0.0
+                    val taxVal = tempTax.toDoubleOrNull() ?: 0.0
+                    val discVal = tempDiscount.toDoubleOrNull() ?: 0.0
 
-                    // Update global tax and discount values
-                    onTaxChanged(taxPercentage)
-                    onDiscountChanged(discount)
+                    onTaxChanged(taxVal)
+                    onDiscountChanged(discVal)
 
-                    // Calculate item tax in Rupiah based on percentage
                     val itemTotalPrice = price * quantity
-                    val itemTaxAmount = itemTotalPrice * taxPercentage / 100
+                    val itemTaxAmount = itemTotalPrice * taxVal / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val newItem = ReceiptItem(
                             quantity = quantity,
                             itemName = itemName,
                             price = price.toLong(),
-                            members = selectedMembers.map { UIAccentYellow },
+                            members = emptyList(), // Placeholder
                             memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discount
+                            itemDiscount = discVal
                         )
-
                         onAddItem(newItem)
                     }
                 },
                 modifier = Modifier.height(48.dp),
                 shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = UIAccentYellow,
-                    contentColor = UIBlack
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack)
             ) {
                 Text("Add Item", style = AppFont.SemiBold, fontSize = 16.sp)
             }
@@ -1804,19 +1658,18 @@ fun EditItemDialog(
     var itemName by remember { mutableStateOf(item.itemName) }
     var itemPrice by remember { mutableStateOf(item.price.toString()) }
     var itemQuantity by remember { mutableStateOf(item.quantity.toString()) }
-    // Jika equal split aktif, otomatis gunakan semua member
+
     var selectedMembers by remember {
         mutableStateOf(
             if (isSplitEqual) eventMembers.map { it.name }.toSet()
             else item.memberNames.toSet()
         )
     }
-    // Calculate tax percentage from item's tax amount for display
+
     val initialTaxPercentage = if (item.price.toDouble() * item.quantity > 0) {
         (item.itemTax / (item.price.toDouble() * item.quantity) * 100).toString()
-    } else {
-        "0"
-    }
+    } else { "0" }
+
     var tempTax by remember { mutableStateOf(initialTaxPercentage) }
     var tempDiscount by remember { mutableStateOf(item.itemDiscount.toString()) }
 
@@ -1829,27 +1682,16 @@ fun EditItemDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Edit Item",
-                    style = AppFont.SemiBold,
-                    fontSize = 18.sp,
-                    color = UIBlack
-                )
-                TextButton(
-                    onClick = onDeleteItem,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                ) {
+                Text("Edit Item", style = AppFont.SemiBold, fontSize = 18.sp, color = UIBlack)
+                TextButton(onClick = onDeleteItem, colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)) {
                     Text("Delete", fontSize = 14.sp, style = AppFont.Medium)
                 }
             }
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             ) {
-                // Item Name with rounded corners
                 OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
@@ -1858,14 +1700,8 @@ fun EditItemDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
                 )
-
                 Spacer(modifier = Modifier.height(12.dp))
-
-                // Price and Quantity Row with rounded corners
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = itemPrice,
                         onValueChange = { itemPrice = it },
@@ -1874,7 +1710,6 @@ fun EditItemDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
                     )
-
                     OutlinedTextField(
                         value = itemQuantity,
                         onValueChange = { itemQuantity = it },
@@ -1884,44 +1719,23 @@ fun EditItemDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Members Selection seperti Add Participants screen
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Shared by:",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = UIBlack
-                    )
-                    if (isSplitEqual) {
-                        Text(
-                            text = "Equal Split Active",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp,
-                            color = UIAccentYellow
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Shared by:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = UIBlack)
+                    if (isSplitEqual) Text("Equal Split Active", fontWeight = FontWeight.Medium, fontSize = 12.sp, color = UIAccentYellow)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Container dengan background seperti Add Participants - maksimal 3 items visible
+                // LIST AVATAR DI DALAM DIALOG EDIT
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(UIBackground)
                         .padding(8.dp)
-                        .height(120.dp) // Fixed height
+                        .height(120.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(eventMembers) { member ->
                             Row(
                                 modifier = Modifier
@@ -1941,13 +1755,7 @@ fun EditItemDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Avatar with profile picture from resources if available
-                                    val resourceId = remember(member.avatarName) {
-                                        if (member.avatarName.isNotBlank()) {
-                                            try { getDrawableResourceId(member.avatarName) } catch (_: Exception) { 0 }
-                                        } else { 0 }
-                                    }
-
+                                    // FIX: AsyncImage DiceBear
                                     Box(
                                         modifier = Modifier
                                             .size(40.dp)
@@ -1955,98 +1763,42 @@ fun EditItemDialog(
                                             .background(UIDarkGrey),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (resourceId != 0) {
-                                            Image(
-                                                painter = painterResource(id = resourceId),
-                                                contentDescription = member.name,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            // Fallback to initial letter
-                                            val initial = member.name.firstOrNull()?.uppercaseChar() ?: "?"
-                                            Text(
-                                                text = initial.toString(),
-                                                color = UIWhite,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Text(
-                                        text = member.name,
-                                        fontSize = 16.sp,
-                                        color = UIBlack,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-
-                                // Selection indicator - checkmark or plus
-                                if (selectedMembers.contains(member.name)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF4CAF50)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "✓",
-                                            color = UIWhite,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
+                                        val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = member.name,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = painterResource(android.R.drawable.ic_menu_gallery)
                                         )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(text = member.name, fontSize = 16.sp, color = UIBlack, fontWeight = FontWeight.Medium)
+                                }
+                                if (selectedMembers.contains(member.name)) {
+                                    Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF4CAF50)), contentAlignment = Alignment.Center) {
+                                        Text("✓", color = UIWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                     }
                                 } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(UIGrey.copy(alpha = 0.3f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = "Add",
-                                            tint = UIDarkGrey,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                    Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(UIGrey.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Add, contentDescription = "Add", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
-
-                            // Divider between participants (except for last item)
                             if (member != eventMembers.last()) {
-                                HorizontalDivider(
-                                    thickness = 1.dp,
-                                    color = UIGrey.copy(alpha = 0.3f),
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
+                                HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 12.dp))
                             }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Tax and Discount with rounded corners
-                Text(
-                    text = "Optional:",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = UIDarkGrey
-                )
+                Text("Optional:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = UIDarkGrey)
                 Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = tempTax,
                         onValueChange = { tempTax = it },
@@ -2056,14 +1808,9 @@ fun EditItemDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
                     )
-
                     OutlinedTextField(
                         value = tempDiscount,
-                        onValueChange = {
-                            // Format as Rupiah input
-                            val numbersOnly = it.replace("[^\\d]".toRegex(), "")
-                            tempDiscount = numbersOnly
-                        },
+                        onValueChange = { tempDiscount = it.replace("[^\\d]".toRegex(), "") },
                         label = { Text("Discount (Rp)") },
                         placeholder = { Text("0") },
                         prefix = { Text("Rp") },
@@ -2079,37 +1826,27 @@ fun EditItemDialog(
                 onClick = {
                     val price = itemPrice.toLongOrNull() ?: 0L
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val taxPercentage = tempTax.toDoubleOrNull() ?: 0.0
-                    val discount = tempDiscount.toDoubleOrNull() ?: 0.0
-
-                    // Update global tax and discount values
-                    onTaxChanged(taxPercentage)
-                    onDiscountChanged(discount)
-
-                    // Calculate item tax in Rupiah based on percentage
+                    val taxVal = tempTax.toDoubleOrNull() ?: 0.0
+                    val discVal = tempDiscount.toDoubleOrNull() ?: 0.0
                     val itemTotalPrice = price.toDouble() * quantity
-                    val itemTaxAmount = itemTotalPrice * taxPercentage / 100
+                    val itemTaxAmount = itemTotalPrice * taxVal / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val updatedItem = ReceiptItem(
                             quantity = quantity,
                             itemName = itemName,
                             price = price,
-                            members = selectedMembers.map { UIAccentYellow }, // Placeholder colors for selected members
-                            memberNames = selectedMembers.toList(), // Store actual member names
+                            members = emptyList(), // Placeholder
+                            memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discount
+                            itemDiscount = discVal
                         )
-
                         onSaveItem(updatedItem)
                     }
                 },
                 modifier = Modifier.height(48.dp),
                 shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = UIAccentYellow,
-                    contentColor = UIBlack
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack)
             ) {
                 Text("Save Changes", style = AppFont.SemiBold, fontSize = 16.sp)
             }
