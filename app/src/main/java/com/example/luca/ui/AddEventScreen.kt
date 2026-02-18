@@ -42,6 +42,7 @@ import com.example.luca.viewmodel.AddEventViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import coil.request.ImageRequest
 
 @Composable
 fun AddScreen(
@@ -322,24 +323,53 @@ fun AddScreenContent(
 }
 
 @Composable
-fun ParticipantAvatarItem(name: String = "", avatarName: String = "", isAddButton: Boolean = false, isDisabled: Boolean = false, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-        .width(60.dp)
-        .clickable(enabled = !isDisabled) { onClick() }
-        .alpha(if (isDisabled) 0.5f else 1f)) {
+fun ParticipantAvatarItem(
+    name: String = "",
+    avatarName: String = "",
+    isAddButton: Boolean = false,
+    isDisabled: Boolean = false,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(60.dp)
+            .clickable(enabled = !isDisabled) { onClick() }
+            .alpha(if (isDisabled) 0.5f else 1f)
+    ) {
         Box(
-            modifier = Modifier.size(60.dp).clip(CircleShape).background(if (isAddButton) UIGrey else Color.Transparent),
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(if (isAddButton) UIGrey else Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
             if (isAddButton) {
                 Icon(Icons.Default.Add, null, tint = UIBlack)
             } else {
-                val safeAvatarName = if (avatarName.isNotBlank()) avatarName else "avatar_1"
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = AvatarUtils.getAvatarResId(safeAvatarName)),
-                    contentDescription = null,
+                // --- PERBAIKAN: GUNAKAN DICEBEAR & ASYNC IMAGE ---
+
+                // 1. Generate URL (Jika avatarName kosong, pakai nama sebagai seed)
+                val seed = if (avatarName.isNotBlank()) avatarName else name
+                val avatarUrl = remember(seed) {
+                    "https://api.dicebear.com/9.x/avataaars/png?seed=${seed}"
+                }
+
+                // 2. Load dari Internet
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(UIDarkGrey), // Background saat loading
+                    // Pakai icon robot android bawaan sebagai placeholder biar aman
+                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                    error = painterResource(R.drawable.ic_launcher_foreground)
                 )
             }
         }

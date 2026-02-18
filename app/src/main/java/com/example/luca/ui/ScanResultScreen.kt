@@ -35,6 +35,11 @@ import com.example.luca.model.ParsedReceiptItem
 import com.example.luca.ui.theme.*
 import com.example.luca.viewmodel.ContactsViewModel
 import java.util.Locale
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+
 
 @Composable
 fun ScanResultScreen(
@@ -205,18 +210,17 @@ fun ScanResultScreen(
                                         .background(UIAccentYellow),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    val avatarRes = when (globalPaidBy!!.avatarName) {
-                                        "avatar_1" -> R.drawable.avatar_1
-                                        "avatar_2" -> R.drawable.avatar_2
-                                        "avatar_3" -> R.drawable.avatar_3
-                                        "avatar_4" -> R.drawable.avatar_4
-                                        "avatar_5" -> R.drawable.avatar_5
-                                        else -> R.drawable.avatar_1
-                                    }
-                                    Image(
-                                        painter = painterResource(id = avatarRes),
+                                    // --- FIX: Ganti Image Lokal dengan AsyncImage (Coil) ---
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data("https://api.dicebear.com/9.x/avataaars/png?seed=${globalPaidBy!!.avatarName}")
+                                            .crossfade(true)
+                                            .build(),
                                         contentDescription = globalPaidBy!!.name,
-                                        modifier = Modifier.size(40.dp)
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                        error = painterResource(android.R.drawable.ic_menu_report_image)
                                     )
                                 }
                                 Text(
@@ -457,18 +461,17 @@ fun ScanResultScreen(
                                             .background(UIAccentYellow),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        val avatarRes = when (member.avatarName) {
-                                            "avatar_1" -> R.drawable.avatar_1
-                                            "avatar_2" -> R.drawable.avatar_2
-                                            "avatar_3" -> R.drawable.avatar_3
-                                            "avatar_4" -> R.drawable.avatar_4
-                                            "avatar_5" -> R.drawable.avatar_5
-                                            else -> R.drawable.avatar_1
-                                        }
-                                        Image(
-                                            painter = painterResource(id = avatarRes),
+                                        // --- FIX: Ganti Image Lokal dengan AsyncImage (Coil) ---
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
+                                                .crossfade(true)
+                                                .build(),
                                             contentDescription = member.name,
-                                            modifier = Modifier.size(40.dp)
+                                            modifier = Modifier.size(40.dp),
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                            error = painterResource(android.R.drawable.ic_menu_report_image)
                                         )
                                     }
                                     Text(
@@ -648,18 +651,17 @@ fun EditScanItemDialog(
                                                 .background(UIAccentYellow),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            val avatarRes = when (member.avatarName) {
-                                                "avatar_1" -> R.drawable.avatar_1
-                                                "avatar_2" -> R.drawable.avatar_2
-                                                "avatar_3" -> R.drawable.avatar_3
-                                                "avatar_4" -> R.drawable.avatar_4
-                                                "avatar_5" -> R.drawable.avatar_5
-                                                else -> R.drawable.avatar_1
-                                            }
-                                            Image(
-                                                painter = painterResource(id = avatarRes),
+                                            // --- FIX: Ganti Image Lokal dengan AsyncImage (Coil) ---
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
+                                                    .crossfade(true)
+                                                    .build(),
                                                 contentDescription = member.name,
-                                                modifier = Modifier.size(40.dp)
+                                                modifier = Modifier.size(40.dp),
+                                                contentScale = ContentScale.Crop,
+                                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                                error = painterResource(android.R.drawable.ic_menu_report_image)
                                             )
                                         }
 

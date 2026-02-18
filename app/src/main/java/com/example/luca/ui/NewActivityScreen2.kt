@@ -98,6 +98,8 @@ import com.example.luca.ui.viewmodel.ScanViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -2182,26 +2184,20 @@ fun EditParticipantsDialog(
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Avatar
-                            val resourceId = remember(contact.avatarName) {
-                                if (contact.avatarName.isNotBlank()) {
-                                    try {
-                                        getDrawableResourceId(contact.avatarName)
-                                    } catch (_: Exception) {
-                                        R.drawable.avatar_1
-                                    }
-                                } else {
-                                    R.drawable.avatar_1
-                                }
-                            }
-
-                            Image(
-                                painter = painterResource(id = resourceId),
+                            // --- FIX: Ganti Image Lokal dengan AsyncImage (Coil) ---
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${contact.avatarName}")
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = contact.name,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                // Placeholder opsional (gunakan icon default android biar aman)
+                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                error = painterResource(android.R.drawable.ic_menu_report_image)
                             )
 
                             Spacer(modifier = Modifier.width(12.dp))
