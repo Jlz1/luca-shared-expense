@@ -100,14 +100,41 @@ fun AccountSettingsScreen(
                     onLeftIconClick = handleBackClick
                 )
 
-                // Scrollable Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(bottom = 20.dp)
-                ) {
+                // Loading State - Tampilkan loading screen sampai data selesai di-load
+                if (isDataLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(UIWhite),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = UIAccentYellow,
+                                strokeWidth = 4.dp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading...",
+                                style = AppFont.Medium,
+                                fontSize = 16.sp,
+                                color = UIDarkGrey
+                            )
+                        }
+                    }
+                } else {
+                    // Scrollable Content - Hanya tampilkan setelah data loaded
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 20.dp)
+                    ) {
                     // Profile Picture Section
                     Box(
                         modifier = Modifier
@@ -406,6 +433,7 @@ fun AccountSettingsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
+                }
                 }
             }
 
@@ -983,3 +1011,4 @@ fun CustomTextField(
         singleLine = true
     )
 }
+
