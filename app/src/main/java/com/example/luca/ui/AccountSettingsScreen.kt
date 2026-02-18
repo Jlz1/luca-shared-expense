@@ -10,7 +10,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -38,6 +37,9 @@ import com.example.luca.viewmodel.AccountSettingsViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -128,24 +130,23 @@ fun AccountSettingsScreen(
                                     .border(3.dp, UIAccentYellow, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val context = LocalContext.current
-                                val avatarResId = remember(selectedAvatarName) {
-                                    context.resources.getIdentifier(
-                                        selectedAvatarName,
-                                        "drawable",
-                                        context.packageName
-                                    )
+                                val avatarUrl = remember(selectedAvatarName) {
+                                    "https://api.dicebear.com/9.x/avataaars/png?seed=${selectedAvatarName}"
                                 }
-                                val finalAvatarId =
-                                    if (avatarResId != 0) avatarResId else R.drawable.avatar_1
 
                                 AsyncImage(
-                                    model = ImageRequest.Builder(context)
-                                        .data(finalAvatarId)
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(avatarUrl)
+                                        .crossfade(true)
                                         .build(),
                                     contentDescription = "Avatar",
                                     modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                                    contentScale = ContentScale.Crop,
+
+                                    // --- BAGIAN INI YANG DIGANTI ---
+                                    // Ganti painterResource(...) dengan rememberVectorPainter(...)
+                                    placeholder = rememberVectorPainter(Icons.Default.Person),
+                                    error = rememberVectorPainter(Icons.Default.Person)
                                 )
                             }
 

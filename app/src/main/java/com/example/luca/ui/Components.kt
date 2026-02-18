@@ -502,19 +502,25 @@ fun AvatarItem(
     avatarName: String,
     size: Dp = 40.dp
 ) {
-    val resId = remember(avatarName) {
-        AvatarUtils.getAvatarResId(avatarName)
+    // Generate URL
+    val avatarUrl = remember(avatarName) {
+        "https://api.dicebear.com/9.x/avataaars/png?seed=${avatarName}"
     }
 
-    Image(
-        painter = painterResource(id = resId),
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(avatarUrl)
+            .crossfade(true)
+            .build(),
         contentDescription = "Avatar",
         contentScale = ContentScale.Crop,
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .border(2.dp, UIWhite, CircleShape) // Border putih agar keliatan pisahnya pas ditumpuk
-            .background(Color.LightGray) // Fallback background
+            .border(2.dp, UIWhite, CircleShape)
+            .background(Color.LightGray),
+        placeholder = painterResource(R.drawable.ic_launcher_foreground),
+        error = painterResource(R.drawable.ic_launcher_foreground)
     )
 }
 
@@ -629,6 +635,7 @@ fun UserProfileOverlay(
     editContact: Contact? = null,
     onUpdateContact: ((String, String, String, String, List<BankAccountData>, String) -> Unit)? = null
 ) {
+    // State Variables
     var name by remember { mutableStateOf(editContact?.name ?: "") }
     var phoneNumber by remember { mutableStateOf(editContact?.phoneNumber ?: "") }
     var description by remember { mutableStateOf(editContact?.description ?: "") }
@@ -638,8 +645,12 @@ fun UserProfileOverlay(
     var selectedBank by remember { mutableStateOf("") }
     var accountNumber by remember { mutableStateOf("") }
     var showAvatarDialog by remember { mutableStateOf(false) }
+
+    // Default avatar seed jika editContact null
     var selectedAvatarName by remember { mutableStateOf(editContact?.avatarName ?: "") }
     var showNameError by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
 
     LaunchedEffect(bankFullError) {
         if (bankFullError) {
@@ -652,47 +663,75 @@ fun UserProfileOverlay(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        modifier = Modifier.fillMaxWidth().padding(16.dp).wrapContentHeight()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .wrapContentHeight()
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState())
+            modifier = Modifier
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState())
         ) {
+            // --- HEADER OVERLAY ---
             Box(modifier = Modifier.fillMaxWidth()) {
+                // Tombol Close
                 IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart)) {
                     Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(32.dp), tint = UIBlack)
                 }
 
+                // --- AVATAR CIRCLE (DICEBEAR) ---
                 Box(
-                    modifier = Modifier.size(100.dp).clip(CircleShape).clickable { showAvatarDialog = true }.align(Alignment.Center),
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .clickable { showAvatarDialog = true }
+                        .align(Alignment.Center)
+                        .background(UIGrey),
                     contentAlignment = Alignment.Center
                 ) {
                     if (selectedAvatarName.isNotEmpty()) {
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(selectedAvatarName)),
+                        // Load DiceBear URL
+                        val avatarUrl = remember(selectedAvatarName) {
+                            "https://api.dicebear.com/9.x/avataaars/png?seed=${selectedAvatarName}"
+                        }
+
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(avatarUrl)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = "Selected Avatar",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                            error = painterResource(R.drawable.ic_launcher_foreground)
                         )
                     } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize().background(UIGrey),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.CameraAlt, "Select Avatar", tint = UIDarkGrey, modifier = Modifier.size(40.dp))
-                        }
+                        // Placeholder Camera jika belum ada avatar
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            "Select Avatar",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(40.dp)
+                        )
                     }
                 }
 
+                // Tombol Save
                 IconButton(
                     onClick = {
                         if (name.isBlank()) {
                             showNameError = true
                         } else {
+                            // Jika avatar masih kosong, gunakan nama sebagai seed default
+                            val finalAvatar = if (selectedAvatarName.isBlank()) name else selectedAvatarName
+
                             if (editContact != null && onUpdateContact != null) {
-                                onUpdateContact(editContact.id, name, phoneNumber, description, bankAccounts, selectedAvatarName)
+                                onUpdateContact(editContact.id, name, phoneNumber, description, bankAccounts, finalAvatar)
                             } else {
-                                onAddContact(name, phoneNumber, bankAccounts, selectedAvatarName)
+                                onAddContact(name, phoneNumber, bankAccounts, finalAvatar)
                             }
                         }
                     },
@@ -704,7 +743,13 @@ fun UserProfileOverlay(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            CustomRoundedTextField(value = name, onValueChange = { name = it; showNameError = false }, placeholder = "Name", backgroundColor = UIGrey)
+            // --- INPUT FIELDS ---
+            CustomRoundedTextField(
+                value = name,
+                onValueChange = { name = it; showNameError = false },
+                placeholder = "Name",
+                backgroundColor = UIGrey
+            )
 
             if (showNameError) {
                 Text(
@@ -712,21 +757,32 @@ fun UserProfileOverlay(
                     color = Color.Red,
                     fontSize = 12.sp,
                     style = AppFont.Regular,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, start = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, start = 8.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            CustomRoundedTextField(value = phoneNumber, onValueChange = { phoneNumber = it }, placeholder = "Phone Number (Optional)", backgroundColor = UIGrey)
+            CustomRoundedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it },
+                placeholder = "Phone Number (Optional)",
+                backgroundColor = UIGrey
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // --- BANK ACCOUNTS SECTION ---
             Text("Bank Accounts", fontSize = 18.sp, style = AppFont.Bold, color = UIBlack)
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Tombol Add Bank
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(50.dp).clip(CircleShape)
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
                     .background(if (bankAccounts.size >= 3) UIGrey else UIAccentYellow)
                     .clickable(enabled = bankAccounts.size < 3) {
                         if (bankAccounts.size < 3) {
@@ -741,6 +797,7 @@ fun UserProfileOverlay(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // List Bank yang sudah ditambahkan
             if (bankAccounts.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     bankAccounts.forEach { account ->
@@ -756,11 +813,20 @@ fun UserProfileOverlay(
             }
 
             if (bankFullError) {
-                Text("Bank account is full", color = Color.Red, fontSize = 12.sp, style = AppFont.Regular, modifier = Modifier.fillMaxWidth().padding(top = 4.dp, start = 8.dp))
+                Text(
+                    "Bank account is full",
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    style = AppFont.Regular,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, start = 8.dp)
+                )
             }
         }
     }
 
+    // --- DIALOG TAMBAHAN ---
     if (showBankDialog) {
         BankDialogOverlay(
             selectedBank = selectedBank,
@@ -793,6 +859,7 @@ fun UserProfileOverlay(
     }
 
     if (showAvatarDialog) {
+        // Panggil Overlay Avatar Selection yang baru (DiceBear Grid)
         AvatarSelectionOverlay(
             currentSelection = selectedAvatarName,
             onAvatarSelected = { selectedAvatarName = it },
@@ -978,16 +1045,16 @@ fun ContactCard(
     events: List<String> = emptyList(),
     bankAccounts: List<BankAccount> = emptyList(),
     maxHeight: Dp? = null,
-    // Parameter padding lama dihapus/diabaikan agar layout lebih konsisten
     onEditClicked: () -> Unit = {},
     onDeleteClicked: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(vertical = 8.dp, horizontal = 16.dp) // Margin luar
-            // Efek melayang (Floating Shadow)
+            .padding(vertical = 8.dp, horizontal = 16.dp)
             .shadow(
                 elevation = 10.dp,
                 shape = RoundedCornerShape(24.dp),
@@ -999,7 +1066,7 @@ fun ContactCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp) // Padding dalam card
+                .padding(24.dp)
         ) {
             // --- HEADER: AVATAR & TOMBOL AKSI ---
             Row(
@@ -1015,14 +1082,25 @@ fun ContactCard(
                         .border(1.5.dp, UIGrey.copy(alpha = 0.3f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (avatarName.isNotEmpty() && avatarName != "avatar_1") {
-                        Image(
-                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
+                    // LOGIKA BARU: Cek avatarName untuk URL DiceBear
+                    if (avatarName.isNotEmpty()) {
+                        val avatarUrl = remember(avatarName) {
+                            "https://api.dicebear.com/9.x/avataaars/png?seed=${avatarName}"
+                        }
+
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(avatarUrl)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = "Contact Avatar",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            placeholder = painterResource(R.drawable.ic_launcher_foreground), // Pastikan icon ini ada
+                            error = painterResource(R.drawable.ic_launcher_foreground)
                         )
                     } else {
+                        // Fallback ke inisial huruf jika tidak ada avatarName
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1039,18 +1117,18 @@ fun ContactCard(
                     }
                 }
 
-                // Tombol Aksi (Modern Circles)
+                // Tombol Aksi
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ModernIconButton(
                         icon = Icons.Default.Edit,
-                        containerColor = UIAccentYellow, // Kuning
+                        containerColor = UIAccentYellow,
                         iconColor = UIBlack,
                         onClick = onEditClicked
                     )
                     ModernIconButton(
                         icon = Icons.Default.Delete,
-                        containerColor = Color(0xFFFFEBEE), // Merah Muda Pucat
-                        iconColor = Color(0xFFD32F2F),      // Merah Tua
+                        containerColor = Color(0xFFFFEBEE),
+                        iconColor = Color(0xFFD32F2F),
                         onClick = onDeleteClicked
                     )
                 }
@@ -1079,7 +1157,6 @@ fun ContactCard(
             // --- INFO BANK (JIKA ADA) ---
             if (bankAccounts.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                // Divider Tipis
                 HorizontalDivider(
                     color = UIGrey.copy(alpha = 0.2f),
                     thickness = 1.dp,
@@ -1590,16 +1667,67 @@ fun AvatarSelectionOverlay(
     onAvatarSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    // 1. Buat daftar pilihan avatar manual (Seed String)
+    // Ini menggantikan AvatarUtils.avatars yang isinya resource ID lokal
+    val avatarSeeds = remember { (1..16).map { "Avatar$it" } }
+
     Dialog(onDismissRequest = onDismiss) {
-        Box(modifier = Modifier.fillMaxWidth().background(UIWhite, shape = RoundedCornerShape(16.dp)).padding(20.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(UIWhite, shape = RoundedCornerShape(16.dp))
+                .padding(20.dp)
+        ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "Select an Avatar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UIBlack)
+                Text(
+                    text = "Select an Avatar",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = UIBlack
+                )
                 Spacer(modifier = Modifier.height(20.dp))
-                LazyVerticalGrid(columns = GridCells.Fixed(4), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(300.dp)) {
-                    items(AvatarUtils.avatars) { (name, resId) ->
-                        val isSelected = name == currentSelection
-                        Box(modifier = Modifier.aspectRatio(1f).clip(CircleShape).border(width = if (isSelected) 3.dp else 0.dp, color = if (isSelected) UIAccentYellow else Color.Transparent, shape = CircleShape).clickable { onAvatarSelected(name); onDismiss() }) {
-                            Image(painter = painterResource(id = resId), contentDescription = name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.height(300.dp)
+                ) {
+                    // 2. Loop list Seed, bukan Resource ID
+                    items(avatarSeeds) { seed ->
+                        val isSelected = seed == currentSelection
+
+                        // 3. Generate URL
+                        val avatarUrl = remember(seed) {
+                            "https://api.dicebear.com/9.x/avataaars/png?seed=${seed}"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (isSelected) 3.dp else 0.dp,
+                                    color = if (isSelected) UIAccentYellow else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    onAvatarSelected(seed) // Kirim seed yang dipilih
+                                    onDismiss()
+                                }
+                        ) {
+                            // 4. Pakai AsyncImage (DiceBear)
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(avatarUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = seed,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                                placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                error = painterResource(R.drawable.ic_launcher_foreground)
+                            )
                         }
                     }
                 }
@@ -1644,11 +1772,64 @@ fun ContactSelectionItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.background(if (isSelected) UIAccentYellow.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(12.dp)).border(width = if (isSelected) 2.dp else 0.dp, color = if (isSelected) UIAccentYellow else Color.Transparent, shape = RoundedCornerShape(12.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Image(painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(40.dp).clip(CircleShape))
+    // Row Container
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .background(
+                if (isSelected) UIAccentYellow.copy(alpha = 0.1f) else Color.Transparent,
+                RoundedCornerShape(12.dp)
+            )
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = if (isSelected) UIAccentYellow else Color.Transparent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // --- BAGIAN YANG DIPERBAIKI (GANTI IMAGE KE ASYNCIMAGE) ---
+
+        // 1. Generate URL DiceBear
+        val avatarUrl = remember(contact.avatarName) {
+            "https://api.dicebear.com/9.x/avataaars/png?seed=${contact.avatarName}"
+        }
+
+        // 2. Load Gambar Online
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(avatarUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(UIDarkGrey), // Background saat loading
+            placeholder = painterResource(R.drawable.ic_launcher_foreground),
+            error = painterResource(R.drawable.ic_launcher_foreground)
+        )
+        // ----------------------------------------------------------
+
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = contact.name, style = AppFont.Medium, fontSize = 14.sp, color = UIBlack, modifier = Modifier.weight(1f))
-        if (isSelected) Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = UIAccentYellow, modifier = Modifier.size(24.dp)) else Icon(Icons.Default.AddCircleOutline, contentDescription = "Select", tint = UIDarkGrey, modifier = Modifier.size(24.dp))
+
+        // Nama Contact
+        Text(
+            text = contact.name,
+            style = AppFont.Medium,
+            fontSize = 14.sp,
+            color = UIBlack,
+            modifier = Modifier.weight(1f)
+        )
+
+        // Icon Centang/Tambah
+        if (isSelected) {
+            Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = UIAccentYellow, modifier = Modifier.size(24.dp))
+        } else {
+            Icon(Icons.Default.AddCircleOutline, contentDescription = "Select", tint = UIDarkGrey, modifier = Modifier.size(24.dp))
+        }
     }
 }
 

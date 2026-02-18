@@ -44,6 +44,9 @@ import com.example.luca.ui.theme.UIWhite
 import com.example.luca.util.AvatarUtils
 import com.example.luca.viewmodel.AddActivityViewModel
 import com.example.luca.model.Event
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AddActivityScreen(
@@ -191,17 +194,17 @@ fun AddActivityScreenContent(
         )
     }
 
-// 2. State lokal untuk dropdown
+    // 2. State lokal untuk dropdown
     var isCategoryExpanded by remember { mutableStateOf(false) }
 
-    // 6. Cari object kategori berdasarkan nama yang sedang terpilih (selectedCategory String)
+    // 6. Cari object kategori berdasarkan nama yang sedang terpilih
     val currentCategoryIcon = categoryOptions.find { it.name == selectedCategory }?.iconRes
 
     // 7. State untuk error dialog
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // 8. Fungsi validasi dengan error messages
+    // 8. Fungsi validasi
     fun validateInput(): String? {
         return when {
             titleInput.isBlank() -> "Isi Title aktivitas"
@@ -243,7 +246,7 @@ fun AddActivityScreenContent(
             onLeftIconClick = onBackClick
         )
 
-        // 3. KONTEN AREA (PUTIH & ROUNDED)
+        // 3. KONTEN AREA
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -278,6 +281,7 @@ fun AddActivityScreenContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
+                // LIST PARTICIPANT
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
@@ -293,32 +297,29 @@ fun AddActivityScreenContent(
                         ParticipantAvatarItem(
                             name = contact.name,
                             avatarName = contact.avatarName,
-                            onClick = { /* Logic remove user can be added via callback later */ }
+                            onClick = { /* Logic remove user */ }
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // CATEGORY DROPDOWN
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
                     DropdownTriggerSection(
                         label = "Category",
                         displayText = selectedCategory.ifEmpty { "Select a Category" },
                         leadingIcon = {
-                            // Logic: Tampilkan Icon Kategori jika ada, jika tidak (default) tampilkan tanda tanya
-
                             val iconRes = currentCategoryIcon ?: R.drawable.ic_other_outline
                             val useDefaultIcon = currentCategoryIcon == null
 
-                            // Container Lingkaran Abu-abu
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(UIGrey), // Background lingkaran
+                                    .background(UIGrey),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Render Icon
                                 if (useDefaultIcon) {
                                     Icon(
                                         imageVector = Icons.Outlined.HelpOutline,
@@ -339,7 +340,6 @@ fun AddActivityScreenContent(
                         onClick = { isCategoryExpanded = true }
                     )
 
-                    // MENU DROPDOWN
                     DropdownMenu(
                         expanded = isCategoryExpanded,
                         onDismissRequest = { isCategoryExpanded = false },
@@ -355,10 +355,9 @@ fun AddActivityScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        // Icon Kategori di dalam Menu
                                         Box(
                                             modifier = Modifier
-                                                .size(36.dp) // Sedikit lebih kecil di menu
+                                                .size(36.dp)
                                                 .clip(CircleShape)
                                                 .background(UIGrey),
                                             contentAlignment = Alignment.Center
@@ -370,7 +369,6 @@ fun AddActivityScreenContent(
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
-
                                         Text(
                                             text = category.name,
                                             style = AppFont.Regular,
@@ -381,7 +379,6 @@ fun AddActivityScreenContent(
                                 },
                                 onClick = {
                                     onCategoryChange(category.name)
-
                                     isCategoryExpanded = false
                                 },
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -392,28 +389,36 @@ fun AddActivityScreenContent(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // --- PAID BY DROPDOWN (UPDATED TO DICEBEAR) ---
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
                     DropdownTriggerSection(
                         label = "Paid by",
                         displayText = selectedPayer?.name ?: "Select participant",
                         leadingIcon = {
                             if (selectedPayer != null) {
+                                // 1. Tampilkan Avatar DiceBear (Selected Payer)
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .padding(4.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Image(
-                                        painter = painterResource(id = AvatarUtils.getAvatarResId(selectedPayer.avatarName)),
-                                        contentDescription = null,
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data("https://api.dicebear.com/9.x/avataaars/png?seed=${selectedPayer.avatarName}")
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = "Selected Payer Avatar",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .clip(CircleShape)
+                                            .clip(CircleShape),
+                                        placeholder = painterResource(R.drawable.ic_launcher_foreground), // Ganti dengan placeholder yang sesuai
+                                        error = painterResource(R.drawable.ic_launcher_foreground) // Ganti dengan icon error yang sesuai
                                     )
                                 }
                             } else {
+                                // Default Icon
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
@@ -450,15 +455,20 @@ fun AddActivityScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        // TAMPILKAN AVATAR JUGA DI DALAM LIST PILIHAN
+                                        // 2. Tampilkan Avatar DiceBear (Dropdown Items)
                                         Box(modifier = Modifier.size(32.dp)) {
-                                            Image(
-                                                painter = painterResource(id = AvatarUtils.getAvatarResId(contact.avatarName)),
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${contact.avatarName}")
+                                                    .crossfade(true)
+                                                    .build(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .clip(CircleShape)
+                                                    .clip(CircleShape),
+                                                placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                                error = painterResource(R.drawable.ic_launcher_foreground)
                                             )
                                         }
 
@@ -481,8 +491,6 @@ fun AddActivityScreenContent(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-
-                // Spacer PENTING agar tidak tertutup tombol sticky
                 Spacer(modifier = Modifier.height(100.dp))
             }
 
