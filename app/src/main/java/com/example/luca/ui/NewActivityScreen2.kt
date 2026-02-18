@@ -632,33 +632,7 @@ fun AddActivityScreen2(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Instruction hint for editing items
-                            if (receiptItems.isNotEmpty()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Tap any item to edit",
-                                        style = AppFont.Regular,
-                                        fontSize = 12.sp,
-                                        color = UIDarkGrey
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(
-                                        Icons.Default.Edit,
-                                        contentDescription = null,
-                                        tint = UIDarkGrey,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             // Receipt Items (Dynamic) - Unified scrollable container
                             Column(
@@ -802,6 +776,32 @@ fun AddActivityScreen2(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
+                            }
+
+                            if (receiptItems.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Tap any item to edit",
+                                        style = AppFont.Regular,
+                                        fontSize = 12.sp,
+                                        color = UIDarkGrey
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = UIDarkGrey,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
 
                             HorizontalDivider(thickness = 2.dp, color = UIGrey)

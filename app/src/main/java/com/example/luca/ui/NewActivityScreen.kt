@@ -159,6 +159,9 @@ fun getCategoryOption(categoryName: String): CategoryOption {
         else -> CategoryOption("Others", R.drawable.ic_other_outline, "#FFCC80")
     }
 }
+fun String.toColor(): Color {
+    return Color(android.graphics.Color.parseColor(this))
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,20 +200,26 @@ fun AddActivityScreenContent(
     // 2. State lokal untuk dropdown
     var isCategoryExpanded by remember { mutableStateOf(false) }
 
-    // 6. Cari object kategori berdasarkan nama yang sedang terpilih
-    val currentCategoryIcon = categoryOptions.find { it.name == selectedCategory }?.iconRes
+    // 3. Cari object kategori berdasarkan nama yang sedang terpilih
+    val selectedCategoryObj = categoryOptions.find { it.name == selectedCategory }
+    val currentCategoryIcon = selectedCategoryObj?.iconRes
 
-    // 7. State untuk error dialog
+    // Konversi Hex ke Color (Warna Utama)
+    val categoryColor = selectedCategoryObj?.colorHex?.let {
+        Color(android.graphics.Color.parseColor(it))
+    } ?: UIGrey
+
+    // 4. State untuk error dialog
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // 8. Fungsi validasi
+    // 5. Fungsi validasi
     fun validateInput(): String? {
         return when {
-            titleInput.isBlank() -> "Isi Title aktivitas"
-            selectedParticipants.isEmpty() -> "Isi minimal 1 participant"
-            selectedCategory.isEmpty() -> "Pilih kategori"
-            selectedPayer == null -> "Pilih siapa yang membayar"
+            titleInput.isBlank() -> "Fill activity title"
+            selectedParticipants.isEmpty() -> "Minimum 1 participant"
+            selectedCategory.isEmpty() -> "Select Category"
+            selectedPayer == null -> "Choose who is paying"
             selectedParticipants.size == 1 && selectedPayer in selectedParticipants -> "Minimal harus 2 orang berbeda (participant + pembayar)"
             else -> null
         }
@@ -239,22 +248,17 @@ fun AddActivityScreenContent(
             .background(UIAccentYellow)
             .statusBarsPadding()
     ) {
-
-        // 2. HEADER
         HeaderSection(
             currentState = HeaderState.NEW_ACTIVITY,
             onLeftIconClick = onBackClick
         )
 
-        // 3. KONTEN AREA
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .background(UIBackground)
         ) {
-
-            // A. SCROLLABLE CONTENT (FORM)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -281,23 +285,18 @@ fun AddActivityScreenContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                // LIST PARTICIPANT
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                 ) {
-                    ParticipantAvatarItem(
-                        isAddButton = true,
-                        onClick = onAddParticipantClick
-                    )
-
+                    ParticipantAvatarItem(isAddButton = true, onClick = onAddParticipantClick)
                     selectedParticipants.forEach { contact ->
                         ParticipantAvatarItem(
                             name = contact.name,
                             avatarName = contact.avatarName,
-                            onClick = { /* Logic remove user */ }
+                            onClick = { }
                         )
                     }
                 }
@@ -311,30 +310,19 @@ fun AddActivityScreenContent(
                         displayText = selectedCategory.ifEmpty { "Select a Category" },
                         leadingIcon = {
                             val iconRes = currentCategoryIcon ?: R.drawable.ic_other_outline
-                            val useDefaultIcon = currentCategoryIcon == null
-
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(UIGrey),
+                                    .background(categoryColor.copy(alpha = 0.2f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (useDefaultIcon) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.HelpOutline,
-                                        contentDescription = "No category selected",
-                                        tint = UIBlack,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                } else {
-                                    Icon(
-                                        painter = painterResource(id = iconRes),
-                                        contentDescription = "Category Icon",
-                                        tint = UIBlack,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = "Category Icon",
+                                    tint = if (selectedCategoryObj != null) categoryColor else UIBlack,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         },
                         onClick = { isCategoryExpanded = true }
@@ -349,6 +337,7 @@ fun AddActivityScreenContent(
                             .clip(RoundedCornerShape(12.dp))
                     ) {
                         categoryOptions.forEach { category ->
+                            val itemColor = Color(android.graphics.Color.parseColor(category.colorHex))
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -359,13 +348,13 @@ fun AddActivityScreenContent(
                                             modifier = Modifier
                                                 .size(36.dp)
                                                 .clip(CircleShape)
-                                                .background(UIGrey),
+                                                .background(itemColor.copy(alpha = 0.2f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 painter = painterResource(id = category.iconRes),
                                                 contentDescription = null,
-                                                tint = UIBlack,
+                                                tint = itemColor,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -389,14 +378,13 @@ fun AddActivityScreenContent(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- PAID BY DROPDOWN (UPDATED TO DICEBEAR) ---
+                // PAID BY DROPDOWN
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
                     DropdownTriggerSection(
                         label = "Paid by",
                         displayText = selectedPayer?.name ?: "Select participant",
                         leadingIcon = {
                             if (selectedPayer != null) {
-                                // 1. Tampilkan Avatar DiceBear (Selected Payer)
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
@@ -413,12 +401,11 @@ fun AddActivityScreenContent(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(CircleShape),
-                                        placeholder = painterResource(R.drawable.ic_launcher_foreground), // Ganti dengan placeholder yang sesuai
-                                        error = painterResource(R.drawable.ic_launcher_foreground) // Ganti dengan icon error yang sesuai
+                                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                        error = painterResource(R.drawable.ic_launcher_foreground)
                                     )
                                 }
                             } else {
-                                // Default Icon
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
@@ -439,7 +426,6 @@ fun AddActivityScreenContent(
                         enabled = payerOptions.isNotEmpty()
                     )
 
-                    // CUSTOM DROPDOWN MENU
                     DropdownMenu(
                         expanded = isPayerExpanded,
                         onDismissRequest = { isPayerExpanded = false },
@@ -455,7 +441,6 @@ fun AddActivityScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        // 2. Tampilkan Avatar DiceBear (Dropdown Items)
                                         Box(modifier = Modifier.size(32.dp)) {
                                             AsyncImage(
                                                 model = ImageRequest.Builder(LocalContext.current)
@@ -471,7 +456,6 @@ fun AddActivityScreenContent(
                                                 error = painterResource(R.drawable.ic_launcher_foreground)
                                             )
                                         }
-
                                         Text(
                                             text = contact.name,
                                             style = AppFont.Regular,
@@ -490,11 +474,9 @@ fun AddActivityScreenContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-                Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(120.dp))
             }
 
-            // B. STICKY BOTTOM BUTTON
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
