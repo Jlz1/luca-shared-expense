@@ -35,7 +35,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -193,8 +192,9 @@ fun AddActivityScreen2(
             if (activityData != null) {
                 val taxFromActivity = activityData["taxPercentage"]
                 val discFromActivity = activityData["discountAmount"]
+                val isSplitEqualFromActivity = activityData["isSplitEqual"]
 
-                android.util.Log.d("NewActivityScreen2", "🔍 Activity data - Tax: $taxFromActivity, Discount: $discFromActivity")
+                android.util.Log.d("NewActivityScreen2", "🔍 Activity data - Tax: $taxFromActivity, Discount: $discFromActivity, isSplitEqual: $isSplitEqualFromActivity")
 
                 globalTaxPercentage = when (taxFromActivity) {
                     is Double -> taxFromActivity
@@ -210,7 +210,12 @@ fun AddActivityScreen2(
                     is String -> discFromActivity.toDoubleOrNull() ?: 0.0
                     else -> 0.0
                 }
-                android.util.Log.d("NewActivityScreen2", "✅ Restored from Activity doc - tax: $globalTaxPercentage%, discount: $globalDiscountAmount")
+                isSplitEqual = when (isSplitEqualFromActivity) {
+                    is Boolean -> isSplitEqualFromActivity
+                    is String -> isSplitEqualFromActivity.toBoolean()
+                    else -> false
+                }
+                android.util.Log.d("NewActivityScreen2", "✅ Restored from Activity doc - tax: $globalTaxPercentage%, discount: $globalDiscountAmount, isSplitEqual: $isSplitEqual")
             }
 
             // Load items
@@ -928,6 +933,7 @@ fun AddActivityScreen2(
                             android.util.Log.d("NewActivityScreen2", "💾 Saving ${itemsForDb.size} items...")
                             android.util.Log.d("NewActivityScreen2", "💾 Tax: $globalTaxPercentage% (type: ${globalTaxPercentage.javaClass.simpleName})")
                             android.util.Log.d("NewActivityScreen2", "💾 Discount: $globalDiscountAmount (type: ${globalDiscountAmount.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Equal Split: $isSplitEqual")
                             itemsForDb.forEachIndexed { index, item ->
                                 android.util.Log.d("NewActivityScreen2", "Item[$index]: $item")
                             }
@@ -938,7 +944,8 @@ fun AddActivityScreen2(
                                 activityId = activityId,
                                 items = itemsForDb,
                                 taxPercentage = globalTaxPercentage,
-                                discountAmount = globalDiscountAmount
+                                discountAmount = globalDiscountAmount,
+                                isSplitEqual = isSplitEqual
                             )
                             android.util.Log.d("NewActivityScreen2", "======== saveActivityItems CALLED ========")
                             // LaunchedEffect(isSuccess) will automatically navigate back to DetailedEventScreen
@@ -1482,66 +1489,159 @@ fun AddItemDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 // Item Name
-                OutlinedTextField(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text("Item Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "ITEM NAME",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemName,
+                        onValueChange = { itemName = it },
+                        placeholder = { Text("e.g. Nasi Goreng", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Price and Qty Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = itemPrice,
-                        onValueChange = { itemPrice = it },
-                        label = { Text("Price (Rp)") },
-                        modifier = Modifier.weight(2f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    Column(modifier = Modifier.weight(2f)) {
+                        Text(
+                            text = "PRICE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey,
+                            modifier = Modifier
+                        )
+                        androidx.compose.material3.TextField(
+                            value = itemPrice,
+                            onValueChange = { itemPrice = it },
+                            placeholder = { Text("Rp 0", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
 
-                    OutlinedTextField(
-                        value = itemQuantity,
-                        onValueChange = { itemQuantity = it },
-                        label = { Text("Qty") },
-                        modifier = Modifier.weight(1f),
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "QTY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey,
+                            modifier = Modifier
+                        )
+                        androidx.compose.material3.TextField(
+                            value = itemQuantity,
+                            onValueChange = { itemQuantity = it },
+                            placeholder = { Text("1", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Item Discount
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "DISCOUNT (RP)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemDiscount,
+                        onValueChange = { itemDiscount = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Item Discount
-                OutlinedTextField(
-                    value = itemDiscount,
-                    onValueChange = { itemDiscount = it },
-                    label = { Text("Discount (Rp)") },
-                    placeholder = { Text("0") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Item Tax
-                OutlinedTextField(
-                    value = itemTax,
-                    onValueChange = { itemTax = it },
-                    label = { Text("Tax (%)") },
-                    placeholder = { Text("0") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "TAX (%)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemTax,
+                        onValueChange = { itemTax = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1557,79 +1657,66 @@ fun AddItemDialog(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // LIST AVATAR DI DALAM DIALOG
-                val containerHeight = if (eventMembers.size > 3) 180.dp else 120.dp
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(UIBackground)
-                        .padding(8.dp)
-                        .height(containerHeight)
+                // HORIZONTAL LAZY ROW FOR AVATARS
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(eventMembers) { member ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(enabled = !isSplitEqual) {
-                                        selectedMembers = if (selectedMembers.contains(member.name)) {
-                                            selectedMembers - member.name
-                                        } else {
-                                            selectedMembers + member.name
-                                        }
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    // FIX: AsyncImage DiceBear
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(UIDarkGrey),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
-                                                .crossfade(true)
-                                                .build(),
-                                            contentDescription = member.name,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(android.R.drawable.ic_menu_gallery)
-                                        )
-                                    }
+                    items(eventMembers) { member ->
+                        val isSelected = selectedMembers.contains(member.name)
 
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(text = member.name, fontSize = 16.sp, color = UIBlack, fontWeight = FontWeight.Medium)
-                                }
-
-                                if (selectedMembers.contains(member.name)) {
-                                    Box(
-                                        modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF4CAF50)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("✓", color = UIWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                    }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable(enabled = !isSplitEqual) {
+                                selectedMembers = if (isSelected) {
+                                    selectedMembers - member.name
                                 } else {
-                                    Box(
-                                        modifier = Modifier.size(28.dp).clip(CircleShape).background(UIGrey.copy(alpha = 0.3f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Add", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
-                                    }
+                                    selectedMembers + member.name
                                 }
                             }
-                            if (member != eventMembers.last()) {
-                                HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 12.dp))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) UIAccentYellow else UIGrey.copy(alpha = 0.3f))
+                                    .border(
+                                        width = if (isSelected) 3.dp else 0.dp,
+                                        color = if (isSelected) UIAccentYellow else Color.Transparent,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = member.name,
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .then(
+                                            if (!isSelected) Modifier.scale(0.85f)
+                                            else Modifier
+                                        ),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                    alpha = if (isSelected) 1f else 0.4f
+                                )
+                            }
+
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = member.name,
+                                    fontSize = 12.sp,
+                                    color = UIBlack,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -1735,138 +1822,234 @@ fun EditItemDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             ) {
                 // Item Name
-                OutlinedTextField(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text("Item Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "ITEM NAME",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemName,
+                        onValueChange = { itemName = it },
+                        placeholder = { Text("e.g. Nasi Goreng", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Price and Qty Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = itemPrice,
-                        onValueChange = { itemPrice = it },
-                        label = { Text("Price (Rp)") },
-                        modifier = Modifier.weight(2f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    Column(modifier = Modifier.weight(2f)) {
+                        Text(
+                            text = "PRICE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey,
+                            modifier = Modifier
+                        )
+                        androidx.compose.material3.TextField(
+                            value = itemPrice,
+                            onValueChange = { itemPrice = it },
+                            placeholder = { Text("Rp 0", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
 
-                    OutlinedTextField(
-                        value = itemQuantity,
-                        onValueChange = { itemQuantity = it },
-                        label = { Text("Qty") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "QTY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey,
+                            modifier = Modifier
+                        )
+                        androidx.compose.material3.TextField(
+                            value = itemQuantity,
+                            onValueChange = { itemQuantity = it },
+                            placeholder = { Text("1", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Item Discount
-                OutlinedTextField(
-                    value = itemDiscount,
-                    onValueChange = { itemDiscount = it },
-                    label = { Text("Discount (Rp)") },
-                    placeholder = { Text("0") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Item Tax
-                OutlinedTextField(
-                    value = itemTax,
-                    onValueChange = { itemTax = it },
-                    label = { Text("Tax (%)") },
-                    placeholder = { Text("0") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+                // Item Discount
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "DISCOUNT (RP)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemDiscount,
+                        onValueChange = { itemDiscount = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Item Tax
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "TAX (%)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey,
+                        modifier = Modifier
+                    )
+                    androidx.compose.material3.TextField(
+                        value = itemTax,
+                        onValueChange = { itemTax = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text("Shared by:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = UIBlack)
-                    if (isSplitEqual) Text("Equal Split Active", fontWeight = FontWeight.Medium, fontSize = 12.sp, color = UIAccentYellow)
+                    if (isSplitEqual) {
+                        Text("Equal Split Active", fontWeight = FontWeight.Medium, fontSize = 12.sp, color = UIAccentYellow)
+                    }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // LIST AVATAR DI DALAM DIALOG EDIT
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(UIBackground)
-                        .padding(8.dp)
-                        .height(120.dp)
+                // HORIZONTAL LAZY ROW FOR AVATARS
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(eventMembers) { member ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(enabled = !isSplitEqual) {
-                                        selectedMembers = if (selectedMembers.contains(member.name)) {
-                                            selectedMembers - member.name
-                                        } else {
-                                            selectedMembers + member.name
-                                        }
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    // FIX: AsyncImage DiceBear
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(UIDarkGrey),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
-                                                .crossfade(true)
-                                                .build(),
-                                            contentDescription = member.name,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop,
-                                            placeholder = painterResource(android.R.drawable.ic_menu_gallery)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(text = member.name, fontSize = 16.sp, color = UIBlack, fontWeight = FontWeight.Medium)
-                                }
-                                if (selectedMembers.contains(member.name)) {
-                                    Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF4CAF50)), contentAlignment = Alignment.Center) {
-                                        Text("✓", color = UIWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                    }
+                    items(eventMembers) { member ->
+                        val isSelected = selectedMembers.contains(member.name)
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable(enabled = !isSplitEqual) {
+                                selectedMembers = if (isSelected) {
+                                    selectedMembers - member.name
                                 } else {
-                                    Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(UIGrey.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Add, contentDescription = "Add", tint = UIDarkGrey, modifier = Modifier.size(16.dp))
-                                    }
+                                    selectedMembers + member.name
                                 }
                             }
-                            if (member != eventMembers.last()) {
-                                HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.3f), modifier = Modifier.padding(horizontal = 12.dp))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) UIAccentYellow else UIGrey.copy(alpha = 0.3f))
+                                    .border(
+                                        width = if (isSelected) 3.dp else 0.dp,
+                                        color = if (isSelected) UIAccentYellow else Color.Transparent,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = member.name,
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .then(
+                                            if (!isSelected) Modifier.scale(0.85f)
+                                            else Modifier
+                                        ),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                    alpha = if (isSelected) 1f else 0.4f
+                                )
+                            }
+
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = member.name,
+                                    fontSize = 12.sp,
+                                    color = UIBlack,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -2206,12 +2389,6 @@ fun createImageFileForCamera(context: android.content.Context): File {
         context.externalCacheDir
     )
 }
-
-
-
-
-
-
 
 
 
