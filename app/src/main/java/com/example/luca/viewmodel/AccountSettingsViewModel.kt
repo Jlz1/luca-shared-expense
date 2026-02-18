@@ -2,6 +2,7 @@
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.luca.model.BankAccountData
 import com.example.luca.model.User
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -20,6 +21,10 @@ class AccountSettingsViewModel : ViewModel() {
     val username: StateFlow<String> = _username.asStateFlow()
     private val _selectedAvatarName = MutableStateFlow("avatar_1")
     val selectedAvatarName: StateFlow<String> = _selectedAvatarName.asStateFlow()
+
+    private val _bankAccounts = MutableStateFlow<List<BankAccountData>>(emptyList())
+    val bankAccounts: StateFlow<List<BankAccountData>> = _bankAccounts.asStateFlow()
+
     private val _isEditingUsername = MutableStateFlow(false)
     val isEditingUsername: StateFlow<Boolean> = _isEditingUsername.asStateFlow()
 
@@ -48,6 +53,7 @@ class AccountSettingsViewModel : ViewModel() {
                         _currentUser.value = user
                         _username.value = user.username
                         _selectedAvatarName.value = user.avatarName
+                        _bankAccounts.value = user.bankAccounts
                     }
                 }
             } catch (e: Exception) {
@@ -88,6 +94,22 @@ class AccountSettingsViewModel : ViewModel() {
             }
         }
     }
+
+    fun updateBankAccounts(newBankAccounts: List<BankAccountData>) {
+        val currentUserUid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                firestore.collection("users")
+                    .document(currentUserUid)
+                    .update("bankAccounts", newBankAccounts)
+                    .await()
+                _bankAccounts.value = newBankAccounts
+            } catch (e: Exception) {
+                Log.e("AccountSettingsViewModel", "Error updating bank accounts", e)
+            }
+        }
+    }
+
     suspend fun updatePassword(oldPassword: String, newPassword: String): Boolean {
         return try {
             val currentUser = auth.currentUser ?: return false

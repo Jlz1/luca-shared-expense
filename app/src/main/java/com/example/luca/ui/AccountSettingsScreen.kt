@@ -50,6 +50,7 @@ fun AccountSettingsScreen(
 ) {
     var showProfilePictureDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var showBankAccountDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialogGoogle by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
@@ -60,6 +61,7 @@ fun AccountSettingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val username by viewModel.username.collectAsState()
     val selectedAvatarName by viewModel.selectedAvatarName.collectAsState()
+    val bankAccounts by viewModel.bankAccounts.collectAsState()
     val isDataLoading by viewModel.isLoading.collectAsState()
 
     val scope = rememberCoroutineScope()
@@ -302,6 +304,118 @@ fun AccountSettingsScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Bank Accounts Section
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Bank Accounts",
+                                fontSize = 16.sp,
+                                style = AppFont.SemiBold,
+                                color = UIBlack
+                            )
+                            IconButton(
+                                onClick = { showBankAccountDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add Bank Account",
+                                    tint = UIAccentYellow,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (bankAccounts.isEmpty()) {
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = UIGrey),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No bank accounts added",
+                                        fontSize = 14.sp,
+                                        style = AppFont.Regular,
+                                        color = UIDarkGrey
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                bankAccounts.forEach { bankAccount ->
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = UIGrey),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = bankAccount.bankName,
+                                                    fontSize = 16.sp,
+                                                    style = AppFont.SemiBold,
+                                                    color = UIBlack
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = bankAccount.accountNumber,
+                                                    fontSize = 14.sp,
+                                                    style = AppFont.Regular,
+                                                    color = UIDarkGrey
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    val updatedList = bankAccounts.filter { it != bankAccount }
+                                                    viewModel.updateBankAccounts(updatedList)
+                                                    successMessage = "Bank account removed"
+                                                    showSuccessMessage = true
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Delete",
+                                                    tint = Color(0xFFE53935),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(
+                        color = UIGrey,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
                     // Password Section - Only show for email/password users
                     if (!viewModel.isGoogleUser()) {
                         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -469,6 +583,24 @@ fun AccountSettingsScreen(
             onPasswordChanged = { message ->
                 successMessage = message
                 showSuccessMessage = true
+            }
+        )
+    }
+
+    if (showBankAccountDialog) {
+        BankAccountDialog(
+            onDismiss = { showBankAccountDialog = false },
+            onAddBankAccount = { bankName, accountNumber ->
+                val newBankAccount = com.example.luca.model.BankAccountData(
+                    bankName = bankName,
+                    accountNumber = accountNumber,
+                    bankLogo = com.example.luca.util.BankUtils.generateLogoFileName(bankName)
+                )
+                val updatedList = bankAccounts + newBankAccount
+                viewModel.updateBankAccounts(updatedList)
+                successMessage = "Bank account added"
+                showSuccessMessage = true
+                showBankAccountDialog = false
             }
         )
     }
@@ -983,3 +1115,177 @@ fun CustomTextField(
         singleLine = true
     )
 }
+
+@Composable
+fun BankAccountDialog(
+    onDismiss: () -> Unit,
+    onAddBankAccount: (String, String) -> Unit
+) {
+    var selectedBank by remember { mutableStateOf("") }
+    var accountNumber by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
+    var showBankDropdown by remember { mutableStateOf(false) }
+
+    val availableBanks = com.example.luca.util.BankUtils.availableBanks
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Text(
+                text = "Add Bank Account",
+                style = AppFont.Bold,
+                fontSize = 20.sp,
+                color = UIBlack
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Add your bank account information",
+                    fontSize = 14.sp,
+                    style = AppFont.Regular,
+                    color = UIDarkGrey,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                )
+
+                // Bank Selection Dropdown
+                Text(
+                    text = "Bank",
+                    fontSize = 14.sp,
+                    style = AppFont.Medium,
+                    color = UIBlack,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Box {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = UIGrey),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showBankDropdown = !showBankDropdown }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = selectedBank.ifEmpty { "Select Bank" },
+                                fontSize = 14.sp,
+                                style = AppFont.Regular,
+                                color = if (selectedBank.isEmpty()) UIDarkGrey else UIBlack
+                            )
+                            Icon(
+                                if (showBankDropdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = "Dropdown",
+                                tint = UIBlack
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = showBankDropdown,
+                        onDismissRequest = { showBankDropdown = false },
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .background(UIWhite)
+                    ) {
+                        availableBanks.forEach { bank ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = bank,
+                                        style = AppFont.Regular,
+                                        fontSize = 14.sp
+                                    )
+                                },
+                                onClick = {
+                                    selectedBank = bank
+                                    showBankDropdown = false
+                                    errorMessage = ""
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Account Number Input
+                Text(
+                    text = "Account Number",
+                    fontSize = 14.sp,
+                    style = AppFont.Medium,
+                    color = UIBlack,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                TextField(
+                    value = accountNumber,
+                    onValueChange = {
+                        accountNumber = it
+                        errorMessage = ""
+                    },
+                    placeholder = { Text(text = "Enter account number", color = UIDarkGrey) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = UIGrey,
+                        unfocusedContainerColor = UIGrey,
+                        focusedIndicatorColor = UIAccentYellow,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true
+                )
+
+                if (errorMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage,
+                        color = Color(0xFFE53935),
+                        fontSize = 12.sp,
+                        style = AppFont.Regular
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    when {
+                        selectedBank.isEmpty() -> {
+                            errorMessage = "Please select a bank"
+                        }
+                        accountNumber.isEmpty() -> {
+                            errorMessage = "Please enter account number"
+                        }
+                        else -> {
+                            onAddBankAccount(selectedBank, accountNumber)
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Add", color = UIBlack, style = AppFont.SemiBold)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Cancel", color = UIBlack, style = AppFont.Medium)
+            }
+        }
+    )
+}
+

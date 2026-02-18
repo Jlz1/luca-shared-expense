@@ -175,31 +175,6 @@ fun SummaryScreen(
                 }
             }
 
-            // --- BOTTOM SHARE BUTTON ---
-//            if (currentTab == SummaryTab.SETTLEMENT && !uiState.isLoading) {
-//                Box(
-//                    modifier = Modifier
-//                        .align(Alignment.BottomCenter)
-//                        .padding(bottom = 34.dp, start = 20.dp, end = 20.dp)
-//                ) {
-//                    Button(
-//                        onClick = onShareClick,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(56.dp),
-//                        shape = RoundedCornerShape(28.dp),
-//                        colors = ButtonDefaults.buttonColors(
-//                            containerColor = UIBlack,
-//                            contentColor = UIWhite
-//                        ),
-//                        elevation = ButtonDefaults.buttonElevation(8.dp)
-//                    ) {
-//                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(20.dp))
-//                        Spacer(modifier = Modifier.width(8.dp))
-//                        Text(text = "Share Settlement Plan", style = AppFont.SemiBold, fontSize = 16.sp)
-//                    }
-//                }
-//            }
         }
     }
 }
@@ -404,54 +379,7 @@ fun SettlementCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Status Badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (item.isPaid) {
-                    Text(
-                        text = "PAID",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50) // Green
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(12.dp)
-                    )
-                } else {
-                    Text(
-                        text = "UNPAID",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE57373) // Red-ish
-                    )
-                }
-            }
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Custom Checkbox
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(if (item.isPaid) Color(0xFF4CAF50) else Color.Transparent)
-                .border(2.dp, if (item.isPaid) Color.Transparent else UIGrey, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            if (item.isPaid) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    tint = UIWhite,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
         }
     }
 }
@@ -562,7 +490,6 @@ fun UserConsumptionCard(
             .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
