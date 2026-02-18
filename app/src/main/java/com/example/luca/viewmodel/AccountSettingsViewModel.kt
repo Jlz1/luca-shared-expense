@@ -101,13 +101,26 @@ class AccountSettingsViewModel : ViewModel() {
             false
         }
     }
-    suspend fun deleteAccount(password: String): Boolean {
+    // Check if user is signed in with Google OAuth
+    fun isGoogleUser(): Boolean {
+        val currentUser = auth.currentUser ?: return false
+        return currentUser.providerData.any { it.providerId == "google.com" }
+    }
+
+    suspend fun deleteAccount(password: String?): Boolean {
         return try {
             val currentUser = auth.currentUser ?: return false
-            val userEmail = currentUser.email ?: return false
             val userUid = currentUser.uid
-            val credential = EmailAuthProvider.getCredential(userEmail, password)
-            currentUser.reauthenticate(credential).await()
+
+            // If not a Google user and password is required
+            if (!isGoogleUser()) {
+                if (password.isNullOrEmpty()) return false
+                val userEmail = currentUser.email ?: return false
+                val credential = EmailAuthProvider.getCredential(userEmail, password)
+                currentUser.reauthenticate(credential).await()
+            }
+            // For Google users, no reauthentication needed (or can be added if required)
+
             firestore.collection("users").document(userUid).delete().await()
             currentUser.delete().await()
             true
