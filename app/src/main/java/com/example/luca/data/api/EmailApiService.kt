@@ -1,24 +1,28 @@
 package com.example.luca.data.api
 
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 
-interface EmailApiService {
-    @POST("api/v1.0/email/send")
-    suspend fun sendEmail(@Body request: EmailRequest): Response<Unit>
+// 1. Interface Definisi Endpoint API
+interface EmailApi {
+    @POST("email/send") // Endpoint relative terhadap Base URL
+    suspend fun sendEmail(@Body request: EmailRequest): Response<ResponseBody>
+}
 
-    companion object {
-        private const val BASE_URL = "https://api.emailjs.com/"
+// 2. Singleton Object untuk Koneksi Retrofit
+object EmailApiService {
+    // Base URL resmi EmailJS (Versi 1.0)
+    private const val BASE_URL = "https://api.emailjs.com/api/v1.0/"
 
-        val api: EmailApiService by lazy {
-            Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(EmailApiService::class.java)
-        }
+    val api: EmailApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(EmailApi::class.java)
     }
 }
