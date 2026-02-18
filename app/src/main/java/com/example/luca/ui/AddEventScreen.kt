@@ -185,7 +185,7 @@ fun AddScreen(
             title = { Text("Minimum Participants Required", style = AppFont.Bold) },
             text = {
                 Text(
-                    text = "Setidaknya harus ada 2 anggota untuk membuat event. Silakan tambahkan minimal 1 anggota lagi.",
+                    text = "To create an event, there must be atleast 2 participants. Add 1 more participant to continue",
                     style = AppFont.Regular
                 )
             },

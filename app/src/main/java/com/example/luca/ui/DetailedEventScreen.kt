@@ -388,27 +388,30 @@ fun FigmaEventCard(
                     )
                 }
 
-                Surface(
-                    color = UIWhite,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                // --- FIX: Cek Location Kosong ---
+                if (event.location.isNotBlank()) {
+                    Surface(
+                        color = UIWhite,
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Location",
-                            tint = UIAccentYellow,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = event.location,
-                            style = AppFont.Medium,
-                            fontSize = 11.sp,
-                            color = UIBlack
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Location",
+                                tint = UIAccentYellow,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = event.location,
+                                style = AppFont.Medium,
+                                fontSize = 11.sp,
+                                color = UIBlack
+                            )
+                        }
                     }
                 }
             }
@@ -420,17 +423,20 @@ fun FigmaEventCard(
             ) {
                 StackedAvatarRow(avatars = event.participantAvatars, itemSize = 34.dp)
 
-                Surface(
-                    color = UIWhite,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = event.date,
-                        style = AppFont.Medium,
-                        fontSize = 11.sp,
-                        color = UIBlack,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                // --- FIX: Cek Date Kosong ---
+                if (event.date.isNotBlank()) {
+                    Surface(
+                        color = UIWhite,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = event.date,
+                            style = AppFont.Medium,
+                            fontSize = 11.sp,
+                            color = UIBlack,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
