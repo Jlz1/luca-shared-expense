@@ -1,5 +1,6 @@
 package com.example.luca.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,22 +10,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Language // Digunakan sebagai icon LinkedIn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.R
 import com.example.luca.ui.theme.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +65,7 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
         ) {
-            // ===== HEADER / IDENTITAS APLIKASI =====
+            // ===== HEADER / APP IDENTITY =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -78,6 +78,7 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(modifier = Modifier.size(80.dp).clip(CircleShape)) {
+                    // Pastikan ic_luca_logo ada di drawable
                     Icon(
                         painter = painterResource(R.drawable.ic_luca_logo),
                         contentDescription = "Luca Logo",
@@ -109,10 +110,10 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 )
             }
 
-            // ===== DESKRIPSI APLIKASI =====
-            SectionContainer(title = "Tentang Luca") {
+            // ===== ABOUT LUCA =====
+            SectionContainer(title = "About Luca") {
                 Text(
-                    text = "Luca adalah aplikasi mobile yang dirancang untuk memudahkan Anda dalam membagi biaya bersama teman, keluarga, atau kelompok. Dengan fitur yang intuitif dan user-friendly, Luca membantu mengelola pengeluaran bersama dan melacak siapa yang berhutang kepada siapa.",
+                    text = "Luca is a mobile application designed to make splitting expenses with friends, family, or groups easier. With intuitive and user-friendly features, Luca helps manage shared expenses and track who owes whom.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIBlack,
@@ -121,7 +122,7 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Luca dirancang untuk menghilangkan kebingungan dalam menghitung pembagian biaya dan memastikan semua orang mendapatkan perhitungan yang adil dan transparan.",
+                    text = "Luca is designed to eliminate confusion in calculating cost splits and ensure everyone gets a fair and transparent calculation.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIBlack,
@@ -130,10 +131,10 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 )
             }
 
-            // ===== VISI =====
-            SectionContainer(title = "Visi Kami") {
+            // ===== VISION =====
+            SectionContainer(title = "Our Vision") {
                 Text(
-                    text = "Menjadi aplikasi pilihan utama dalam memudahkan pembagian biaya dengan cara yang fair, transparan, dan menyenangkan bagi semua pengguna.",
+                    text = "To be the top choice application for facilitating expense splitting in a fair, transparent, and fun way for all users.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIBlack,
@@ -142,89 +143,111 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 )
             }
 
-            // ===== MISI =====
-            SectionContainer(title = "Misi Kami") {
-                MissionItem(number = "1", text = "Menyediakan platform yang mudah digunakan untuk mengelola pengeluaran bersama")
-                MissionItem(number = "2", text = "Memastikan perhitungan yang akurat dan transparan dalam pembagian biaya")
-                MissionItem(number = "3", text = "Mengurangi konflik dan kebingungan terkait pembagian pengeluaran")
-                MissionItem(number = "4", text = "Terus berinovasi untuk memberikan fitur terbaik kepada pengguna")
+            // ===== MISSION =====
+            SectionContainer(title = "Our Mission") {
+                MissionItem(number = "1", text = "Provide an easy-to-use platform for managing shared expenses")
+                MissionItem(number = "2", text = "Ensure accurate and transparent calculations in cost splitting")
+                MissionItem(number = "3", text = "Reduce conflict and confusion regarding shared expenses")
+                MissionItem(number = "4", text = "Continuously innovate to provide the best features for users")
             }
 
-            // ===== NILAI DAN PRINSIP =====
-            SectionContainer(title = "Nilai Kami") {
+            // ===== VALUES =====
+            SectionContainer(title = "Our Values") {
                 ValueItem(
-                    title = "Transparansi",
-                    description = "Semua transaksi dan perhitungan ditampilkan dengan jelas dan jujur"
+                    title = "Transparency",
+                    description = "All transactions and calculations are displayed clearly and honestly"
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 ValueItem(
-                    title = "Kepercayaan",
-                    description = "Data pengguna dijaga dengan aman dan tidak dibagikan tanpa izin"
+                    title = "Trust",
+                    description = "User data is kept secure and not shared without permission"
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 ValueItem(
-                    title = "Kemudahan",
-                    description = "Antarmuka yang intuitif sehingga siapa saja bisa menggunakannya dengan mudah"
+                    title = "Simplicity",
+                    description = "Intuitive interface so anyone can use it easily"
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 ValueItem(
-                    title = "Inovasi",
-                    description = "Terus mengembangkan fitur baru berdasarkan masukan pengguna"
+                    title = "Innovation",
+                    description = "Continuously developing new features based on user feedback"
                 )
             }
 
-            // ===== TIM PENGEMBANG =====
-            SectionContainer(title = "Tim Pengembang") {
+            // ===== DEVELOPMENT TEAM =====
+            SectionContainer(title = "Development Team") {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    repeat(3) { rowIndex ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            repeat(2) { colIndex ->
-                                val index = rowIndex * 2 + colIndex
-                                if (index < 5) {
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        TeamMemberCard(
-                                            name = when (index) {
-                                                0 -> "Beben Rafli Luhut Tua Sianipar"
-                                                1 -> "Jeremy Emmanuel Susilo"
-                                                2 -> "Made Abel Surya Mahotama"
-                                                3 -> "Michael Kevin Pratama"
-                                                else -> "Steven Kukilo Seto"
-                                            },
-                                            role = when (index) {
-                                                0 -> "Full Stack Developer, Scrum Master"
-                                                1 -> "Full Stack Developer, DevOps Engineer"
-                                                2 -> "Full Stack Developer, Backend Developer"
-                                                3 -> "Full Stack Developer, UI/UX Designer"
-                                                else -> "Full Stack Developer, Product Owner"
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    Box(modifier = Modifier.weight(1f))
-                                }
-                            }
+                    // Row 1: Beben & Jeremy
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TeamMemberCard(
+                                name = "Beben Rafli Luhut Tua Sianipar",
+                                role = "Full Stack Developer, Scrum Master",
+                                imageRes = R.drawable.pic_beben
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            TeamMemberCard(
+                                name = "Jeremy Emmanuel Susilo",
+                                role = "Full Stack Developer, DevOps Engineer",
+                                imageRes = R.drawable.pic_jeremy
+                            )
+                        }
+                    }
+
+                    // Row 2: Abel & Kevin
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TeamMemberCard(
+                                name = "Made Abel Surya Mahotama",
+                                role = "Full Stack Developer, Quality Assurance",
+                                imageRes = R.drawable.pic_abel
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            TeamMemberCard(
+                                name = "Michael Kevin Pratama",
+                                role = "Full Stack Developer, UI/UX Designer",
+                                imageRes = R.drawable.pic_kevin
+                            )
+                        }
+                    }
+
+                    // Row 3: Steven (Centered/Single)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        // Agar ukurannya konsisten dengan card lain, kita batasi width-nya 50% - padding
+                        Box(modifier = Modifier.fillMaxWidth(0.5f)) {
+                            TeamMemberCard(
+                                name = "Steven Kukilo Seto",
+                                role = "Full Stack Developer, Product Owner",
+                                imageRes = R.drawable.pic_steven
+                            )
                         }
                     }
                 }
             }
 
-            // ===== TEKNOLOGI =====
-            SectionContainer(title = "Teknologi yang Digunakan") {
-                TechItem(tech = "Kotlin", description = "Bahasa pemrograman untuk Android")
-                TechItem(tech = "Jetpack Compose", description = "Framework UI modern untuk Android")
-                TechItem(tech = "Firebase", description = "Backend dan database real-time")
-                TechItem(tech = "Material Design 3", description = "Design system modern")
+            // ===== TECHNOLOGIES =====
+            SectionContainer(title = "Technologies Used") {
+                TechItem(tech = "Kotlin", description = "Programming language for Android")
+                TechItem(tech = "Jetpack Compose", description = "Modern UI toolkit for Android")
+                TechItem(tech = "Firebase", description = "Backend and real-time database")
+                TechItem(tech = "Material Design 3", description = "Modern design system")
             }
 
-            // ===== KOMITMEN PENGGUNA =====
-            SectionContainer(title = "Komitmen Kami kepada Anda") {
+            // ===== COMMITMENT =====
+            SectionContainer(title = "Our Commitment to You") {
                 Text(
-                    text = "Kami berkomitmen untuk terus memberikan pengalaman terbaik kepada setiap pengguna Luca. Kami selalu terbuka terhadap masukan, saran, dan kritik constructive untuk terus meningkatkan kualitas aplikasi.",
+                    text = "We are committed to continuously providing the best experience for every Luca user. We are always open to input, suggestions, and constructive criticism to improve the app's quality.",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIBlack,
@@ -233,7 +256,7 @@ fun AboutUsScreen(onBackClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Pengembangan Luca adalah proses berkelanjutan yang melibatkan feedback dari komunitas pengguna. Terima kasih telah menjadi bagian dari perjalanan Luca!",
+                    text = "Luca's development is an ongoing process involving feedback from the user community. Thank you for being part of Luca's journey!",
                     style = AppFont.Regular,
                     fontSize = 14.sp,
                     color = UIBlack,
@@ -350,26 +373,28 @@ private fun ValueItem(title: String, description: String) {
     }
 }
 
+// Update TeamMemberCard untuk menerima image resource ID
 @Composable
-private fun TeamMemberCard(name: String, role: String) {
+private fun TeamMemberCard(name: String, role: String, imageRes: Int) {
     Column(
         modifier = Modifier
             .background(UIWhite, RoundedCornerShape(12.dp))
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar placeholder
+        // Avatar Photo
         Box(
             modifier = Modifier
                 .size(80.dp)
-                .background(UIGrey, CircleShape),
+                .clip(CircleShape)
+                .background(UIGrey),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Info,
+            Image(
+                painter = painterResource(id = imageRes),
                 contentDescription = name,
-                tint = UIDarkGrey,
-                modifier = Modifier.size(40.dp)
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -389,6 +414,8 @@ private fun TeamMemberCard(name: String, role: String) {
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Social Media Buttons (Placeholder Action)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
@@ -411,7 +438,7 @@ private fun TeamMemberCard(name: String, role: String) {
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Language,
+                    imageVector = Icons.Default.Language, // LinkedIn Icon Placeholder
                     contentDescription = "LinkedIn",
                     tint = UIBlack,
                     modifier = Modifier.size(18.dp)
