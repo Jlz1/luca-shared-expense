@@ -53,7 +53,7 @@ fun UserProfileOverlay(
     }
 
     val handleAddOrUpdate: () -> Unit = {
-        if (username.isNotEmpty() && phoneNumber.isNotEmpty()) {
+        if (username.isNotEmpty()) {
             val finalSeed = if (selectedAvatarSeed.isNotEmpty()) selectedAvatarSeed else username
 
             if (editContact != null) {
@@ -74,7 +74,7 @@ fun UserProfileOverlay(
                 )
             }
         } else {
-            Toast.makeText(context, "Username dan Phone wajib diisi!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Username wajib diisi!", Toast.LENGTH_SHORT).show()
         }
     }
 
