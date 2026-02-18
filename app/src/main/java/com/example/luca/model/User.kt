@@ -5,7 +5,8 @@ data class User(
     val email: String = "",
     val username: String = "",
 
-    // UBAH DARI photoUrl KE avatarName
+    // UBAH DARI
+    // photoUrl KE avatarName
     // Default-nya kasih "avatar_1" biar gak error kalau datanya kosong
     val avatarName: String = "avatar_1",
 
