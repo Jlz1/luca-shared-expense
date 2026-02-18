@@ -1214,7 +1214,7 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.width(65.dp)
+        modifier = Modifier.width(65.dp) // Pastikan lebar kolom tetap agar tidak melebar
     ) {
         Box(
             modifier = Modifier
@@ -1223,7 +1223,6 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
                 .background(UIDarkGrey),
             contentAlignment = Alignment.Center
         ) {
-            // FIX: Gunakan AsyncImage untuk DiceBear
             val avatarName = if (contact.avatarName.isNotBlank()) contact.avatarName else "User"
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -1238,14 +1237,16 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
             )
         }
         Spacer(modifier = Modifier.height(1.dp))
+
+        // --- PERBAIKAN DI SINI ---
         Text(
             text = contact.name,
             fontSize = 9.sp,
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 1, // Dibuat 1 baris saja
+            overflow = TextOverflow.Ellipsis, // Otomatis jadi titik-titik jika kepanjangan
             modifier = Modifier.fillMaxWidth()
         )
     }
