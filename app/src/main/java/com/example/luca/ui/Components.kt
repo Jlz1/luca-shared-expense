@@ -84,7 +84,9 @@ data class ReceiptItem(
     val itemName: String,
     val price: Long,
     val members: List<Color> = emptyList(),
-    val memberNames: List<String> = emptyList()
+    val memberNames: List<String> = emptyList(),
+    val itemTax: Double = 0.0,
+    val itemDiscount: Double = 0.0
 )
 
 enum class HeaderState(

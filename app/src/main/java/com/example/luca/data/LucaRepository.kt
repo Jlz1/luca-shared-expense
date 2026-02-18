@@ -28,6 +28,7 @@ interface LucaRepository {
     suspend fun createActivity(eventId: String, activity: Activity): Result<String>
     suspend fun getActivitiesByEventId(eventId: String): List<Activity>
     suspend fun getActivityById(eventId: String, activityId: String): Activity?
+    suspend fun getActivityData(eventId: String, activityId: String): Map<String, Any>?
     suspend fun getParticipantsInActivities(eventId: String): List<String>
     suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double): Result<Boolean>
     suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>>
@@ -260,6 +261,34 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         }
     }
 
+    override suspend fun getActivityData(eventId: String, activityId: String): Map<String, Any>? {
+        val uid = currentUserId ?: return null
+        return try {
+            android.util.Log.d("LucaRepository", "=== Getting Activity Data ===")
+            android.util.Log.d("LucaRepository", "EventID: $eventId, ActivityID: $activityId")
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("events")
+                .document(eventId)
+                .collection("activities")
+                .document(activityId)
+                .get()
+                .await()
+            val data = snapshot.data
+            android.util.Log.d("LucaRepository", "Activity data retrieved: $data")
+            if (data != null) {
+                android.util.Log.d("LucaRepository", "Tax: ${data["taxPercentage"]}, Discount: ${data["discountAmount"]}")
+            } else {
+                android.util.Log.w("LucaRepository", "⚠️ Activity document data is NULL!")
+            }
+            data
+        } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error getting activity data: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
     override suspend fun createActivity(eventId: String, activity: Activity): Result<String> {
         val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
         return try {
@@ -320,20 +349,35 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             android.util.Log.d("LucaRepository", "EventID: $eventId")
             android.util.Log.d("LucaRepository", "ActivityID: $activityId")
             android.util.Log.d("LucaRepository", "Items count: ${items.size}")
-            
+            android.util.Log.d("LucaRepository", "Tax Percentage: $taxPercentage%")
+            android.util.Log.d("LucaRepository", "Discount Amount: $discountAmount")
+
             if (eventId.isEmpty() || activityId.isEmpty()) {
                 android.util.Log.e("LucaRepository", "ERROR: EventID or ActivityID is empty!")
                 return Result.failure(Exception("EventID or ActivityID is empty"))
             }
             
-            // Reference to items collection
-            val itemsCollectionRef = db.collection("users")
+            // Reference to Activity document
+            val activityDocRef = db.collection("users")
                 .document(uid)
                 .collection("events")
                 .document(eventId)
                 .collection("activities")
                 .document(activityId)
-                .collection("items")
+
+            // PENTING: Simpan tax dan discount di level Activity document
+            // Gunakan set dengan merge agar field lain tidak terhapus
+            activityDocRef.set(
+                mapOf(
+                    "taxPercentage" to taxPercentage,
+                    "discountAmount" to discountAmount
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            ).await()
+            android.util.Log.d("LucaRepository", "✅ Saved tax and discount to Activity document (tax: $taxPercentage%, discount: $discountAmount)")
+
+            // Reference to items collection
+            val itemsCollectionRef = activityDocRef.collection("items")
 
             // First, delete all existing items
             val existingSnapshot = itemsCollectionRef.get().await()
@@ -365,6 +409,22 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 val memberNames = (itemMap["memberNames"] as? List<String>) ?: emptyList()
                 val timestamp = itemMap["timestamp"] as? Long ?: System.currentTimeMillis()
 
+                // Extract item-specific tax and discount
+                val itemTax = when (itemMap["itemTax"]) {
+                    is Double -> itemMap["itemTax"] as Double
+                    is Int -> (itemMap["itemTax"] as Int).toDouble()
+                    is Long -> (itemMap["itemTax"] as Long).toDouble()
+                    is String -> (itemMap["itemTax"] as String).toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                val itemDiscount = when (itemMap["itemDiscount"]) {
+                    is Double -> itemMap["itemDiscount"] as Double
+                    is Int -> (itemMap["itemDiscount"] as Int).toDouble()
+                    is Long -> (itemMap["itemDiscount"] as Long).toDouble()
+                    is String -> (itemMap["itemDiscount"] as String).toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+
                 val itemData = mapOf(
                     "itemName" to itemName,
                     "price" to price,
@@ -372,13 +432,15 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                     "memberNames" to memberNames,
                     "taxPercentage" to taxPercentage,
                     "discountAmount" to discountAmount,
+                    "itemTax" to itemTax,
+                    "itemDiscount" to itemDiscount,
                     "timestamp" to timestamp
                 )
 
                 // Save each item
                 val docRef = itemsCollectionRef.document()
                 docRef.set(itemData).await()
-                android.util.Log.d("LucaRepository", "✅ Saved item [${docRef.id}]: $itemName (Qty: $quantity, Price: $price)")
+                android.util.Log.d("LucaRepository", "✅ Saved item [${docRef.id}]: $itemName (Qty: $quantity, Price: $price, Tax: $taxPercentage%, Discount: $discountAmount, ItemTax: $itemTax, ItemDiscount: $itemDiscount)")
             }
 
             android.util.Log.d("LucaRepository", "✅ === END saveActivityItems SUCCESS ===")
@@ -394,6 +456,9 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
     override suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>> {
         val uid = currentUserId ?: return emptyList()
         return try {
+            android.util.Log.d("LucaRepository", "=== Loading items from Firestore ===")
+            android.util.Log.d("LucaRepository", "EventID: $eventId, ActivityID: $activityId")
+
             val itemsSnap = db.collection("users")
                 .document(uid)
                 .collection("events")
@@ -403,11 +468,17 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 .collection("items")
                 .get()
                 .await()
-            itemsSnap.documents.mapNotNull { doc ->
+
+            val items = itemsSnap.documents.mapNotNull { doc ->
                 val data = doc.data ?: return@mapNotNull null
+                android.util.Log.d("LucaRepository", "📦 Item loaded: ${data["itemName"]}, Tax: ${data["taxPercentage"]}, Discount: ${data["discountAmount"]}")
                 data
             }
+
+            android.util.Log.d("LucaRepository", "✅ Total items loaded: ${items.size}")
+            items
         } catch (e: Exception) {
+            android.util.Log.e("LucaRepository", "❌ Error loading items: ${e.message}")
             e.printStackTrace()
             emptyList()
         }
