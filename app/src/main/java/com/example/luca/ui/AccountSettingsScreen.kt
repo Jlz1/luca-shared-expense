@@ -102,14 +102,41 @@ fun AccountSettingsScreen(
                     onLeftIconClick = handleBackClick
                 )
 
-                // Scrollable Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(bottom = 20.dp)
-                ) {
+                // Loading State - Tampilkan loading screen sampai data selesai di-load
+                if (isDataLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(UIWhite),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = UIAccentYellow,
+                                strokeWidth = 4.dp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading...",
+                                style = AppFont.Medium,
+                                fontSize = 16.sp,
+                                color = UIDarkGrey
+                            )
+                        }
+                    }
+                } else {
+                    // Scrollable Content - Hanya tampilkan setelah data loaded
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 20.dp)
+                    ) {
                     // Profile Picture Section
                     Box(
                         modifier = Modifier
@@ -520,6 +547,7 @@ fun AccountSettingsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
+                }
                 }
             }
 
@@ -1113,179 +1141,6 @@ fun CustomTextField(
             unfocusedIndicatorColor = Color.Transparent
         ),
         singleLine = true
-    )
-}
-
-@Composable
-fun BankAccountDialog(
-    onDismiss: () -> Unit,
-    onAddBankAccount: (String, String) -> Unit
-) {
-    var selectedBank by remember { mutableStateOf("") }
-    var accountNumber by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
-    var showBankDropdown by remember { mutableStateOf(false) }
-
-    val availableBanks = com.example.luca.util.BankUtils.availableBanks
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = UIWhite,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Text(
-                text = "Add Bank Account",
-                style = AppFont.Bold,
-                fontSize = 20.sp,
-                color = UIBlack
-            )
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Add your bank account information",
-                    fontSize = 14.sp,
-                    style = AppFont.Regular,
-                    color = UIDarkGrey,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
-
-                // Bank Selection Dropdown
-                Text(
-                    text = "Bank",
-                    fontSize = 14.sp,
-                    style = AppFont.Medium,
-                    color = UIBlack,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Box {
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = UIGrey),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showBankDropdown = !showBankDropdown }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = selectedBank.ifEmpty { "Select Bank" },
-                                fontSize = 14.sp,
-                                style = AppFont.Regular,
-                                color = if (selectedBank.isEmpty()) UIDarkGrey else UIBlack
-                            )
-                            Icon(
-                                if (showBankDropdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = "Dropdown",
-                                tint = UIBlack
-                            )
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = showBankDropdown,
-                        onDismissRequest = { showBankDropdown = false },
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .background(UIWhite)
-                    ) {
-                        availableBanks.forEach { bank ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = bank,
-                                        style = AppFont.Regular,
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                onClick = {
-                                    selectedBank = bank
-                                    showBankDropdown = false
-                                    errorMessage = ""
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Account Number Input
-                Text(
-                    text = "Account Number",
-                    fontSize = 14.sp,
-                    style = AppFont.Medium,
-                    color = UIBlack,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                TextField(
-                    value = accountNumber,
-                    onValueChange = {
-                        accountNumber = it
-                        errorMessage = ""
-                    },
-                    placeholder = { Text(text = "Enter account number", color = UIDarkGrey) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = UIGrey,
-                        unfocusedContainerColor = UIGrey,
-                        focusedIndicatorColor = UIAccentYellow,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true
-                )
-
-                if (errorMessage.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = errorMessage,
-                        color = Color(0xFFE53935),
-                        fontSize = 12.sp,
-                        style = AppFont.Regular
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    when {
-                        selectedBank.isEmpty() -> {
-                            errorMessage = "Please select a bank"
-                        }
-                        accountNumber.isEmpty() -> {
-                            errorMessage = "Please enter account number"
-                        }
-                        else -> {
-                            onAddBankAccount(selectedBank, accountNumber)
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Add", color = UIBlack, style = AppFont.SemiBold)
-            }
-        },
-        dismissButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Cancel", color = UIBlack, style = AppFont.Medium)
-            }
-        }
     )
 }
 
