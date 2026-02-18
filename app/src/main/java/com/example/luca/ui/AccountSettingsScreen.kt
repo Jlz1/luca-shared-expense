@@ -57,6 +57,7 @@ fun AccountSettingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val username by viewModel.username.collectAsState()
     val selectedAvatarName by viewModel.selectedAvatarName.collectAsState()
+    val isDataLoading by viewModel.isLoading.collectAsState()
 
     val scope = rememberCoroutineScope()
 
@@ -69,9 +70,6 @@ fun AccountSettingsScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadCurrentUserData()
-    }
 
     LaunchedEffect(showSuccessMessage) {
         if (showSuccessMessage) {
@@ -124,29 +122,36 @@ fun AccountSettingsScreen(
                                     .background(
                                         Color(0xFFFF8C42)
                                     )
-                                    .clickable { showProfilePictureDialog = true }
+                                    .clickable(enabled = !isDataLoading) { showProfilePictureDialog = true }
                                     .border(3.dp, UIAccentYellow, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val context = LocalContext.current
-                                val avatarResId = remember(selectedAvatarName) {
-                                    context.resources.getIdentifier(
-                                        selectedAvatarName,
-                                        "drawable",
-                                        context.packageName
+                                if (isDataLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(40.dp),
+                                        color = UIAccentYellow
+                                    )
+                                } else {
+                                    val context = LocalContext.current
+                                    val avatarResId = remember(selectedAvatarName) {
+                                        context.resources.getIdentifier(
+                                            selectedAvatarName,
+                                            "drawable",
+                                            context.packageName
+                                        )
+                                    }
+                                    val finalAvatarId =
+                                        if (avatarResId != 0) avatarResId else R.drawable.avatar_1
+
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(context)
+                                            .data(finalAvatarId)
+                                            .build(),
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
                                     )
                                 }
-                                val finalAvatarId =
-                                    if (avatarResId != 0) avatarResId else R.drawable.avatar_1
-
-                                AsyncImage(
-                                    model = ImageRequest.Builder(context)
-                                        .data(finalAvatarId)
-                                        .build(),
-                                    contentDescription = "Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -185,7 +190,7 @@ fun AccountSettingsScreen(
                             colors = CardDefaults.cardColors(containerColor = UIGrey),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.setEditingUsername(true) }
+                                .clickable(enabled = !isDataLoading) { viewModel.setEditingUsername(true) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -195,12 +200,31 @@ fun AccountSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = username,
-                                        fontSize = 16.sp,
-                                        style = AppFont.Medium,
-                                        color = UIBlack
-                                    )
+                                    if (isDataLoading) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = UIAccentYellow
+                                            )
+                                            Text(
+                                                text = "Loading...",
+                                                fontSize = 16.sp,
+                                                style = AppFont.Medium,
+                                                color = UIDarkGrey
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = username,
+                                            fontSize = 16.sp,
+                                            style = AppFont.Medium,
+                                            color = UIBlack
+                                        )
+                                    }
                                 }
                                 Icon(
                                     Icons.Default.Edit,

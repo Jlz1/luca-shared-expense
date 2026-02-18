@@ -1191,7 +1191,8 @@ fun ParticipantAvatarItem(contact: Contact) {
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -1254,7 +1255,7 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth()
         )

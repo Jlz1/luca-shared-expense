@@ -409,10 +409,10 @@ fun SettingsScreen(
     onHelpCenterClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
-    // State untuk user profile
-    var userName by remember { mutableStateOf("Loading...") }
+    // State untuk user profile - initialize as null to avoid showing defaults
+    var userName by remember { mutableStateOf<String?>(null) }
     var userEmail by remember { mutableStateOf("") }
-    var userAvatarName by remember { mutableStateOf("avatar_1") }
+    var userAvatarName by remember { mutableStateOf<String?>(null) }
 
     // State untuk password change dan success message
     var showPasswordChangeDialog by remember { mutableStateOf(false) }
@@ -423,23 +423,22 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
 
-    // Load user profile dari Firebase
+    // Load user profile dari Firebase - load eagerly
     LaunchedEffect(Unit) {
-        try {
-            val repository = LucaFirebaseRepository()
-            val userContact = withContext(Dispatchers.IO) {
-                repository.getCurrentUserAsContact()
-            }
-            if (userContact != null) {
-                userName = userContact.name
-                userAvatarName = userContact.avatarName
-                // Try to get email dari Firebase Auth
-                userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "No email"
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("SettingsScreen", "Failed to load user profile: ${e.message}")
+        // Start loading immediately, don't wait
+        val repository = LucaFirebaseRepository()
+        val userContact = withContext(Dispatchers.IO) {
+            repository.getCurrentUserAsContact()
+        }
+        if (userContact != null) {
+            userName = userContact.name
+            userAvatarName = userContact.avatarName
+            // Try to get email dari Firebase Auth
+            userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "No email"
+        } else {
             userName = "User"
-            userEmail = "error loading email"
+            userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "No email"
+            userAvatarName = "avatar_1"
         }
     }
 
@@ -501,66 +500,89 @@ fun SettingsScreen(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar profile dengan gambar atau fallback ke icon
-                val resourceId = remember(userAvatarName) {
-                    if (userAvatarName.isNotBlank()) {
-                        try {
-                            val rClass = Class.forName("com.example.luca.R\$drawable")
-                            val field = rClass.getField(userAvatarName)
-                            field.getInt(null)
-                        } catch (_: Exception) {
+                // Show loading indicator if data not yet loaded
+                if (userName == null || userAvatarName == null) {
+                    // Loading state
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(UIGrey, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = UIAccentYellow
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = UIAccentYellow
+                    )
+                } else {
+                    // Avatar profile dengan gambar atau fallback ke icon
+                    val resourceId = remember(userAvatarName) {
+                        if (userAvatarName!!.isNotBlank()) {
+                            try {
+                                val rClass = Class.forName("com.example.luca.R\$drawable")
+                                val field = rClass.getField(userAvatarName!!)
+                                field.getInt(null)
+                            } catch (_: Exception) {
+                                0
+                            }
+                        } else {
                             0
                         }
-                    } else {
-                        0
                     }
-                }
 
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(UIGrey, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (resourceId != 0) {
-                        // Load avatar dari database
-                        Image(
-                            painter = painterResource(id = resourceId),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        // Fallback ke icon jika avatar tidak tersedia
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Profile Picture",
-                            tint = UIDarkGrey,
-                            modifier = Modifier.size(40.dp)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(UIGrey, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (resourceId != 0) {
+                            // Load avatar dari database
+                            Image(
+                                painter = painterResource(id = resourceId),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // Fallback ke icon jika avatar tidak tersedia
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile Picture",
+                                tint = UIDarkGrey,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // User name dari Firebase
+                    Text(
+                        text = userName!!,
+                        style = AppFont.Bold,
+                        fontSize = 20.sp,
+                        color = UIBlack
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // User email dari Firebase Auth
+                    Text(
+                        text = userEmail,
+                        style = AppFont.Regular,
+                        fontSize = 14.sp,
+                        color = UIDarkGrey
+                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // User name dari Firebase
-                Text(
-                    text = userName,
-                    style = AppFont.Bold,
-                    fontSize = 20.sp,
-                    color = UIBlack
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // User email dari Firebase Auth
-                Text(
-                    text = userEmail,
-                    style = AppFont.Regular,
-                    fontSize = 14.sp,
-                    color = UIDarkGrey
-                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Tombol Edit Profile Kecil
@@ -572,7 +594,8 @@ fun SettingsScreen(
                     ),
                     shape = RoundedCornerShape(20.dp),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.height(36.dp),
+                    enabled = userName != null // Disable while loading
                 ) {
                     Text(text = "Edit Profile", style = AppFont.SemiBold, fontSize = 12.sp)
                 }
