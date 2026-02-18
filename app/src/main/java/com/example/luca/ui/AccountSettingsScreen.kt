@@ -51,6 +51,7 @@ fun AccountSettingsScreen(
     var showProfilePictureDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialogGoogle by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf(false) }
     var successMessage by remember { mutableStateOf("") }
@@ -301,59 +302,68 @@ fun AccountSettingsScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Password Section
-                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                        Text(
-                            text = "Password",
-                            fontSize = 16.sp,
-                            style = AppFont.SemiBold,
-                            color = UIBlack
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                    // Password Section - Only show for email/password users
+                    if (!viewModel.isGoogleUser()) {
+                        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                            Text(
+                                text = "Password",
+                                fontSize = 16.sp,
+                                style = AppFont.SemiBold,
+                                color = UIBlack
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = UIGrey),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showPasswordDialog = true }
-                        ) {
-                            Row(
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = UIGrey),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .clickable { showPasswordDialog = true }
                             ) {
-                                Text(
-                                    text = "••••••••",
-                                    fontSize = 16.sp,
-                                    style = AppFont.Medium,
-                                    color = UIBlack
-                                )
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Edit Password",
-                                    tint = UIBlack,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "••••••••",
+                                        fontSize = 16.sp,
+                                        style = AppFont.Medium,
+                                        color = UIBlack
+                                    )
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Edit Password",
+                                        tint = UIBlack,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(
+                            color = UIGrey,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(
-                        color = UIGrey,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Delete Account & Logout Section
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         Button(
-                            onClick = { showDeleteConfirmDialog = true },
+                            onClick = {
+                                // Check if user is Google user
+                                if (viewModel.isGoogleUser()) {
+                                    showDeleteConfirmDialogGoogle = true
+                                } else {
+                                    showDeleteConfirmDialog = true
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFFE53935).copy(alpha = 0.1f)
                             ),
@@ -476,6 +486,26 @@ fun AccountSettingsScreen(
                         onLogoutClick()
                     } else {
                         successMessage = "Invalid password"
+                        showSuccessMessage = true
+                    }
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialogGoogle) {
+        DeleteAccountDialogGoogle(
+            onDismiss = { showDeleteConfirmDialogGoogle = false },
+            onConfirm = {
+                scope.launch {
+                    isLoading = true
+                    val success = viewModel.deleteAccount(null)
+                    isLoading = false
+                    if (success) {
+                        showDeleteConfirmDialogGoogle = false
+                        onLogoutClick()
+                    } else {
+                        successMessage = "Failed to delete account"
                         showSuccessMessage = true
                     }
                 }
@@ -721,6 +751,78 @@ fun PasswordChangeDialog(
                     color = UIBlack,
                     style = AppFont.Medium
                 )
+            }
+        }
+    )
+}
+
+@Composable
+fun DeleteAccountDialogGoogle(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(24.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(Color(0xFFE53935).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color(0xFFE53935),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Delete Account?",
+                style = AppFont.Bold,
+                fontSize = 20.sp,
+                color = UIBlack,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.",
+                    color = UIDarkGrey,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(bottom = 20.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Text("Delete", color = Color.White, style = AppFont.SemiBold)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Text("Cancel", color = UIBlack, style = AppFont.Medium)
             }
         }
     )
