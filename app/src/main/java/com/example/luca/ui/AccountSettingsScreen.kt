@@ -59,6 +59,7 @@ fun AccountSettingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val username by viewModel.username.collectAsState()
     val selectedAvatarName by viewModel.selectedAvatarName.collectAsState()
+    val isDataLoading by viewModel.isLoading.collectAsState()
 
     val scope = rememberCoroutineScope()
 
@@ -71,9 +72,6 @@ fun AccountSettingsScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadCurrentUserData()
-    }
 
     LaunchedEffect(showSuccessMessage) {
         if (showSuccessMessage) {
@@ -126,7 +124,7 @@ fun AccountSettingsScreen(
                                     .background(
                                         Color(0xFFFF8C42)
                                     )
-                                    .clickable { showProfilePictureDialog = true }
+                                    .clickable(enabled = !isDataLoading) { showProfilePictureDialog = true }
                                     .border(3.dp, UIAccentYellow, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -186,7 +184,7 @@ fun AccountSettingsScreen(
                             colors = CardDefaults.cardColors(containerColor = UIGrey),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.setEditingUsername(true) }
+                                .clickable(enabled = !isDataLoading) { viewModel.setEditingUsername(true) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -196,12 +194,31 @@ fun AccountSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = username,
-                                        fontSize = 16.sp,
-                                        style = AppFont.Medium,
-                                        color = UIBlack
-                                    )
+                                    if (isDataLoading) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = UIAccentYellow
+                                            )
+                                            Text(
+                                                text = "Loading...",
+                                                fontSize = 16.sp,
+                                                style = AppFont.Medium,
+                                                color = UIDarkGrey
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = username,
+                                            fontSize = 16.sp,
+                                            style = AppFont.Medium,
+                                            color = UIBlack
+                                        )
+                                    }
                                 }
                                 Icon(
                                     Icons.Default.Edit,

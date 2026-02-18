@@ -423,6 +423,12 @@ fun LucaApp() {
                                     drawerState.close()
                                     navController.navigate("report_bugs")
                                 }
+                            },
+                            onEmailSupportClick = {
+                                scope.launch {
+                                    drawerState.close()
+                                    navController.navigate("help_center")
+                                }
                             }
                         )
                     }

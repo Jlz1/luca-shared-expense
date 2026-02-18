@@ -13,7 +13,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,17 +23,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.luca.ui.theme.*
-import kotlinx.coroutines.CoroutineScope
-import com.example.luca.ui.debounceBackClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpSupportScreen(
     onBackClick: () -> Unit,
-    onReportBugClick: () -> Unit
+    onReportBugClick: () -> Unit,
+    onEmailSupportClick: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val debouncedBackClick = debounceBackClick(scope) { onBackClick() }
+    // State untuk mengontrol FAQ mana yang sedang expanded
+    var expandedFaqIndex by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -49,7 +47,7 @@ fun HelpSupportScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = debouncedBackClick) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -73,62 +71,100 @@ fun HelpSupportScreen(
                 .padding(innerPadding)
         ) {
 
-            // ===== 1. HEADER & SEARCH =====
+            // ===== 1. HEADER & HELP CATEGORIES =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
-                    .background(UIWhite, RoundedCornerShape(16.dp))
-                    .padding(20.dp)
             ) {
                 Text(
                     text = "How can we help you?",
                     style = AppFont.Bold,
-                    fontSize = 22.sp, // Agak besar biar welcoming
-                    color = UIBlack
+                    fontSize = 22.sp,
+                    color = UIBlack,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Search for topics or questions",
-                    style = AppFont.Regular,
-                    fontSize = 14.sp,
-                    color = UIDarkGrey
-                )
-                Spacer(modifier = Modifier.height(20.dp))
 
-                // Search Bar Mockup
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .background(UIBackground, RoundedCornerShape(25.dp)) // Pill shape
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = UIDarkGrey
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "e.g., split bill, forgot password",
-                        style = AppFont.Regular,
-                        fontSize = 14.sp,
-                        color = UIDarkGrey.copy(alpha = 0.6f)
-                    )
-                }
+                // Help Categories
+                HelpCategoryCard(
+                    emoji = "💸",
+                    title = "Transaction & Split Bill",
+                    articles = listOf(
+                        "How to create a new activity",
+                        "Split bill equally among participants",
+                        "Use custom split for unequal distribution",
+                        "Edit or delete an activity",
+                        "Understand payment summary and settlements"
+                    ),
+                    expandedIndex = expandedFaqIndex,
+                    categoryIndex = -1,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == -1) null else -1 }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                HelpCategoryCard(
+                    emoji = "👥",
+                    title = "Friends & Groups",
+                    articles = listOf(
+                        "Add participants to your event",
+                        "Create and manage contacts",
+                        "Choose avatars for friends",
+                        "Add or remove participants from activity",
+                        "View transaction history per person"
+                    ),
+                    expandedIndex = expandedFaqIndex,
+                    categoryIndex = -2,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == -2) null else -2 }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                HelpCategoryCard(
+                    emoji = "⚙️",
+                    title = "Account & Security",
+                    articles = listOf(
+                        "Change your profile and avatar",
+                        "Manage created events",
+                        "Backup and restore your data",
+                        "Delete events or activities",
+                        "Data security tips"
+                    ),
+                    expandedIndex = expandedFaqIndex,
+                    categoryIndex = -3,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == -3) null else -3 }
+                )
             }
 
             // ===== 2. POPULAR TOPICS / FAQ =====
             SectionContainer(title = "Popular Topics") {
-                FaqItem(question = "How to split a bill equally?")
+                FaqItem(
+                    question = "How to split a bill equally?",
+                    answer = "To split a bill equally:\n\n1. Create a new activity and enter the bill details\n2. Add all participants who will share the cost\n3. Select 'Equal Split' option\n4. The total amount will be automatically divided equally among all participants\n5. Each person will see their share amount\n6. Save the activity to record the split",
+                    isExpanded = expandedFaqIndex == 0,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == 0) null else 0 }
+                )
                 HorizontalDivider(color = UIGrey.copy(alpha = 0.5f))
-                FaqItem(question = "Can I edit an activity after saving?")
+                FaqItem(
+                    question = "Can I edit an activity after saving?",
+                    answer = "Yes! You can edit any activity:\n\n1. Go to your event's activity list\n2. Tap on the activity you want to edit\n3. Click the edit icon (pencil) in the top right\n4. Make your changes to amount, participants, or split method\n5. Save changes\n\nNote: Editing an activity will update the settlement calculations automatically.",
+                    isExpanded = expandedFaqIndex == 1,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == 1) null else 1 }
+                )
                 HorizontalDivider(color = UIGrey.copy(alpha = 0.5f))
-                FaqItem(question = "How do I add friends?")
+                FaqItem(
+                    question = "How do I add friends?",
+                    answer = "Adding friends to your event:\n\n1. Create or open an event\n2. Tap the '+' button in the participants section\n3. Choose to add from your contacts or create a new contact\n4. Enter their name and select an avatar\n5. Friends added will appear in all your activities for that event\n\nYou can add participants when creating activities too!",
+                    isExpanded = expandedFaqIndex == 2,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == 2) null else 2 }
+                )
                 HorizontalDivider(color = UIGrey.copy(alpha = 0.5f))
-                FaqItem(question = "Payment methods supported")
+                FaqItem(
+                    question = "How to add event?",
+                    answer = "Creating a new event is easy:\n\n1. Tap the '+' button on the home screen\n2. Enter event title (e.g., 'Bali Trip 2024')\n3. Set event location (optional)\n4. Choose the event date\n5. Add participants who will join this event\n6. Tap 'Create Event'\n\nYou can then add activities and expenses to track shared costs for this event.",
+                    isExpanded = expandedFaqIndex == 3,
+                    onToggle = { expandedFaqIndex = if (expandedFaqIndex == 3) null else 3 }
+                )
             }
 
             // ===== 3. CONTACT & ACTIONS =====
@@ -138,7 +174,7 @@ fun HelpSupportScreen(
                     icon = Icons.Default.Email,
                     title = "Email Support",
                     subtitle = "Get response within 24 hours",
-                    onClick = { /* TODO: Open Email Intent */ }
+                    onClick = onEmailSupportClick
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -161,6 +197,84 @@ fun HelpSupportScreen(
 // ==========================================
 // COMPONENT HELPERS
 // ==========================================
+
+@Composable
+private fun HelpCategoryCard(
+    emoji: String,
+    title: String,
+    articles: List<String>,
+    expandedIndex: Int?,
+    categoryIndex: Int,
+    onToggle: () -> Unit
+) {
+    val isExpanded = expandedIndex == categoryIndex
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(UIWhite, RoundedCornerShape(16.dp))
+            .clickable { onToggle() }
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = emoji,
+                    fontSize = 24.sp,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                Text(
+                    text = title,
+                    style = AppFont.SemiBold,
+                    fontSize = 16.sp,
+                    color = UIBlack
+                )
+            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = UIDarkGrey,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // Article list - hanya tampil jika expanded
+        if (isExpanded) {
+            Spacer(modifier = Modifier.height(16.dp))
+            articles.forEach { article ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = "•",
+                        style = AppFont.Regular,
+                        fontSize = 14.sp,
+                        color = UIAccentYellow,
+                        modifier = Modifier.padding(end = 12.dp, top = 2.dp)
+                    )
+                    Text(
+                        text = article,
+                        style = AppFont.Regular,
+                        fontSize = 14.sp,
+                        color = UIDarkGrey,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun SectionContainer(
@@ -187,27 +301,50 @@ private fun SectionContainer(
 }
 
 @Composable
-private fun FaqItem(question: String) {
-    Row(
+private fun FaqItem(
+    question: String,
+    answer: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Expand FAQ */ }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onToggle() }
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Text(
-            text = question,
-            style = AppFont.Medium,
-            fontSize = 14.sp,
-            color = UIBlack,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Icons.Default.ExpandMore, // Icon panah bawah
-            contentDescription = "Expand",
-            tint = UIDarkGrey
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = question,
+                style = AppFont.Medium,
+                fontSize = 14.sp,
+                color = UIBlack,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = UIDarkGrey,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // Answer section - hanya tampil jika expanded
+        if (isExpanded) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = answer,
+                style = AppFont.Regular,
+                fontSize = 13.sp,
+                color = UIDarkGrey,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(end = 24.dp)
+            )
+        }
     }
 }
 
@@ -274,6 +411,10 @@ private fun ContactActionItem(
 @Composable
 fun HelpSupportPreview() {
     LucaTheme {
-        HelpSupportScreen(onBackClick = {}, onReportBugClick = {})
+        HelpSupportScreen(
+            onBackClick = {},
+            onReportBugClick = {},
+            onEmailSupportClick = {}
+        )
     }
 }

@@ -22,6 +22,14 @@ class AccountSettingsViewModel : ViewModel() {
     val selectedAvatarName: StateFlow<String> = _selectedAvatarName.asStateFlow()
     private val _isEditingUsername = MutableStateFlow(false)
     val isEditingUsername: StateFlow<Boolean> = _isEditingUsername.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    init {
+        loadCurrentUserData()
+    }
+
     fun setEditingUsername(isEditing: Boolean) {
         _isEditingUsername.value = isEditing
     }
@@ -29,6 +37,7 @@ class AccountSettingsViewModel : ViewModel() {
         val currentUserUid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             try {
+                _isLoading.value = true
                 val docSnapshot = firestore.collection("users")
                     .document(currentUserUid)
                     .get()
@@ -43,6 +52,8 @@ class AccountSettingsViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e("AccountSettingsViewModel", "Error loading user data", e)
+            } finally {
+                _isLoading.value = false
             }
         }
     }
