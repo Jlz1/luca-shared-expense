@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -61,7 +63,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -122,6 +126,10 @@ fun AddActivityScreen2(
     // --- STATE: Edit Participants Dialog ---
     var showEditParticipantsDialog by remember { mutableStateOf(false) }
 
+    // --- STATE: Selected Payer ---
+    var selectedPayer by remember { mutableStateOf<Contact?>(null) }
+    var showEditPayerDialog by remember { mutableStateOf(false) }
+
     // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
     val backClicked = remember { mutableStateOf(false) }
     val handleBackClick: () -> Unit = {
@@ -136,6 +144,10 @@ fun AddActivityScreen2(
         if (activity != null) {
             val baseMembers = activity.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
             val payerContact = activity.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+
+            // Set selected payer
+            selectedPayer = payerContact
+
             eventMembers = if (payerContact != null) {
                 // Avoid duplicates by name
                 val exists = baseMembers.any { it.name == payerContact.name }
@@ -153,6 +165,10 @@ fun AddActivityScreen2(
                 loaded?.let { act ->
                     val baseMembers = act.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
                     val payerContact = act.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+
+                    // Set selected payer
+                    selectedPayer = payerContact
+
                     eventMembers = if (payerContact != null) {
                         val exists = baseMembers.any { it.name == payerContact.name }
                         if (exists) baseMembers else baseMembers + payerContact
@@ -460,7 +476,7 @@ fun AddActivityScreen2(
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(UIWhite)
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp), // Reduced from 12.dp to 6.dp
@@ -599,12 +615,30 @@ fun AddActivityScreen2(
                                     fontSize = 16.sp,
                                     color = UIBlack
                                 )
-                                Text(
-                                    text = "Paid by ${activity?.payerName ?: "Unknown"}",
-                                    style = AppFont.Regular,
-                                    fontSize = 12.sp,
-                                    color = UIDarkGrey
-                                )
+
+                                // Paid by section - editable
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { showEditPayerDialog = true }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Paid by ${selectedPayer?.name ?: activity?.payerName ?: "Unknown"}",
+                                        style = AppFont.Regular,
+                                        fontSize = 12.sp,
+                                        color = UIDarkGrey
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Edit Payer",
+                                        tint = UIDarkGrey,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(24.dp))
@@ -620,7 +654,7 @@ fun AddActivityScreen2(
                                 ) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Tap any item to edit",
+                                        text = "Tap to edit",
                                         style = AppFont.Regular,
                                         fontSize = 12.sp,
                                         color = UIDarkGrey
@@ -908,6 +942,7 @@ fun AddActivityScreen2(
                             android.util.Log.d("NewActivityScreen2", "💾 Saving ${itemsForDb.size} items...")
                             android.util.Log.d("NewActivityScreen2", "💾 Tax: $globalTaxPercentage% (type: ${globalTaxPercentage.javaClass.simpleName})")
                             android.util.Log.d("NewActivityScreen2", "💾 Discount: $globalDiscountAmount (type: ${globalDiscountAmount.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Payer: ${selectedPayer?.name ?: "Not set"}")
                             itemsForDb.forEachIndexed { index, item ->
                                 android.util.Log.d("NewActivityScreen2", "Item[$index]: $item")
                             }
@@ -918,7 +953,9 @@ fun AddActivityScreen2(
                                 activityId = activityId,
                                 items = itemsForDb,
                                 taxPercentage = globalTaxPercentage,
-                                discountAmount = globalDiscountAmount
+                                discountAmount = globalDiscountAmount,
+                                payerName = selectedPayer?.name,
+                                payerAvatarName = selectedPayer?.avatarName
                             )
                             android.util.Log.d("NewActivityScreen2", "======== saveActivityItems CALLED ========")
                             // LaunchedEffect(isSuccess) will automatically navigate back to DetailedEventScreen
@@ -1068,6 +1105,19 @@ fun AddActivityScreen2(
             }
         )
     }
+
+    // Edit Payer Dialog
+    if (showEditPayerDialog) {
+        EditPayerDialog(
+            currentPayer = selectedPayer,
+            availableMembers = eventMembers,
+            onDismiss = { showEditPayerDialog = false },
+            onSave = { selectedPayerContact ->
+                selectedPayer = selectedPayerContact
+                showEditPayerDialog = false
+            }
+        )
+    }
 }
 
 // Custom shape for the receipt card
@@ -1140,8 +1190,8 @@ fun FabCircleButton(size: Dp, onClick: () -> Unit = {}, content: @Composable () 
 fun ParticipantAvatarItem(contact: Contact) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.width(60.dp)
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+        modifier = Modifier.width(10.dp)
     ) {
         // Avatar dengan profile picture atau fallback ke initial
         Box(
@@ -1185,11 +1235,11 @@ fun ParticipantAvatarItem(contact: Contact) {
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(0.dp))
         // Nama dengan text yang kecil
         Text(
             text = contact.name,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
@@ -1217,8 +1267,8 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.width(65.dp)
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+        modifier = Modifier.width(50.dp)
     ) {
         // Avatar dengan profile picture atau fallback ke initial
         Box(
@@ -1249,11 +1299,11 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
                 )
             }
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(0.dp))
         // Nama dengan text yang kecil
         Text(
             text = contact.name,
-            fontSize = 9.sp,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Medium,
             color = UIBlack,
             textAlign = TextAlign.Center,
@@ -1406,6 +1456,8 @@ fun ReceiptItemRow(
                 }
             }
 
+            Spacer(modifier = Modifier.width(12.dp))
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1517,27 +1569,28 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Price and Quantity Row with rounded corners
+                // Price and Quantity Row with underlined style
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = itemPrice,
                         onValueChange = { itemPrice = it },
-                        label = { Text("Price (Rp)") },
+                        label = "Price",
+                        placeholder = "0",
+                        prefix = "Rp",
                         modifier = Modifier.weight(2f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
 
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = itemQuantity,
                         onValueChange = { itemQuantity = it },
-                        label = { Text("Qty") },
+                        label = "Qty",
+                        placeholder = "1",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
                 }
 
@@ -1697,7 +1750,7 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tax and Discount with rounded corners - OPTIONAL FIELDS
+                // Tax and Discount with underlined style - OPTIONAL FIELDS
                 Text(
                     text = "Optional:",
                     fontWeight = FontWeight.SemiBold,
@@ -1708,31 +1761,29 @@ fun AddItemDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = tempTax,
                         onValueChange = { tempTax = it },
-                        label = { Text("Tax (%)") },
-                        placeholder = { Text("0") },
+                        label = "Tax",
+                        placeholder = "0",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Decimal
                     )
 
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = tempDiscount,
                         onValueChange = {
                             // Format as Rupiah input
                             val numbersOnly = it.replace("[^\\d]".toRegex(), "")
                             tempDiscount = numbersOnly
                         },
-                        label = { Text("Discount (Rp)") },
-                        placeholder = { Text("0") },
-                        prefix = { Text("Rp") },
+                        label = "Discount",
+                        placeholder = "0",
+                        prefix = "Rp",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
                 }
             }
@@ -1861,27 +1912,28 @@ fun EditItemDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Price and Quantity Row with rounded corners
+                // Price and Quantity Row with underlined style
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = itemPrice,
                         onValueChange = { itemPrice = it },
-                        label = { Text("Price (Rp)") },
+                        label = "Price",
+                        placeholder = "0",
+                        prefix = "Rp",
                         modifier = Modifier.weight(2f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
 
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = itemQuantity,
                         onValueChange = { itemQuantity = it },
-                        label = { Text("Qty") },
+                        label = "Qty",
+                        placeholder = "1",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
                 }
 
@@ -2034,7 +2086,7 @@ fun EditItemDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tax and Discount with rounded corners
+                // Tax and Discount with underlined style
                 Text(
                     text = "Optional:",
                     fontWeight = FontWeight.SemiBold,
@@ -2045,31 +2097,29 @@ fun EditItemDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = tempTax,
                         onValueChange = { tempTax = it },
-                        label = { Text("Tax (%)") },
-                        placeholder = { Text("0") },
+                        label = "Tax",
+                        placeholder = "0",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Decimal
                     )
 
-                    OutlinedTextField(
+                    UnderlinedTextField(
                         value = tempDiscount,
                         onValueChange = {
                             // Format as Rupiah input
                             val numbersOnly = it.replace("[^\\d]".toRegex(), "")
                             tempDiscount = numbersOnly
                         },
-                        label = { Text("Discount (Rp)") },
-                        placeholder = { Text("0") },
-                        prefix = { Text("Rp") },
+                        label = "Discount",
+                        placeholder = "0",
+                        prefix = "Rp",
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        keyboardType = KeyboardType.Number
                     )
                 }
             }
@@ -2267,6 +2317,214 @@ fun EditParticipantsDialog(
         containerColor = UIWhite,
         shape = RoundedCornerShape(16.dp)
     )
+}
+
+@Composable
+fun EditPayerDialog(
+    currentPayer: Contact?,
+    availableMembers: List<Contact>,
+    onDismiss: () -> Unit,
+    onSave: (Contact) -> Unit
+) {
+    var selectedPayer by remember { mutableStateOf(currentPayer) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Who Paid?",
+                style = AppFont.SemiBold,
+                fontSize = 20.sp,
+                color = UIBlack
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                Text(
+                    text = "Select the person who paid for this activity",
+                    style = AppFont.Regular,
+                    fontSize = 14.sp,
+                    color = UIDarkGrey,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Scrollable list of available members
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(UIBackground)
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableMembers) { member ->
+                        val isSelected = selectedPayer?.name == member.name
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) UIAccentYellow.copy(alpha = 0.2f) else UIWhite)
+                                .clickable {
+                                    selectedPayer = member
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Avatar
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = member.name,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                error = painterResource(android.R.drawable.ic_menu_report_image)
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Name
+                            Text(
+                                text = member.name,
+                                style = AppFont.Medium,
+                                fontSize = 16.sp,
+                                color = UIBlack,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Radio button indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (isSelected) UIAccentYellow else UIDarkGrey,
+                                        shape = CircleShape
+                                    )
+                                    .background(if (isSelected) UIAccentYellow else Color.Transparent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .clip(CircleShape)
+                                            .background(UIBlack)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Selected payer info
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = if (selectedPayer != null) "Payer: ${selectedPayer!!.name}" else "No payer selected",
+                    style = AppFont.Medium,
+                    fontSize = 14.sp,
+                    color = if (selectedPayer != null) UIAccentYellow else Color.Red
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    selectedPayer?.let { onSave(it) }
+                },
+                enabled = selectedPayer != null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = UIAccentYellow,
+                    contentColor = UIBlack
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Save", style = AppFont.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = AppFont.Medium, color = UIDarkGrey)
+            }
+        },
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun UnderlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String = "",
+    prefix: String = "",
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = UIDarkGrey,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = TextStyle(
+                fontSize = 16.sp,
+                color = UIBlack,
+                fontWeight = FontWeight.Normal
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
+            decorationBox = { innerTextField ->
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (prefix.isNotEmpty()) {
+                            Text(
+                                text = prefix,
+                                fontSize = 16.sp,
+                                color = UIDarkGrey,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (value.isEmpty() && placeholder.isNotEmpty()) {
+                                Text(
+                                    text = placeholder,
+                                    fontSize = 16.sp,
+                                    color = UIGrey
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = UIDarkGrey
+                    )
+                }
+            }
+        )
+    }
 }
 
 @Preview(showBackground = true)

@@ -30,7 +30,7 @@ interface LucaRepository {
     suspend fun getActivityById(eventId: String, activityId: String): Activity?
     suspend fun getActivityData(eventId: String, activityId: String): Map<String, Any>?
     suspend fun getParticipantsInActivities(eventId: String): List<String>
-    suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double): Result<Boolean>
+    suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double, payerName: String? = null, payerAvatarName: String? = null): Result<Boolean>
     suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>>
     suspend fun deleteActivity(eventId: String, activityId: String): Result<Boolean>
 
@@ -339,7 +339,9 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         activityId: String,
         items: List<Any>,
         taxPercentage: Double,
-        discountAmount: Double
+        discountAmount: Double,
+        payerName: String?,
+        payerAvatarName: String?
     ): Result<Boolean> {
         val uid = currentUserId ?: return Result.failure(Exception("User not logged in"))
         
@@ -351,6 +353,8 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             android.util.Log.d("LucaRepository", "Items count: ${items.size}")
             android.util.Log.d("LucaRepository", "Tax Percentage: $taxPercentage%")
             android.util.Log.d("LucaRepository", "Discount Amount: $discountAmount")
+            android.util.Log.d("LucaRepository", "Payer Name: $payerName")
+            android.util.Log.d("LucaRepository", "Payer Avatar: $payerAvatarName")
 
             if (eventId.isEmpty() || activityId.isEmpty()) {
                 android.util.Log.e("LucaRepository", "ERROR: EventID or ActivityID is empty!")
@@ -365,16 +369,29 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 .collection("activities")
                 .document(activityId)
 
-            // PENTING: Simpan tax dan discount di level Activity document
+            // PENTING: Simpan tax, discount, dan payer di level Activity document
             // Gunakan set dengan merge agar field lain tidak terhapus
+            val activityData = mutableMapOf<String, Any>(
+                "taxPercentage" to taxPercentage,
+                "discountAmount" to discountAmount
+            )
+
+            // Add payer information if provided
+            if (payerName != null) {
+                activityData["payerName"] = payerName
+            }
+            if (payerAvatarName != null) {
+                activityData["paidBy"] = mapOf(
+                    "name" to (payerName ?: ""),
+                    "avatarName" to payerAvatarName
+                )
+            }
+
             activityDocRef.set(
-                mapOf(
-                    "taxPercentage" to taxPercentage,
-                    "discountAmount" to discountAmount
-                ),
+                activityData,
                 com.google.firebase.firestore.SetOptions.merge()
             ).await()
-            android.util.Log.d("LucaRepository", "✅ Saved tax and discount to Activity document (tax: $taxPercentage%, discount: $discountAmount)")
+            android.util.Log.d("LucaRepository", "✅ Saved tax, discount, and payer to Activity document (tax: $taxPercentage%, discount: $discountAmount, payer: $payerName)")
 
             // Reference to items collection
             val itemsCollectionRef = activityDocRef.collection("items")
