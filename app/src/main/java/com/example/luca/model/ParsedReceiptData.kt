@@ -15,6 +15,7 @@ data class ParsedReceiptItem(
     val itemPrice: Double,
     val itemQuantity: Int = 1,
     val itemDiscount: Double = 0.0,
-    val itemTax: Double = 0.0
+    val itemTax: Double = 0.0,
+    val sharedBy: List<String> = emptyList() // List of member names who share this item
 )
 

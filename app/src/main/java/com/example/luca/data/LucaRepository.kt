@@ -30,7 +30,7 @@ interface LucaRepository {
     suspend fun getActivityById(eventId: String, activityId: String): Activity?
     suspend fun getActivityData(eventId: String, activityId: String): Map<String, Any>?
     suspend fun getParticipantsInActivities(eventId: String): List<String>
-    suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, discountAmount: Double, isSplitEqual: Boolean = false): Result<Boolean>
+    suspend fun saveActivityItems(eventId: String, activityId: String, items: List<Any>, taxPercentage: Double, globalTax: Double = 0.0, serviceCharge: Double = 0.0, discountAmount: Double, isSplitEqual: Boolean = false): Result<Boolean>
     suspend fun getActivityItems(eventId: String, activityId: String): List<Map<String, Any>>
     suspend fun deleteActivity(eventId: String, activityId: String): Result<Boolean>
 
@@ -339,6 +339,8 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
         activityId: String,
         items: List<Any>,
         taxPercentage: Double,
+        globalTax: Double,
+        serviceCharge: Double,
         discountAmount: Double,
         isSplitEqual: Boolean
     ): Result<Boolean> {
@@ -351,6 +353,8 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
             android.util.Log.d("LucaRepository", "ActivityID: $activityId")
             android.util.Log.d("LucaRepository", "Items count: ${items.size}")
             android.util.Log.d("LucaRepository", "Tax Percentage: $taxPercentage%")
+            android.util.Log.d("LucaRepository", "Global Tax: $globalTax")
+            android.util.Log.d("LucaRepository", "Service Charge: $serviceCharge")
             android.util.Log.d("LucaRepository", "Discount Amount: $discountAmount")
             android.util.Log.d("LucaRepository", "Equal Split: $isSplitEqual")
 
@@ -367,17 +371,19 @@ class LucaFirebaseRepository(private val context: Context? = null) : LucaReposit
                 .collection("activities")
                 .document(activityId)
 
-            // PENTING: Simpan tax, discount, dan isSplitEqual di level Activity document
+            // PENTING: Simpan tax%, globalTax, service charge, discount, dan isSplitEqual di level Activity document
             // Gunakan set dengan merge agar field lain tidak terhapus
             activityDocRef.set(
                 mapOf(
                     "taxPercentage" to taxPercentage,
+                    "globalTax" to globalTax,
+                    "serviceCharge" to serviceCharge,
                     "discountAmount" to discountAmount,
                     "isSplitEqual" to isSplitEqual
                 ),
                 com.google.firebase.firestore.SetOptions.merge()
             ).await()
-            android.util.Log.d("LucaRepository", "✅ Saved tax, discount, and isSplitEqual to Activity document (tax: $taxPercentage%, discount: $discountAmount, isSplitEqual: $isSplitEqual)")
+            android.util.Log.d("LucaRepository", "✅ Saved tax%, globalTax, service charge, discount, and isSplitEqual to Activity document (tax%: $taxPercentage%, globalTax: $globalTax, service: $serviceCharge, discount: $discountAmount, isSplitEqual: $isSplitEqual)")
 
             // Reference to items collection
             val itemsCollectionRef = activityDocRef.collection("items")

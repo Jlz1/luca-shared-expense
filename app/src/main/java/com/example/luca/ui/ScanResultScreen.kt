@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,7 +46,8 @@ import androidx.compose.ui.layout.ContentScale
 fun ScanResultScreen(
     parsedData: ParsedReceiptData,
     onBackClick: () -> Unit,
-    onScanAgain: () -> Unit
+    onScanAgain: () -> Unit,
+    onContinue: () -> Unit = {}
 ) {
     val contactsViewModel: ContactsViewModel = viewModel()
     val eventMembers by contactsViewModel.contacts.collectAsState()
@@ -59,11 +61,13 @@ fun ScanResultScreen(
     // Global Paid By - satu untuk seluruh receipt
     var globalPaidBy by remember { mutableStateOf<Contact?>(null) }
     var showPaidByDialog by remember { mutableStateOf(false) }
+    var showSummaryDialog by remember { mutableStateOf(false) }
 
     // Calculate subtotal and total
     val subtotal = receiptItems.sumOf { it.itemPrice * it.itemQuantity }
     val totalItemTax = receiptItems.sumOf { it.itemTax }
     val totalItemDiscount = receiptItems.sumOf { it.itemDiscount }
+    // Total bill = subtotal + all taxes + global service charge - all discounts
     val totalBill = subtotal + totalItemTax + globalTax + globalServiceCharge - totalItemDiscount - globalDiscount
 
     var showEditItemDialog by remember { mutableStateOf(false) }
@@ -290,6 +294,7 @@ fun ScanResultScreen(
                                     val item = receiptItems[index]
                                     ParsedReceiptItemRow(
                                         item = item,
+                                        eventMembers = eventMembers,
                                         onItemClick = {
                                             editingItemIndex = index
                                             showEditItemDialog = true
@@ -402,12 +407,13 @@ fun ScanResultScreen(
                     }
 
                     Button(
-                        onClick = onBackClick,
+                        onClick = { showSummaryDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow),
                         modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = globalPaidBy != null && receiptItems.isNotEmpty()
                     ) {
-                        Text("Selesai", color = UIBlack, fontWeight = FontWeight.Bold)
+                        Text("Lihat Summary", color = UIBlack, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -532,8 +538,375 @@ fun ScanResultScreen(
             }
         )
     }
+
+    // Summary Dialog - MATCHING SUMMARYSCREEN WITH DEBT CALCULATION
+    if (showSummaryDialog) {
+        // Calculate individual consumption and debts
+        val memberConsumption = mutableMapOf<String, Double>()
+        val allMembers = mutableSetOf<String>()
+
+        // Collect all members who shared items
+        receiptItems.forEach { item ->
+            item.sharedBy.forEach { memberName ->
+                allMembers.add(memberName)
+            }
+        }
+
+        // Calculate how much each member consumed
+        receiptItems.forEach { item ->
+            val itemTotalCost = (item.itemPrice * item.itemQuantity) + item.itemTax - item.itemDiscount
+            val shareCount = item.sharedBy.size
+
+            if (shareCount > 0) {
+                val costPerPerson = itemTotalCost / shareCount
+                item.sharedBy.forEach { memberName ->
+                    memberConsumption[memberName] = (memberConsumption[memberName] ?: 0.0) + costPerPerson
+                }
+            }
+        }
+
+        // Add shared charges (tax, service charge, discount) split equally
+        val sharedCharges = globalTax + globalServiceCharge - globalDiscount
+        val memberCount = if (allMembers.isNotEmpty()) allMembers.size else 1
+        val sharedChargePerPerson = sharedCharges / memberCount
+
+        allMembers.forEach { memberName ->
+            memberConsumption[memberName] = (memberConsumption[memberName] ?: 0.0) + sharedChargePerPerson
+        }
+
+        // Calculate settlements (debts to payer)
+        val settlements = mutableListOf<Triple<String, String, Double>>() // (from, to, amount)
+        globalPaidBy?.let { payer ->
+            memberConsumption.forEach { (memberName, amount) ->
+                if (memberName != payer.name && amount > 0) {
+                    settlements.add(Triple(memberName, payer.name, amount))
+                }
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showSummaryDialog = false },
+            title = {
+                Text(
+                    "Summary Hasil Scan",
+                    style = AppFont.Bold,
+                    fontSize = 20.sp,
+                    color = UIBlack
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Total Expense Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = UIAccentYellow.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Total Expense",
+                                style = AppFont.SemiBold,
+                                fontSize = 14.sp,
+                                color = UIBlack
+                            )
+                            Text(
+                                text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalBill)}",
+                                style = AppFont.Bold,
+                                fontSize = 18.sp,
+                                color = UIBlack
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Info Paid By
+                    globalPaidBy?.let { payer ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(UIAccentYellow.copy(alpha = 0.2f))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Dibayar oleh:",
+                                fontSize = 12.sp,
+                                color = UIDarkGrey,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(UIAccentYellow),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data("https://api.dicebear.com/9.x/avataaars/png?seed=${payer.avatarName}")
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = payer.name,
+                                        modifier = Modifier.size(32.dp),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(android.R.drawable.ic_menu_gallery)
+                                    )
+                                }
+                                Text(
+                                    text = payer.name,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = UIBlack
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // Settlements (Debts) Section - MATCHING SUMMARYSCREEN
+                    Text(
+                        text = "Settlements (${settlements.size})",
+                        style = AppFont.SemiBold,
+                        fontSize = 18.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    if (settlements.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No settlements needed.\nEveryone is settled up! 🎉",
+                                style = AppFont.Regular,
+                                fontSize = 14.sp,
+                                color = UIDarkGrey,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            settlements.forEach { (fromName, toName, amount) ->
+                                val fromContact = eventMembers.find { it.name == fromName }
+                                val toContact = eventMembers.find { it.name == toName }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(UIWhite)
+                                        .border(1.dp, UIAccentYellow.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    // Left: Avatar Flow
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                    ) {
+                                        // From Avatar
+                                        if (fromContact != null) {
+                                            ParticipantAvatarItemSmall(fromContact)
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .background(UIGrey),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(fromName.first().toString(), color = UIWhite, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        // Arrow
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(UIGrey.copy(alpha = 0.2f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = "Pays to",
+                                                tint = UIBlack,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        // To Avatar
+                                        if (toContact != null) {
+                                            ParticipantAvatarItemSmall(toContact)
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .background(UIAccentYellow),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(toName.first().toString(), color = UIBlack, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+
+                                    // Right: Amount
+                                    Column(
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        Text(
+                                            text = "Rp${String.format(Locale.getDefault(), "%,.0f", amount)}",
+                                            style = AppFont.Bold,
+                                            fontSize = 16.sp,
+                                            color = UIBlack
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Consumption Details
+                    Text(
+                        text = "Consumption by User",
+                        style = AppFont.SemiBold,
+                        fontSize = 16.sp,
+                        color = UIBlack,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(UIBackground)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        memberConsumption.forEach { (memberName, amount) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val member = eventMembers.find { it.name == memberName }
+                                    if (member != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(UIAccentYellow)
+                                        ) {
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = member.name,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = memberName,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = UIBlack
+                                    )
+                                }
+                                Text(
+                                    text = "Rp${String.format(Locale.getDefault(), "%,.0f", amount)}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = UIBlack
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Info Box
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(UIBackground)
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = "ℹ️ Informasi",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = UIBlack
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Settlements menunjukkan siapa yang harus membayar ke siapa. Tap edit item untuk assign shared by.",
+                            fontSize = 11.sp,
+                            color = UIDarkGrey
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSummaryDialog = false
+                        onContinue()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = UIAccentYellow,
+                        contentColor = UIBlack
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("Continue to Main", style = AppFont.Bold, fontSize = 16.sp)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSummaryDialog = false }) {
+                    Text("Close", color = UIDarkGrey, style = AppFont.Medium)
+                }
+            },
+            containerColor = UIWhite,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditScanItemDialog(
     item: ParsedReceiptItem,
@@ -553,244 +926,303 @@ fun EditScanItemDialog(
         "0"
     }
     var itemTaxPercentage by remember { mutableStateOf(initialTaxPercentage) }
-    var selectedSharedBy by remember { mutableStateOf(setOf<String>()) }
+    var selectedSharedBy by remember { mutableStateOf(item.sharedBy.toSet()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Item", fontWeight = FontWeight.Bold) },
+        modifier = Modifier.imePadding(),
+        title = { Text("Edit Item", style = AppFont.SemiBold, fontSize = 18.sp, color = UIBlack) },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // Item Name - Full Width
-                OutlinedTextField(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text("Item Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                // Price + Qty Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = itemPrice,
-                        onValueChange = { itemPrice = it.filter { char -> char.isDigit() || char == '.' } },
-                        label = { Text("Price (Rp)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                // Item Name
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "ITEM NAME",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey
                     )
-
-                    OutlinedTextField(
-                        value = itemQuantity,
-                        onValueChange = { itemQuantity = it.filter { char -> char.isDigit() } },
-                        label = { Text("Qty") },
-                        modifier = Modifier.width(80.dp),
+                    TextField(
+                        value = itemName,
+                        onValueChange = { itemName = it },
+                        placeholder = { Text("e.g. Nasi Goreng", color = UIGrey, fontWeight = FontWeight.SemiBold) },
+                        modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
                     )
                 }
 
-                // Shared By Selection - konsisten dengan NewActivityScreen2
-                Column(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Price and Qty Row
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Column(modifier = Modifier.weight(2f)) {
+                        Text(
+                            text = "PRICE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey
+                        )
+                        TextField(
+                            value = itemPrice,
+                            onValueChange = { itemPrice = it },
+                            placeholder = { Text("Rp 0", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "QTY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = UIDarkGrey
+                        )
+                        TextField(
+                            value = itemQuantity,
+                            onValueChange = { itemQuantity = it },
+                            placeholder = { Text("1", color = UIGrey) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = UIAccentYellow,
+                                unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Item Discount
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Shared by:",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = UIBlack
+                        text = "DISCOUNT (RP)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey
                     )
+                    TextField(
+                        value = itemDiscount,
+                        onValueChange = { itemDiscount = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
 
-                    // Container dengan background seperti Add Participants - maksimal 3 items visible
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(UIBackground)
-                            .padding(8.dp)
-                            .height(120.dp) // Fixed height
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(eventMembers.size) { index ->
-                                val member = eventMembers[index]
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            selectedSharedBy = if (selectedSharedBy.contains(member.name)) {
-                                                selectedSharedBy - member.name
-                                            } else {
-                                                selectedSharedBy + member.name
-                                            }
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        // Avatar dengan image dari drawable
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(UIAccentYellow),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            // --- FIX: Ganti Image Lokal dengan AsyncImage (Coil) ---
-                                            AsyncImage(
-                                                model = ImageRequest.Builder(LocalContext.current)
-                                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
-                                                    .crossfade(true)
-                                                    .build(),
-                                                contentDescription = member.name,
-                                                modifier = Modifier.size(40.dp),
-                                                contentScale = ContentScale.Crop,
-                                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
-                                                error = painterResource(android.R.drawable.ic_menu_report_image)
-                                            )
-                                        }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                                        Spacer(modifier = Modifier.width(12.dp))
+                // Item Tax
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "TAX (%)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = UIDarkGrey
+                    )
+                    TextField(
+                        value = itemTaxPercentage,
+                        onValueChange = { itemTaxPercentage = it },
+                        placeholder = { Text("0", color = UIGrey) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        ),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = UIAccentYellow,
+                            unfocusedIndicatorColor = UIGrey.copy(alpha = 0.5f),
+                        )
+                    )
+                }
 
-                                        Text(
-                                            text = member.name,
-                                            fontSize = 16.sp,
-                                            color = UIBlack,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                                    // Selection indicator - checkmark or plus
-                                    if (selectedSharedBy.contains(member.name)) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF4CAF50)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "✓",
-                                                color = UIWhite,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(UIGrey.copy(alpha = 0.3f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Add,
-                                                contentDescription = "Add",
-                                                tint = UIDarkGrey,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Shared by:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = UIBlack)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // HORIZONTAL LAZY ROW FOR AVATARS - matching NewActivityScreen2
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(eventMembers) { member ->
+                        val isSelected = selectedSharedBy.contains(member.name)
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable {
+                                selectedSharedBy = if (isSelected) {
+                                    selectedSharedBy - member.name
+                                } else {
+                                    selectedSharedBy + member.name
                                 }
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) UIAccentYellow else UIGrey.copy(alpha = 0.3f))
+                                    .border(
+                                        width = if (isSelected) 3.dp else 0.dp,
+                                        color = if (isSelected) UIAccentYellow else Color.Transparent,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val avatarName = if (member.avatarName.isNotBlank()) member.avatarName else "User"
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data("https://api.dicebear.com/9.x/avataaars/png?seed=$avatarName")
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = member.name,
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .then(
+                                            if (!isSelected) Modifier.scale(0.85f)
+                                            else Modifier
+                                        ),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                    alpha = if (isSelected) 1f else 0.4f
+                                )
+                            }
+
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = member.name,
+                                    fontSize = 12.sp,
+                                    color = UIBlack,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
                 }
 
-                // Optional Section
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Optional:",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = UIDarkGrey
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Delete Button
+                Button(
+                    onClick = onDelete,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE57373),
+                        contentColor = UIWhite
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = itemTaxPercentage,
-                            onValueChange = { itemTaxPercentage = it.filter { char -> char.isDigit() || char == '.' } },
-                            label = { Text("Tax (%)") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = itemDiscount,
-                            onValueChange = { itemDiscount = it.filter { char -> char.isDigit() || char == '.' } },
-                            label = { Text("Discount (Rp)") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
+                ) {
+                    Text("Delete Item", style = AppFont.SemiBold, fontSize = 14.sp)
                 }
             }
         },
         confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onDelete) {
-                    Text("Hapus", color = Color.Red)
-                }
-                TextButton(
-                    onClick = {
-                        val price = itemPrice.toDoubleOrNull() ?: 0.0
-                        val quantity = itemQuantity.toIntOrNull() ?: 1
-                        val taxPercentage = itemTaxPercentage.toDoubleOrNull() ?: 0.0
-                        val discount = itemDiscount.toDoubleOrNull() ?: 0.0
+            Button(
+                onClick = {
+                    val price = itemPrice.toDoubleOrNull() ?: 0.0
+                    val quantity = itemQuantity.toIntOrNull() ?: 1
+                    val taxPercentage = itemTaxPercentage.toDoubleOrNull() ?: 0.0
+                    val discount = itemDiscount.toDoubleOrNull() ?: 0.0
 
-                        // Calculate tax amount in Rupiah from percentage
-                        val itemTotalPrice = price * quantity
-                        val taxAmount = itemTotalPrice * taxPercentage / 100
+                    // Calculate tax amount in Rupiah from percentage
+                    val itemTotalPrice = price * quantity
+                    val taxAmount = itemTotalPrice * taxPercentage / 100
 
-                        val updatedItem = ParsedReceiptItem(
-                            itemName = itemName,
-                            itemPrice = price,
-                            itemQuantity = quantity,
-                            itemDiscount = discount,
-                            itemTax = taxAmount
-                        )
-                        onSave(updatedItem)
-                    }
-                ) {
-                    Text("Simpan", color = UIAccentYellow)
-                }
+                    val updatedItem = ParsedReceiptItem(
+                        itemName = itemName,
+                        itemPrice = price,
+                        itemQuantity = quantity,
+                        itemDiscount = discount,
+                        itemTax = taxAmount,
+                        sharedBy = selectedSharedBy.toList()
+                    )
+                    onSave(updatedItem)
+                },
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow, contentColor = UIBlack)
+            ) {
+                Text("Save", style = AppFont.SemiBold, fontSize = 16.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal", color = UIDarkGrey)
+                Text("Cancel", color = UIDarkGrey, style = AppFont.Medium)
             }
-        }
+        },
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
 @Composable
 fun ParsedReceiptItemRow(
     item: ParsedReceiptItem,
+    eventMembers: List<Contact> = emptyList(),
     onItemClick: () -> Unit = {}
 ) {
     Column(
@@ -829,14 +1261,32 @@ fun ParsedReceiptItemRow(
                         text = item.itemName,
                         color = UIBlack,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Item from receipt",
-                        color = UIDarkGrey,
-                        fontSize = 11.sp
-                    )
+
+                    // Display shared by avatars - matching NewActivityScreen2
+                    if (item.sharedBy.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            items(item.sharedBy) { memberName ->
+                                val participant = eventMembers.find { it.name == memberName }
+                                if (participant != null) {
+                                    MiniAvatarWithImage(participant)
+                                } else {
+                                    MiniAvatar()
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "Tap to assign members",
+                            color = UIDarkGrey,
+                            fontSize = 11.sp,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        )
+                    }
                 }
             }
 

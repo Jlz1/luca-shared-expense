@@ -338,7 +338,12 @@ fun LucaApp() {
                     }
                     composable("scan") {
                         ScanScreen(
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            onContinue = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
 

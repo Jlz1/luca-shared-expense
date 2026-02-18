@@ -36,7 +36,8 @@ import java.util.Locale
 @Composable
 fun ScanScreen(
     viewModel: ScanViewModel = viewModel(),
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onContinue: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scanResult by viewModel.scanState.collectAsState()
@@ -58,6 +59,11 @@ fun ScanScreen(
                 showResultScreen = false
                 viewModel.resetScan()
                 cameraLaunched = false
+            },
+            onContinue = {
+                showResultScreen = false
+                viewModel.resetScan()
+                onContinue()
             }
         )
         return
