@@ -56,8 +56,10 @@ fun ScanResultScreen(
     var showPaidByDialog by remember { mutableStateOf(false) }
 
     // Calculate subtotal and total
-    val subtotal = receiptItems.sumOf { it.itemPrice * it.itemQuantity - it.itemDiscount }
-    val totalBill = subtotal + globalTax + globalServiceCharge - globalDiscount
+    val subtotal = receiptItems.sumOf { it.itemPrice * it.itemQuantity }
+    val totalItemTax = receiptItems.sumOf { it.itemTax }
+    val totalItemDiscount = receiptItems.sumOf { it.itemDiscount }
+    val totalBill = subtotal + totalItemTax + globalTax + globalServiceCharge - totalItemDiscount - globalDiscount
 
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
@@ -331,6 +333,10 @@ fun ScanResultScreen(
                         .background(UIWhite)
                         .padding(16.dp)
                 ) {
+                    // Calculate totals from items
+                    val totalItemTax = receiptItems.sumOf { it.itemTax }
+                    val totalItemDiscount = receiptItems.sumOf { it.itemDiscount }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -343,8 +349,8 @@ fun ScanResultScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Tax", fontSize = 12.sp, color = UIDarkGrey)
-                        Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalTax)}", fontSize = 12.sp, color = UIDarkGrey)
+                        Text(text = "Tax (Total)", fontSize = 12.sp, color = UIDarkGrey)
+                        Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalItemTax + globalTax)}", fontSize = 12.sp, color = UIDarkGrey)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(
@@ -354,14 +360,14 @@ fun ScanResultScreen(
                         Text(text = "Service Charge", fontSize = 12.sp, color = UIDarkGrey)
                         Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", globalServiceCharge)}", fontSize = 12.sp, color = UIDarkGrey)
                     }
-                    if (globalDiscount > 0) {
+                    if (totalItemDiscount + globalDiscount > 0) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Discount", fontSize = 12.sp, color = UIDarkGrey)
-                            Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", globalDiscount)}", fontSize = 12.sp, color = UIDarkGrey)
+                            Text(text = "Discount (Total)", fontSize = 12.sp, color = UIDarkGrey)
+                            Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", totalItemDiscount + globalDiscount)}", fontSize = 12.sp, color = UIDarkGrey)
                         }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -537,7 +543,13 @@ fun EditScanItemDialog(
     var itemPrice by remember { mutableStateOf(item.itemPrice.toString()) }
     var itemQuantity by remember { mutableStateOf(item.itemQuantity.toString()) }
     var itemDiscount by remember { mutableStateOf(item.itemDiscount.toString()) }
-    var itemTax by remember { mutableStateOf(item.itemTax.toString()) }
+    // Calculate tax percentage from tax amount for display
+    val initialTaxPercentage = if (item.itemPrice * item.itemQuantity > 0) {
+        (item.itemTax / (item.itemPrice * item.itemQuantity) * 100).toString()
+    } else {
+        "0"
+    }
+    var itemTaxPercentage by remember { mutableStateOf(initialTaxPercentage) }
     var selectedSharedBy by remember { mutableStateOf(setOf<String>()) }
 
     AlertDialog(
@@ -716,8 +728,8 @@ fun EditScanItemDialog(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedTextField(
-                            value = itemTax,
-                            onValueChange = { itemTax = it.filter { char -> char.isDigit() || char == '.' } },
+                            value = itemTaxPercentage,
+                            onValueChange = { itemTaxPercentage = it.filter { char -> char.isDigit() || char == '.' } },
                             label = { Text("Tax (%)") },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
@@ -743,12 +755,21 @@ fun EditScanItemDialog(
                 }
                 TextButton(
                     onClick = {
+                        val price = itemPrice.toDoubleOrNull() ?: 0.0
+                        val quantity = itemQuantity.toIntOrNull() ?: 1
+                        val taxPercentage = itemTaxPercentage.toDoubleOrNull() ?: 0.0
+                        val discount = itemDiscount.toDoubleOrNull() ?: 0.0
+
+                        // Calculate tax amount in Rupiah from percentage
+                        val itemTotalPrice = price * quantity
+                        val taxAmount = itemTotalPrice * taxPercentage / 100
+
                         val updatedItem = ParsedReceiptItem(
                             itemName = itemName,
-                            itemPrice = itemPrice.toDoubleOrNull() ?: 0.0,
-                            itemQuantity = itemQuantity.toIntOrNull() ?: 1,
-                            itemDiscount = itemDiscount.toDoubleOrNull() ?: 0.0,
-                            itemTax = itemTax.toDoubleOrNull() ?: 0.0
+                            itemPrice = price,
+                            itemQuantity = quantity,
+                            itemDiscount = discount,
+                            itemTax = taxAmount
                         )
                         onSave(updatedItem)
                     }
@@ -770,7 +791,7 @@ fun ParsedReceiptItemRow(
     item: ParsedReceiptItem,
     onItemClick: () -> Unit = {}
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
@@ -781,57 +802,93 @@ fun ParsedReceiptItemRow(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable { onItemClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = "${item.itemQuantity}x",
-                color = UIDarkGrey,
-                fontSize = 14.sp,
-                modifier = Modifier.width(28.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top
+            ) {
                 Text(
-                    text = item.itemName,
+                    text = "${item.itemQuantity}x",
+                    color = UIDarkGrey,
+                    fontSize = 14.sp,
+                    modifier = Modifier.width(28.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.itemName,
+                        color = UIBlack,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Item from receipt",
+                        color = UIDarkGrey,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val totalPrice = item.itemPrice * item.itemQuantity
+                Text(
+                    text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalPrice)}",
                     color = UIBlack,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Item from receipt",
-                    color = UIDarkGrey,
-                    fontSize = 11.sp
+
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Tap to edit",
+                    tint = UIDarkGrey.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val totalPrice = item.itemPrice * item.itemQuantity
-            Text(
-                text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalPrice)}",
-                color = UIBlack,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
+        // Show item-specific tax and discount if they exist
+        if (item.itemTax > 0 || item.itemDiscount > 0) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = "Tap to edit",
-                tint = UIDarkGrey.copy(alpha = 0.6f),
-                modifier = Modifier.size(16.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    if (item.itemTax > 0) {
+                        Text(
+                            text = "Tax: +Rp${String.format(Locale.getDefault(), "%,.0f", item.itemTax)}",
+                            color = UIDarkGrey,
+                            fontSize = 11.sp
+                        )
+                    }
+                    if (item.itemDiscount > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Discount: -Rp${String.format(Locale.getDefault(), "%,.0f", item.itemDiscount)}",
+                            color = UIDarkGrey,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }

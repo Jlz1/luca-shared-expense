@@ -258,6 +258,7 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
             try {
                 android.util.Log.d("AddEventViewModel", "======== saveActivityItems START ========")
                 android.util.Log.d("AddEventViewModel", "EventID: $eventId, ActivityID: $activityId, Items: ${items.size}")
+                android.util.Log.d("AddEventViewModel", "Tax: $taxPercentage%, Discount: $discountAmount")
 
                 val result = repository.saveActivityItems(
                     eventId = eventId,

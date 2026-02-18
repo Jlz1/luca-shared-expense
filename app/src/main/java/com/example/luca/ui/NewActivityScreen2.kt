@@ -172,13 +172,77 @@ fun AddActivityScreen2(
         mutableStateOf<List<ReceiptItem>?>(null)
     }
 
+    // --- STATE: Tax and Discount yang diperbaiki ---
+    var globalTaxPercentage by remember { mutableStateOf(0.0) }
+    var globalDiscountAmount by remember { mutableStateOf(0.0) }
+
     // Load items for this Activity when the screen opens
     LaunchedEffect(eventId, activityId) {
         if (eventId.isNotEmpty() && activityId.isNotEmpty()) {
+            android.util.Log.d("NewActivityScreen2", "🔄 Loading items for EventID: $eventId, ActivityID: $activityId")
             val repo = LucaFirebaseRepository()
+
+            // Load Activity document to get tax and discount
+            val activityData = withContext(Dispatchers.IO) {
+                repo.getActivityData(eventId, activityId)
+            }
+
+            // Restore tax and discount from Activity document
+            if (activityData != null) {
+                val taxFromActivity = activityData["taxPercentage"]
+                val discFromActivity = activityData["discountAmount"]
+
+                android.util.Log.d("NewActivityScreen2", "🔍 Activity data - Tax: $taxFromActivity, Discount: $discFromActivity")
+
+                globalTaxPercentage = when (taxFromActivity) {
+                    is Double -> taxFromActivity
+                    is Int -> taxFromActivity.toDouble()
+                    is Long -> taxFromActivity.toDouble()
+                    is String -> taxFromActivity.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                globalDiscountAmount = when (discFromActivity) {
+                    is Double -> discFromActivity
+                    is Int -> discFromActivity.toDouble()
+                    is Long -> discFromActivity.toDouble()
+                    is String -> discFromActivity.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                android.util.Log.d("NewActivityScreen2", "✅ Restored from Activity doc - tax: $globalTaxPercentage%, discount: $globalDiscountAmount")
+            }
+
+            // Load items
             val items = withContext(Dispatchers.IO) {
                 repo.getActivityItems(eventId, activityId)
             }
+
+            android.util.Log.d("NewActivityScreen2", "📥 Loaded ${items.size} items from Firestore")
+
+            // Fallback: if Activity document doesn't have tax/discount, try to get from first item
+            if (globalTaxPercentage == 0.0 && globalDiscountAmount == 0.0 && items.isNotEmpty()) {
+                val firstItem = items.first()
+                android.util.Log.d("NewActivityScreen2", "🔍 Fallback: Reading from first item")
+
+                val taxValue = firstItem["taxPercentage"]
+                val discValue = firstItem["discountAmount"]
+
+                globalTaxPercentage = when (taxValue) {
+                    is Double -> taxValue
+                    is Int -> taxValue.toDouble()
+                    is Long -> taxValue.toDouble()
+                    is String -> taxValue.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                globalDiscountAmount = when (discValue) {
+                    is Double -> discValue
+                    is Int -> discValue.toDouble()
+                    is Long -> discValue.toDouble()
+                    is String -> discValue.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                android.util.Log.d("NewActivityScreen2", "✅ Restored from item - tax: $globalTaxPercentage%, discount: $globalDiscountAmount")
+            }
+
             // Map Firestore item documents to UI ReceiptItem
             receiptItems = items.map { data ->
                 val name = (data["itemName"] as? String) ?: ""
@@ -195,20 +259,37 @@ fun AddActivityScreen2(
                     else -> 1
                 }
                 val memberNames = (data["memberNames"] as? List<*>)?.map { it.toString() } ?: emptyList()
+
+                // Load itemTax and itemDiscount
+                val itemTax = when (val tax = data["itemTax"]) {
+                    is Double -> tax
+                    is Int -> tax.toDouble()
+                    is Long -> tax.toDouble()
+                    is String -> tax.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+                val itemDiscount = when (val disc = data["itemDiscount"]) {
+                    is Double -> disc
+                    is Int -> disc.toDouble()
+                    is Long -> disc.toDouble()
+                    is String -> disc.toDoubleOrNull() ?: 0.0
+                    else -> 0.0
+                }
+
                 ReceiptItem(
                     quantity = qty,
                     itemName = name,
                     price = price,
                     members = emptyList(),
-                    memberNames = memberNames
+                    memberNames = memberNames,
+                    itemTax = itemTax,
+                    itemDiscount = itemDiscount
                 )
             }
+            android.util.Log.d("NewActivityScreen2", "✅ Mapped ${receiptItems.size} ReceiptItems for UI")
         }
     }
 
-    // --- STATE: Tax and Discount yang diperbaiki ---
-    var globalTaxPercentage by remember { mutableStateOf(0.0) }
-    var globalDiscountAmount by remember { mutableStateOf(0.0) }
 
     // --- STATE: Dialog ---
     var showAddItemDialog by remember { mutableStateOf(false) }
@@ -720,8 +801,10 @@ fun AddActivityScreen2(
                     ) {
                         // Calculate subtotal with qty * price
                         val subtotal = receiptItems.sumOf { (it.price.toDouble() * it.quantity) }
-                        val taxAmount = subtotal * globalTaxPercentage / 100
-                        val totalBill = subtotal + taxAmount - globalDiscountAmount
+                        val totalItemTax = receiptItems.sumOf { it.itemTax }
+                        val totalItemDiscount = receiptItems.sumOf { it.itemDiscount }
+                        // Total Bill hanya dari sum per-item tax dan discount
+                        val totalBill = subtotal + totalItemTax - totalItemDiscount
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -730,22 +813,26 @@ fun AddActivityScreen2(
                             Text(text = "Subtotal", fontSize = 12.sp, color = UIDarkGrey)
                             Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", subtotal)}", fontSize = 12.sp, color = UIDarkGrey)
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = "Tax (${globalTaxPercentage.toInt()}%)", fontSize = 12.sp, color = UIDarkGrey)
-                            Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", taxAmount)}", fontSize = 12.sp, color = UIDarkGrey)
-                        }
-                        if (globalDiscountAmount > 0) {
+                        // Tampilkan Tax hanya jika ada
+                        if (totalItemTax > 0) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Discount", fontSize = 12.sp, color = UIDarkGrey)
-                                Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", globalDiscountAmount)}", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "Tax (Total)", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalItemTax)}", fontSize = 12.sp, color = UIDarkGrey)
+                            }
+                        }
+                        // Tampilkan Discount hanya jika ada
+                        if (totalItemDiscount > 0) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "Discount (Total)", fontSize = 12.sp, color = UIDarkGrey)
+                                Text(text = "-Rp${String.format(Locale.getDefault(), "%,.0f", totalItemDiscount)}", fontSize = 12.sp, color = UIDarkGrey)
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -809,13 +896,16 @@ fun AddActivityScreen2(
                                     "price" to item.price,
                                     "quantity" to item.quantity,
                                     "memberNames" to item.memberNames,
+                                    "itemTax" to item.itemTax,
+                                    "itemDiscount" to item.itemDiscount,
                                     "timestamp" to System.currentTimeMillis()
                                 )
                             }
 
                             // Log untuk debugging
-                            android.util.Log.d("NewActivityScreen2", "Saving ${itemsForDb.size} items...")
-                            android.util.Log.d("NewActivityScreen2", "Tax: $globalTaxPercentage%, Discount: ${globalDiscountAmount}")
+                            android.util.Log.d("NewActivityScreen2", "💾 Saving ${itemsForDb.size} items...")
+                            android.util.Log.d("NewActivityScreen2", "💾 Tax: $globalTaxPercentage% (type: ${globalTaxPercentage.javaClass.simpleName})")
+                            android.util.Log.d("NewActivityScreen2", "💾 Discount: $globalDiscountAmount (type: ${globalDiscountAmount.javaClass.simpleName})")
                             itemsForDb.forEachIndexed { index, item ->
                                 android.util.Log.d("NewActivityScreen2", "Item[$index]: $item")
                             }
@@ -902,8 +992,14 @@ fun AddActivityScreen2(
                 receiptItems = receiptItems + newItem
                 showAddItemDialog = false
             },
-            onTaxChanged = { globalTaxPercentage = it },
-            onDiscountChanged = { globalDiscountAmount = it }
+            onTaxChanged = { newTaxPercentage ->
+                // Simpan tax percentage untuk item berikutnya
+                globalTaxPercentage = newTaxPercentage
+            },
+            onDiscountChanged = { newDiscountAmount ->
+                // Simpan discount amount untuk item berikutnya
+                globalDiscountAmount = newDiscountAmount
+            }
         )
     }
 
@@ -937,9 +1033,17 @@ fun AddActivityScreen2(
                 receiptItems = updatedList
                 showEditItemDialog = false
                 editingItemIndex = -1
+                // Tax dan discount item yang dihapus otomatis hilang dari perhitungan total
+                // karena totalItemTax dan totalItemDiscount menggunakan sumOf dari receiptItems
             },
-            onTaxChanged = { globalTaxPercentage = it },
-            onDiscountChanged = { globalDiscountAmount = it }
+            onTaxChanged = { newTaxPercentage ->
+                // Simpan tax percentage untuk referensi
+                globalTaxPercentage = newTaxPercentage
+            },
+            onDiscountChanged = { newDiscountAmount ->
+                // Simpan discount amount untuk referensi
+                globalDiscountAmount = newDiscountAmount
+            }
         )
     }
 
@@ -1244,7 +1348,7 @@ fun ReceiptItemRow(
     eventMembers: List<Contact>,
     onItemClick: () -> Unit = {}
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
@@ -1255,67 +1359,103 @@ fun ReceiptItemRow(
                 shape = RoundedCornerShape(8.dp)
             )
             .clickable { onItemClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = "${item.quantity}x",
-                color = UIDarkGrey,
-                fontSize = 14.sp,
-                modifier = Modifier.width(28.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top
+            ) {
                 Text(
-                    text = item.itemName,
-                    color = UIBlack,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    text = "${item.quantity}x",
+                    color = UIDarkGrey,
+                    fontSize = 14.sp,
+                    modifier = Modifier.width(28.dp)
                 )
-                Spacer(modifier = Modifier.height(6.dp))
 
-                // Tampilkan participant icons dari database
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(item.memberNames.size) { index ->
-                        val memberName = item.memberNames[index]
-                        val participant = eventMembers.find { it.name == memberName }
-                        if (participant != null) {
-                            MiniAvatarWithImage(participant)
-                        } else {
-                            MiniAvatar()
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.itemName,
+                        color = UIBlack,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Tampilkan participant icons dari database
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(item.memberNames.size) { index ->
+                            val memberName = item.memberNames[index]
+                            val participant = eventMembers.find { it.name == memberName }
+                            if (participant != null) {
+                                MiniAvatarWithImage(participant)
+                            } else {
+                                MiniAvatar()
+                            }
                         }
                     }
                 }
             }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Tampilkan total price (quantity * price)
+                val totalPrice = item.price.toDouble() * item.quantity
+                Text(
+                    text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalPrice)}",
+                    color = UIBlack,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+
+                // Edit indicator icon
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Tap to edit",
+                    tint = UIDarkGrey.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Tampilkan total price (quantity * price)
-            val totalPrice = item.price.toDouble() * item.quantity
-            Text(
-                text = "Rp${String.format(Locale.getDefault(), "%,.0f", totalPrice)}",
-                color = UIBlack,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
+        // Show item-specific tax and discount if they exist
+        if (item.itemTax > 0 || item.itemDiscount > 0) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(thickness = 1.dp, color = UIGrey.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Edit indicator icon
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = "Tap to edit",
-                tint = UIDarkGrey.copy(alpha = 0.6f),
-                modifier = Modifier.size(16.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    if (item.itemTax > 0) {
+                        Text(
+                            text = "Tax: +Rp${String.format(Locale.getDefault(), "%,.0f", item.itemTax)}",
+                            color = UIDarkGrey,
+                            fontSize = 11.sp
+                        )
+                    }
+                    if (item.itemDiscount > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Discount: -Rp${String.format(Locale.getDefault(), "%,.0f", item.itemDiscount)}",
+                            color = UIDarkGrey,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1599,8 +1739,16 @@ fun AddItemDialog(
                 onClick = {
                     val price = itemPrice.toDoubleOrNull() ?: 0.0
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val tax = tempTax.toDoubleOrNull() ?: 0.0
+                    val taxPercentage = tempTax.toDoubleOrNull() ?: 0.0
                     val discount = tempDiscount.toDoubleOrNull() ?: 0.0
+
+                    // Update global tax and discount values
+                    onTaxChanged(taxPercentage)
+                    onDiscountChanged(discount)
+
+                    // Calculate item tax in Rupiah based on percentage
+                    val itemTotalPrice = price * quantity
+                    val itemTaxAmount = itemTotalPrice * taxPercentage / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val newItem = ReceiptItem(
@@ -1608,11 +1756,11 @@ fun AddItemDialog(
                             itemName = itemName,
                             price = price.toLong(),
                             members = selectedMembers.map { UIAccentYellow },
-                            memberNames = selectedMembers.toList()
+                            memberNames = selectedMembers.toList(),
+                            itemTax = itemTaxAmount,
+                            itemDiscount = discount
                         )
 
-                        onTaxChanged(tax)
-                        onDiscountChanged(discount)
                         onAddItem(newItem)
                     }
                 },
@@ -1660,8 +1808,14 @@ fun EditItemDialog(
             else item.memberNames.toSet()
         )
     }
-    var tempTax by remember { mutableStateOf(taxPercentage.toString()) }
-    var tempDiscount by remember { mutableStateOf(discountAmount.toString()) }
+    // Calculate tax percentage from item's tax amount for display
+    val initialTaxPercentage = if (item.price.toDouble() * item.quantity > 0) {
+        (item.itemTax / (item.price.toDouble() * item.quantity) * 100).toString()
+    } else {
+        "0"
+    }
+    var tempTax by remember { mutableStateOf(initialTaxPercentage) }
+    var tempDiscount by remember { mutableStateOf(item.itemDiscount.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1922,8 +2076,16 @@ fun EditItemDialog(
                 onClick = {
                     val price = itemPrice.toLongOrNull() ?: 0L
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val tax = tempTax.toDoubleOrNull() ?: 0.0
+                    val taxPercentage = tempTax.toDoubleOrNull() ?: 0.0
                     val discount = tempDiscount.toDoubleOrNull() ?: 0.0
+
+                    // Update global tax and discount values
+                    onTaxChanged(taxPercentage)
+                    onDiscountChanged(discount)
+
+                    // Calculate item tax in Rupiah based on percentage
+                    val itemTotalPrice = price.toDouble() * quantity
+                    val itemTaxAmount = itemTotalPrice * taxPercentage / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val updatedItem = ReceiptItem(
@@ -1931,11 +2093,11 @@ fun EditItemDialog(
                             itemName = itemName,
                             price = price,
                             members = selectedMembers.map { UIAccentYellow }, // Placeholder colors for selected members
-                            memberNames = selectedMembers.toList() // Store actual member names
+                            memberNames = selectedMembers.toList(), // Store actual member names
+                            itemTax = itemTaxAmount,
+                            itemDiscount = discount
                         )
 
-                        onTaxChanged(tax)
-                        onDiscountChanged(discount)
                         onSaveItem(updatedItem)
                     }
                 },
