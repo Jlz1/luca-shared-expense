@@ -59,6 +59,9 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError = _lastError.asStateFlow()
 
+    private val _showMinimumParticipantError = MutableStateFlow(false)
+    val showMinimumParticipantError = _showMinimumParticipantError.asStateFlow()
+
     init {
         // Load data awal
         fetchContacts()
@@ -156,6 +159,12 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
     fun saveEvent() {
         if (_title.value.isBlank()) return
 
+        // VALIDASI: Minimal 2 participant
+        if (_selectedParticipants.value.size < 2) {
+            _showMinimumParticipantError.value = true
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
 
@@ -225,6 +234,10 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         _showParticipantWarning.value = false
     }
 
+    fun dismissMinimumParticipantError() {
+        _showMinimumParticipantError.value = false
+    }
+
     fun resetSuccessState() {
         _isSuccess.value = false
     }
@@ -241,6 +254,7 @@ class AddEventViewModel(application: Application) : AndroidViewModel(application
         _isLoading.value = false
         _showParticipantWarning.value = false
         _removedParticipantsInActivity.value = emptyList()
+        _showMinimumParticipantError.value = false
         // Reload user sendiri setelah reset (siap untuk create baru)
         fetchCurrentUser()
     }
