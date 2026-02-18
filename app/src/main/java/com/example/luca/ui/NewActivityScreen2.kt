@@ -297,6 +297,8 @@ fun AddActivityScreen2(
     var showAddItemDialog by remember { mutableStateOf(false) }
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
+    var showEditPayerDialog by remember { mutableStateOf(false) }
+    var selectedPayer by remember { mutableStateOf(activity?.payerName ?: eventMembers.firstOrNull()?.name ?: "") }
 
     // --- STATE: Scan Camera Integration ---
     val scanViewModel: ScanViewModel = viewModel()
@@ -442,7 +444,7 @@ fun AddActivityScreen2(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
+                        .padding(horizontal = 5.dp)
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -463,7 +465,7 @@ fun AddActivityScreen2(
                                 .padding(horizontal = 8.dp, vertical = 8.dp)
                         ) {
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp), // Reduced from 12.dp to 6.dp
+                                horizontalArrangement = Arrangement.spacedBy((-4).dp), // Negative spacing for overlapping effect
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxSize()
                             ) {
@@ -586,7 +588,7 @@ fun AddActivityScreen2(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(UIWhite)
-                                .padding(horizontal = 20.dp)
+                                .padding(horizontal = 16.dp)
                         ) {
                             // Receipt Header
                             Column(
@@ -599,12 +601,30 @@ fun AddActivityScreen2(
                                     fontSize = 16.sp,
                                     color = UIBlack
                                 )
-                                Text(
-                                    text = "Paid by ${activity?.payerName ?: "Unknown"}",
-                                    style = AppFont.Regular,
-                                    fontSize = 12.sp,
-                                    color = UIDarkGrey
-                                )
+
+                                // Paid by - Clickable untuk edit
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { showEditPayerDialog = true }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Paid by ${selectedPayer}",
+                                        style = AppFont.Regular,
+                                        fontSize = 12.sp,
+                                        color = UIDarkGrey
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Edit Payer",
+                                        tint = UIDarkGrey,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(24.dp))
@@ -1068,6 +1088,19 @@ fun AddActivityScreen2(
             }
         )
     }
+
+    // Edit Payer Dialog
+    if (showEditPayerDialog) {
+        EditPayerDialog(
+            currentPayer = selectedPayer,
+            availableMembers = eventMembers,
+            onDismiss = { showEditPayerDialog = false },
+            onSave = { newPayer ->
+                selectedPayer = newPayer
+                showEditPayerDialog = false
+            }
+        )
+    }
 }
 
 // Custom shape for the receipt card
@@ -1204,7 +1237,7 @@ fun ParticipantAvatarItemSmall(contact: Contact) {
                 error = painterResource(android.R.drawable.ic_menu_report_image)
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(1.dp))
         Text(
             text = contact.name,
             fontSize = 9.sp,
@@ -1309,7 +1342,7 @@ fun ReceiptItemRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.Top
         ) {
             Row(
@@ -1330,7 +1363,9 @@ fun ReceiptItemRow(
                         text = item.itemName,
                         color = UIBlack,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(6.dp))
 
@@ -1348,6 +1383,8 @@ fun ReceiptItemRow(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1421,6 +1458,8 @@ fun AddItemDialog(
     var itemName by remember { mutableStateOf("") }
     var itemPrice by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("1") }
+    var itemTax by remember { mutableStateOf("") }
+    var itemDiscount by remember { mutableStateOf("") }
 
     var selectedMembers by remember {
         mutableStateOf(
@@ -1428,8 +1467,6 @@ fun AddItemDialog(
             else setOf<String>()
         )
     }
-    var tempTax by remember { mutableStateOf(taxPercentage.toString()) }
-    var tempDiscount by remember { mutableStateOf(discountAmount.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1443,6 +1480,7 @@ fun AddItemDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
+                // Item Name
                 OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
@@ -1454,6 +1492,7 @@ fun AddItemDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Price and Qty Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1476,6 +1515,32 @@ fun AddItemDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Item Discount
+                OutlinedTextField(
+                    value = itemDiscount,
+                    onValueChange = { itemDiscount = it },
+                    label = { Text("Discount (Rp)") },
+                    placeholder = { Text("0") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Item Tax
+                OutlinedTextField(
+                    value = itemTax,
+                    onValueChange = { itemTax = it },
+                    label = { Text("Tax (%)") },
+                    placeholder = { Text("0") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1570,56 +1635,31 @@ fun AddItemDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Optional:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = UIDarkGrey)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = tempTax,
-                        onValueChange = { tempTax = it },
-                        label = { Text("Tax (%)") },
-                        placeholder = { Text("0") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = tempDiscount,
-                        onValueChange = { tempDiscount = it.replace("[^\\d]".toRegex(), "") },
-                        label = { Text("Discount (Rp)") },
-                        placeholder = { Text("0") },
-                        prefix = { Text("Rp") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val price = itemPrice.toDoubleOrNull() ?: 0.0
+                    val price = itemPrice.toLongOrNull() ?: 0L
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val taxVal = tempTax.toDoubleOrNull() ?: 0.0
-                    val discVal = tempDiscount.toDoubleOrNull() ?: 0.0
+                    val taxVal = itemTax.toDoubleOrNull() ?: 0.0
+                    val discVal = itemDiscount.toLongOrNull() ?: 0L
 
                     onTaxChanged(taxVal)
-                    onDiscountChanged(discVal)
+                    onDiscountChanged(discVal.toDouble())
 
-                    val itemTotalPrice = price * quantity
+                    val itemTotalPrice = price.toDouble() * quantity
                     val itemTaxAmount = itemTotalPrice * taxVal / 100
 
                     if (itemName.isNotBlank() && price > 0 && selectedMembers.isNotEmpty()) {
                         val newItem = ReceiptItem(
                             quantity = quantity,
                             itemName = itemName,
-                            price = price.toLong(),
+                            price = price,
                             members = emptyList(), // Placeholder
                             memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discVal
+                            itemDiscount = discVal.toDouble()
                         )
                         onAddItem(newItem)
                     }
@@ -1659,6 +1699,13 @@ fun EditItemDialog(
     var itemPrice by remember { mutableStateOf(item.price.toString()) }
     var itemQuantity by remember { mutableStateOf(item.quantity.toString()) }
 
+    val initialTaxPercentage = if (item.price.toDouble() * item.quantity > 0) {
+        (item.itemTax / (item.price.toDouble() * item.quantity) * 100).toString()
+    } else { "0" }
+
+    var itemTax by remember { mutableStateOf(initialTaxPercentage) }
+    var itemDiscount by remember { mutableStateOf(item.itemDiscount.toString()) }
+
     var selectedMembers by remember {
         mutableStateOf(
             if (isSplitEqual) eventMembers.map { it.name }.toSet()
@@ -1666,12 +1713,6 @@ fun EditItemDialog(
         )
     }
 
-    val initialTaxPercentage = if (item.price.toDouble() * item.quantity > 0) {
-        (item.itemTax / (item.price.toDouble() * item.quantity) * 100).toString()
-    } else { "0" }
-
-    var tempTax by remember { mutableStateOf(initialTaxPercentage) }
-    var tempDiscount by remember { mutableStateOf(item.itemDiscount.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1692,6 +1733,7 @@ fun EditItemDialog(
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             ) {
+                // Item Name
                 OutlinedTextField(
                     value = itemName,
                     onValueChange = { itemName = it },
@@ -1700,8 +1742,14 @@ fun EditItemDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
                 )
+
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                // Price and Qty Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
                         value = itemPrice,
                         onValueChange = { itemPrice = it },
@@ -1710,6 +1758,7 @@ fun EditItemDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp)
                     )
+
                     OutlinedTextField(
                         value = itemQuantity,
                         onValueChange = { itemQuantity = it },
@@ -1719,6 +1768,33 @@ fun EditItemDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Item Discount
+                OutlinedTextField(
+                    value = itemDiscount,
+                    onValueChange = { itemDiscount = it },
+                    label = { Text("Discount (Rp)") },
+                    placeholder = { Text("0") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Item Tax
+                OutlinedTextField(
+                    value = itemTax,
+                    onValueChange = { itemTax = it },
+                    label = { Text("Tax (%)") },
+                    placeholder = { Text("0") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Shared by:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = UIBlack)
@@ -1796,29 +1872,6 @@ fun EditItemDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Optional:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = UIDarkGrey)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = tempTax,
-                        onValueChange = { tempTax = it },
-                        label = { Text("Tax (%)") },
-                        placeholder = { Text("0") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = tempDiscount,
-                        onValueChange = { tempDiscount = it.replace("[^\\d]".toRegex(), "") },
-                        label = { Text("Discount (Rp)") },
-                        placeholder = { Text("0") },
-                        prefix = { Text("Rp") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
             }
         },
         confirmButton = {
@@ -1826,8 +1879,8 @@ fun EditItemDialog(
                 onClick = {
                     val price = itemPrice.toLongOrNull() ?: 0L
                     val quantity = itemQuantity.toIntOrNull() ?: 1
-                    val taxVal = tempTax.toDoubleOrNull() ?: 0.0
-                    val discVal = tempDiscount.toDoubleOrNull() ?: 0.0
+                    val taxVal = itemTax.toDoubleOrNull() ?: 0.0
+                    val discVal = itemDiscount.toLongOrNull() ?: 0L
                     val itemTotalPrice = price.toDouble() * quantity
                     val itemTaxAmount = itemTotalPrice * taxVal / 100
 
@@ -1839,7 +1892,7 @@ fun EditItemDialog(
                             members = emptyList(), // Placeholder
                             memberNames = selectedMembers.toList(),
                             itemTax = itemTaxAmount,
-                            itemDiscount = discVal
+                            itemDiscount = discVal.toDouble()
                         )
                         onSaveItem(updatedItem)
                     }
@@ -1994,6 +2047,134 @@ fun EditParticipantsDialog(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Save", style = AppFont.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = AppFont.Medium, color = UIDarkGrey)
+            }
+        },
+        containerColor = UIWhite,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun EditPayerDialog(
+    currentPayer: String,
+    availableMembers: List<Contact>,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var selectedPayer by remember { mutableStateOf(currentPayer) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Payer",
+                style = AppFont.SemiBold,
+                fontSize = 20.sp,
+                color = UIBlack
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) {
+                Text(
+                    text = "Who paid for this activity?",
+                    style = AppFont.Regular,
+                    fontSize = 14.sp,
+                    color = UIDarkGrey,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Scrollable list of members
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(UIBackground)
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableMembers) { member ->
+                        val isSelected = selectedPayer == member.name
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) UIAccentYellow.copy(alpha = 0.3f) else UIWhite)
+                                .clickable {
+                                    selectedPayer = member.name
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Avatar
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("https://api.dicebear.com/9.x/avataaars/png?seed=${member.avatarName}")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = member.name,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(android.R.drawable.ic_menu_gallery),
+                                error = painterResource(android.R.drawable.ic_menu_report_image)
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Name
+                            Text(
+                                text = member.name,
+                                style = AppFont.Medium,
+                                fontSize = 16.sp,
+                                color = UIBlack,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Checkmark if selected (sama seperti EditParticipantsDialog)
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(UIAccentYellow),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "✓",
+                                        style = AppFont.Bold,
+                                        fontSize = 14.sp,
+                                        color = UIBlack
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(selectedPayer) },
+                modifier = Modifier.height(48.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = UIAccentYellow,
+                    contentColor = UIBlack
+                )
+            ) {
+                Text("Save", style = AppFont.SemiBold, fontSize = 16.sp)
             }
         },
         dismissButton = {
