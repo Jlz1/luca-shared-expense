@@ -64,6 +64,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.luca.ui.theme.*
 
 // --- DATA CLASSES (DEFINISI TUNGGAL) ---
 
@@ -963,55 +978,223 @@ fun ContactCard(
     events: List<String> = emptyList(),
     bankAccounts: List<BankAccount> = emptyList(),
     maxHeight: Dp? = null,
-    horizontalPadding: Dp = 16.dp,
-    verticalPadding: Dp = 16.dp,
-    innerPadding: Dp = 24.dp,
-    avatarSize: Dp = 100.dp,
-    cornerRadius: Dp = 24.dp,
+    // Parameter padding lama dihapus/diabaikan agar layout lebih konsisten
     onEditClicked: () -> Unit = {},
     onDeleteClicked: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().let { if (maxHeight != null) it.heightIn(max = maxHeight) else it }.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-        shape = RoundedCornerShape(cornerRadius),
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(vertical = 8.dp, horizontal = 16.dp) // Margin luar
+            // Efek melayang (Floating Shadow)
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = Color.Black.copy(alpha = 0.15f)
+            ),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = UIWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(innerPadding)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(avatarSize).clip(CircleShape), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp) // Padding dalam card
+        ) {
+            // --- HEADER: AVATAR & TOMBOL AKSI ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                // Avatar dengan Border
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .border(1.5.dp, UIGrey.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
                     if (avatarName.isNotEmpty() && avatarName != "avatar_1") {
-                        Image(painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)), contentDescription = "Contact Avatar", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        Image(
+                            painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
+                            contentDescription = "Contact Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     } else {
-                        Box(modifier = Modifier.fillMaxSize().background(avatarColor), contentAlignment = Alignment.Center) {
-                            Text(text = contactName.take(1).uppercase(), color = UIWhite, fontSize = (avatarSize.value * 0.4).sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(avatarColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = contactName.take(1).uppercase(),
+                                color = UIWhite,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    IconButton(onClick = onEditClicked, modifier = Modifier.size(48.dp).background(UIAccentYellow, CircleShape)) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Contact", tint = Color.Black, modifier = Modifier.size(24.dp))
-                    }
-                    IconButton(onClick = onDeleteClicked, modifier = Modifier.size(48.dp).background(UIAccentYellow, CircleShape)) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Contact", tint = Color.Black, modifier = Modifier.size(24.dp))
-                    }
+
+                // Tombol Aksi (Modern Circles)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ModernIconButton(
+                        icon = Icons.Default.Edit,
+                        containerColor = UIAccentYellow, // Kuning
+                        iconColor = UIBlack,
+                        onClick = onEditClicked
+                    )
+                    ModernIconButton(
+                        icon = Icons.Default.Delete,
+                        containerColor = Color(0xFFFFEBEE), // Merah Muda Pucat
+                        iconColor = Color(0xFFD32F2F),      // Merah Tua
+                        onClick = onDeleteClicked
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
-            Text(text = contactName, style = AppFont.Bold, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = phoneNumber, style = AppFont.Medium, fontSize = 18.sp, color = UIDarkGrey)
-            if (events.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(20.dp))
-                val eventsText = formatEventsText(events)
-                Text(text = "Events: $eventsText", fontSize = 16.sp, style = AppFont.Medium, color = Color.Black, lineHeight = 24.sp)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- INFO KONTAK ---
+            Column {
+                Text(
+                    text = contactName,
+                    style = AppFont.Bold,
+                    fontSize = 24.sp,
+                    color = UIBlack,
+                    lineHeight = 30.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (phoneNumber.isNotEmpty()) phoneNumber else "No phone number",
+                    style = AppFont.Medium,
+                    fontSize = 16.sp,
+                    color = UIDarkGrey
+                )
             }
+
+            // --- INFO BANK (JIKA ADA) ---
             if (bankAccounts.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(20.dp))
-                bankAccounts.forEach { bankAccount ->
-                    Spacer(modifier = Modifier.height(12.dp))
-                    BankAccountRow(bankAccount = bankAccount)
+                Spacer(modifier = Modifier.height(24.dp))
+                // Divider Tipis
+                HorizontalDivider(
+                    color = UIGrey.copy(alpha = 0.2f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = "Bank Accounts",
+                    style = AppFont.SemiBold,
+                    fontSize = 13.sp,
+                    color = UIDarkGrey,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    bankAccounts.forEach { bankAccount ->
+                        ModernBankAccountRow(bankAccount = bankAccount)
+                    }
                 }
+            }
+        }
+    }
+}
+
+// --- KOMPONEN PENDUKUNG BARU ---
+
+@Composable
+fun ModernIconButton(
+    icon: ImageVector,
+    containerColor: Color,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = containerColor,
+        modifier = Modifier.size(44.dp), // Ukuran tombol sedikit lebih compact
+        shadowElevation = 0.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernBankAccountRow(bankAccount: BankAccount) {
+    val logoResId = when (bankAccount.bankName.lowercase().trim()) {
+        "bca" -> R.drawable.bank_logo_bca
+        "bri" -> R.drawable.bank_logo_bri
+        "bni" -> R.drawable.bank_logo_bni
+        "blu" -> R.drawable.bank_logo_blu
+        "mandiri" -> R.drawable.bank_logo_mandiri
+        else -> null
+    }
+
+    // Tampilan seperti "Kartu Mini"
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF5F5F5), // Abu-abu sangat muda (Background lembut)
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Logo Bank
+            if (logoResId != null) {
+                Image(
+                    painter = painterResource(id = logoResId),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(UIBlack),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = bankAccount.bankName.take(2).uppercase(),
+                        style = AppFont.Bold,
+                        color = UIWhite,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Info Akun
+            Column {
+                Text(
+                    text = bankAccount.bankName.uppercase(),
+                    style = AppFont.Bold,
+                    fontSize = 11.sp,
+                    color = UIDarkGrey
+                )
+                Text(
+                    text = bankAccount.accountNumber,
+                    style = AppFont.SemiBold,
+                    fontSize = 15.sp,
+                    color = UIBlack,
+                    letterSpacing = 0.5.sp
+                )
             }
         }
     }
