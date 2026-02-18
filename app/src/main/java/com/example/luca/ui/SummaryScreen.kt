@@ -294,7 +294,7 @@ fun SettlementList(
             }
         } else {
             items(settlements) { item ->
-                SettlementCard(item = item, onTogglePaid = { onTogglePaid(item) })
+                SettlementCard(item = item)
             }
         }
 
@@ -315,8 +315,7 @@ fun SettlementList(
 // --- KOMPONEN: KARTU SETTLEMENT ---
 @Composable
 fun SettlementCard(
-    item: Settlement,
-    onTogglePaid: () -> Unit
+    item: Settlement
 ) {
     val containerColor = if (item.isPaid) UIDarkGrey.copy(alpha = 0.1f) else UIWhite
     val borderColor = if (item.isPaid) Color.Transparent else UIAccentYellow.copy(alpha = 0.5f)
@@ -331,7 +330,6 @@ fun SettlementCard(
             .clip(RoundedCornerShape(16.dp))
             .background(containerColor)
             .border(1.dp, borderColor, RoundedCornerShape(16.dp))
-            .clickable { onTogglePaid() }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -758,8 +756,7 @@ fun SettlementCardUnpaidPreview() {
                 .padding(20.dp)
         ) {
             SettlementCard(
-                item = mockSettlement,
-                onTogglePaid = {}
+                item = mockSettlement
             )
         }
     }
@@ -786,8 +783,7 @@ fun SettlementCardPaidPreview() {
                 .padding(20.dp)
         ) {
             SettlementCard(
-                item = mockSettlement,
-                onTogglePaid = {}
+                item = mockSettlement
             )
         }
     }
