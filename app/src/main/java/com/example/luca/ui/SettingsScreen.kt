@@ -1,6 +1,5 @@
 package com.example.luca.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,8 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -43,14 +43,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.luca.data.LucaFirebaseRepository
 import com.example.luca.ui.theme.*
 import com.example.luca.util.ValidationUtils
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ==========================================
@@ -522,19 +522,9 @@ fun SettingsScreen(
                         color = UIAccentYellow
                     )
                 } else {
-                    // Avatar profile dengan gambar atau fallback ke icon
-                    val resourceId = remember(userAvatarName) {
-                        if (userAvatarName!!.isNotBlank()) {
-                            try {
-                                val rClass = Class.forName("com.example.luca.R\$drawable")
-                                val field = rClass.getField(userAvatarName!!)
-                                field.getInt(null)
-                            } catch (_: Exception) {
-                                0
-                            }
-                        } else {
-                            0
-                        }
+                    // Avatar profile menggunakan URL dari DiceBear API
+                    val avatarUrl = remember(userAvatarName) {
+                        "https://api.dicebear.com/9.x/avataaars/png?seed=${userAvatarName}"
                     }
 
                     Box(
@@ -544,25 +534,19 @@ fun SettingsScreen(
                             .background(UIGrey, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (resourceId != 0) {
-                            // Load avatar dari database
-                            Image(
-                                painter = painterResource(id = resourceId),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            // Fallback ke icon jika avatar tidak tersedia
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile Picture",
-                                tint = UIDarkGrey,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(avatarUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                            placeholder = rememberVectorPainter(Icons.Default.Person),
+                            error = rememberVectorPainter(Icons.Default.Person)
+                        )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
