@@ -40,8 +40,9 @@ import kotlinx.coroutines.tasks.await
 fun FinalScreen(
     onNavigateToHome: () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf("User") }
-    var avatarName by remember { mutableStateOf("avatar_1") }
+    var name by remember { mutableStateOf<String?>(null) }
+    var avatarName by remember { mutableStateOf<String?>(null) }
+    var isLoaded by remember { mutableStateOf(false) }
 
     // Ambil data user dari Firestore lalu navigasi ke Home
     LaunchedEffect(Unit) {
@@ -58,9 +59,11 @@ fun FinalScreen(
                 avatarName = doc.getString("avatarName") ?: "avatar_1"
             } catch (e: Exception) {
                 name = user.displayName ?: "User"
+                avatarName = "avatar_1"
             }
         }
 
+        isLoaded = true
         delay(1500L)
         onNavigateToHome()
     }
@@ -75,37 +78,39 @@ fun FinalScreen(
             contentScale = ContentScale.Crop
         )
 
-        // --- LAYER 2: KONTEN ---
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Welcome Back!",
-                style = AppFont.Bold,
-                fontSize = 28.sp,
-                color = UIBlack
-            )
+        // --- LAYER 2: KONTEN (Only show after data is loaded) ---
+        if (isLoaded && name != null && avatarName != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Welcome Back!",
+                    style = AppFont.Bold,
+                    fontSize = 28.sp,
+                    color = UIBlack
+                )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Image(
-                painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName)),
-                contentDescription = "Profile Picture",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(212.dp)
-                    .clip(CircleShape)
-                    .background(Color.Gray)
-            )
+                Image(
+                    painter = painterResource(id = AvatarUtils.getAvatarResId(avatarName!!)),
+                    contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(212.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
+                )
 
-            Spacer(modifier = Modifier.height(23.dp))
+                Spacer(modifier = Modifier.height(23.dp))
 
-            Text(
-                text = name,
-                style = AppFont.SemiBold,
-                fontSize = 28.sp,
-                color = UIBlack
-            )
+                Text(
+                    text = name!!,
+                    style = AppFont.SemiBold,
+                    fontSize = 28.sp,
+                    color = UIBlack
+                )
+            }
         }
     }
 }

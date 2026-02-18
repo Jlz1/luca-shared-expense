@@ -396,6 +396,10 @@ fun LucaApp() {
                                     drawerState.close()
                                     navController.navigate("help_center")
                                 }
+                            },
+                            onLogoutClick = {
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate("greeting") { popUpTo(0) { inclusive = true } }
                             }
                         )
                     }

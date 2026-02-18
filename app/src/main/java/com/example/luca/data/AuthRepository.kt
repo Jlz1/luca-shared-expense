@@ -63,7 +63,7 @@ class AuthRepository {
                     Result.success(Pair(true, true))
                 }
             } else {
-                Result.failure(Exception("The supplied auth credential is incorrect, malformed or has expired"))
+                Result.failure(Exception("Incorrect Password or Email"))
             }
         } catch (e: Exception) {
             // Surface Firebase auth errors; greet screen will toast and not navigate
