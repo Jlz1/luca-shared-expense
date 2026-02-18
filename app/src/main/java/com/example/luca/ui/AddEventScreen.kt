@@ -48,7 +48,7 @@ import coil.request.ImageRequest
 fun AddScreen(
     viewModel: AddEventViewModel = viewModel(),
     onNavigateBack: () -> Unit,
-    eventId: String? = null // TERIMA EVENT ID
+    eventId: String? = null
 ) {
     // TRIGGER LOAD DATA
     val isEditMode = eventId != null && eventId.isNotBlank()
@@ -66,12 +66,15 @@ fun AddScreen(
     val date by viewModel.date.collectAsState()
     val selectedImageUri by viewModel.selectedImageUri.collectAsState()
     val availableContacts by viewModel.availableContacts.collectAsState()
-    val selectedParticipants by viewModel.selectedParticipants.collectAsState() // DATA PESERTA YG SUDAH IKUT
+    val selectedParticipants by viewModel.selectedParticipants.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSuccess by viewModel.isSuccess.collectAsState()
     val showParticipantWarning by viewModel.showParticipantWarning.collectAsState()
     val removedParticipants by viewModel.removedParticipantsInActivity.collectAsState()
     val showMinimumParticipantError by viewModel.showMinimumParticipantError.collectAsState()
+
+    // COLLECT STATE BARU
+    val showTitleError by viewModel.showTitleError.collectAsState()
 
     val context = LocalContext.current
 
@@ -97,7 +100,6 @@ fun AddScreen(
     var showContactSelectionOverlay by remember { mutableStateOf(false) }
     var showAddNewContactOverlay by remember { mutableStateOf(false) }
 
-    // Guard untuk mencegah klik back berkali-kali yang menyebabkan bug navigation
     val backClicked = remember { mutableStateOf(false) }
     val handleBackClick: () -> Unit = {
         if (!backClicked.value) {
@@ -123,6 +125,43 @@ fun AddScreen(
         onBackClick = handleBackClick
     )
 
+    // --- DIALOGS AREA ---
+
+    // 1. Error Dialog untuk Title Kosong
+    if (showTitleError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissTitleError() },
+            title = { Text("Title Required", style = AppFont.Bold) },
+            text = { Text("Please enter an event title to continue.", style = AppFont.Regular) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissTitleError() },
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                ) {
+                    Text("OK", color = UIBlack, style = AppFont.Bold)
+                }
+            }
+        )
+    }
+
+    // 2. Error Dialog untuk Minimum Participant
+    if (showMinimumParticipantError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissMinimumParticipantError() },
+            title = { Text("Minimum Participants Required", style = AppFont.Bold) },
+            text = { Text("To create an event, there must be at least 2 participants.", style = AppFont.Regular) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissMinimumParticipantError() },
+                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
+                ) {
+                    Text("OK", color = UIBlack, style = AppFont.Bold)
+                }
+            }
+        )
+    }
+
+    // 3. Contact Selection Overlay
     if (showContactSelectionOverlay) {
         Dialog(
             onDismissRequest = { showContactSelectionOverlay = false },
@@ -146,60 +185,27 @@ fun AddScreen(
         }
     }
 
-    // Warning Dialog untuk Participant yang Dihapus
+    // 4. Warning Dialog Removed Participant
     if (showParticipantWarning && removedParticipants.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissParticipantWarning() },
             title = { Text("Cannot Remove Participant", style = AppFont.Bold) },
             text = {
                 Column {
-                    Text(
-                        text = "Participant berikut sudah masuk ke activity, tidak bisa dihapus:",
-                        style = AppFont.Regular,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    removedParticipants.forEach { participantName ->
-                        Text(
-                            text = "• $participantName",
-                            style = AppFont.Regular,
-                            modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
-                        )
-                    }
+                    Text("Participant berikut sudah masuk ke activity, tidak bisa dihapus:", style = AppFont.Regular)
+                    removedParticipants.forEach { Text("• $it", style = AppFont.Regular) }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { viewModel.dismissParticipantWarning() },
                     colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
-                ) {
-                    Text("OK", color = UIBlack, style = AppFont.Bold)
-                }
+                ) { Text("OK", color = UIBlack, style = AppFont.Bold) }
             }
         )
     }
 
-    // Error Dialog untuk Minimum Participant
-    if (showMinimumParticipantError) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissMinimumParticipantError() },
-            title = { Text("Minimum Participants Required", style = AppFont.Bold) },
-            text = {
-                Text(
-                    text = "To create an event, there must be atleast 2 participants. Add 1 more participant to continue",
-                    style = AppFont.Regular
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.dismissMinimumParticipantError() },
-                    colors = ButtonDefaults.buttonColors(containerColor = UIAccentYellow)
-                ) {
-                    Text("OK", color = UIBlack, style = AppFont.Bold)
-                }
-            }
-        )
-    }
-
+    // 5. Add New Contact Overlay
     if (showAddNewContactOverlay) {
         Dialog(
             onDismissRequest = { showAddNewContactOverlay = false },
@@ -212,9 +218,7 @@ fun AddScreen(
                         showContactSelectionOverlay = true
                     },
                     onAddContact = { name, phone, banks, avatarName ->
-                        // [FIXED] Urutan Parameter diperbaiki: (name, phone, avatarName, banks)
                         viewModel.addNewContact(name, phone, avatarName, banks)
-
                         showAddNewContactOverlay = false
                         showContactSelectionOverlay = true
                     }
