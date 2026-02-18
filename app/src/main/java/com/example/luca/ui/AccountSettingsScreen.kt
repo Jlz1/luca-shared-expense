@@ -531,7 +531,7 @@ fun PasswordChangeDialog(
         shape = RoundedCornerShape(24.dp),
         title = {
             Text(
-                text = if (currentStep == 1) "Verifikasi Password" else "Password Baru",
+                text = if (currentStep == 1) "Password Verification" else "New Password",
                 style = AppFont.Bold,
                 fontSize = 20.sp,
                 color = UIBlack
@@ -542,7 +542,7 @@ fun PasswordChangeDialog(
                 if (currentStep == 1) {
                     // Step 1: Verify current password
                     Text(
-                        text = "Masukkan password saat ini untuk melanjutkan",
+                        text = "Enter your current password to continue",
                         fontSize = 14.sp,
                         style = AppFont.Regular,
                         color = UIDarkGrey,
@@ -552,7 +552,7 @@ fun PasswordChangeDialog(
                     CustomTextField(
                         value = oldPassword,
                         onValueChange = { oldPassword = it; errorMessage = "" },
-                        placeholder = "Password Saat Ini",
+                        placeholder = "Current Password",
                         isPassword = true,
                         showPassword = showOldPassword,
                         onShowPasswordToggle = { showOldPassword = !showOldPassword }
@@ -560,7 +560,7 @@ fun PasswordChangeDialog(
                 } else {
                     // Step 2: Enter new password
                     Text(
-                        text = "Password terverifikasi! Masukkan password baru Anda",
+                        text = "Password verified! Enter your new password",
                         fontSize = 14.sp,
                         style = AppFont.Regular,
                         color = Color(0xFF4CAF50),
@@ -570,7 +570,7 @@ fun PasswordChangeDialog(
                     CustomTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it; errorMessage = "" },
-                        placeholder = "Password Baru",
+                        placeholder = "New Password",
                         isPassword = true,
                         showPassword = showNewPassword,
                         onShowPasswordToggle = { showNewPassword = !showNewPassword }
@@ -605,7 +605,7 @@ fun PasswordChangeDialog(
                     if (currentStep == 1) {
                         // Step 1: Verify old password
                         if (oldPassword.isEmpty()) {
-                            errorMessage = "Password tidak boleh kosong"
+                            errorMessage = "Password cannot be blank"
                             return@Button
                         }
 
@@ -629,28 +629,28 @@ fun PasswordChangeDialog(
                                     // Password wrong
                                     errorMessage = when {
                                         reauthTask.exception?.message?.contains("password", ignoreCase = true) == true ->
-                                            "Password salah. Silakan coba lagi."
+                                            "Incorrect password. Please try again."
                                         reauthTask.exception?.message?.contains("network", ignoreCase = true) == true ->
-                                            "Tidak ada koneksi internet"
-                                        else -> "Password salah. Silakan coba lagi."
+                                            "No internet connection"
+                                        else -> "Incorrect password. Please try again."
                                     }
                                 }
                             }
                         } else {
                             isVerifying = false
-                            errorMessage = "User tidak ditemukan. Silakan login kembali."
+                            errorMessage = "User not found. Please log in again."
                         }
                     } else {
                         // Step 2: Update to new password
                         when {
                             newPassword.isEmpty() -> {
-                                errorMessage = "Password baru tidak boleh kosong"
+                                errorMessage = "The new password cannot be blank."
                             }
                             confirmPassword.isEmpty() -> {
-                                errorMessage = "Konfirmasi password tidak boleh kosong"
+                                errorMessage = "The password confirmation cannot be left blank."
                             }
                             newPassword != confirmPassword -> {
-                                errorMessage = "Password baru tidak cocok"
+                                errorMessage = "The new password does not match"
                             }
                             else -> {
                                 // Validasi password baru menggunakan ValidationUtils
@@ -666,14 +666,14 @@ fun PasswordChangeDialog(
                                     user?.updatePassword(newPassword)?.addOnCompleteListener { updateTask ->
                                         isUpdating = false
                                         if (updateTask.isSuccessful) {
-                                            onPasswordChanged("Password berhasil diubah")
+                                            onPasswordChanged("Password successfully changed")
                                             onDismiss()
                                         } else {
-                                            errorMessage = "Gagal mengubah password: ${updateTask.exception?.message}"
+                                            errorMessage = "Failed to change password: ${updateTask.exception?.message}"
                                         }
                                     } ?: run {
                                         isUpdating = false
-                                        errorMessage = "User tidak ditemukan"
+                                        errorMessage = "User not found"
                                     }
                                 }
                             }
@@ -692,7 +692,7 @@ fun PasswordChangeDialog(
                     )
                 } else {
                     Text(
-                        text = if (currentStep == 1) "Verifikasi" else "Ubah Password",
+                        text = if (currentStep == 1) "Verification" else "Change Password",
                         color = UIBlack,
                         style = AppFont.SemiBold
                     )
@@ -717,7 +717,7 @@ fun PasswordChangeDialog(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = if (currentStep == 2) "Kembali" else "Batal",
+                    text = if (currentStep == 2) "Back" else "Cancel",
                     color = UIBlack,
                     style = AppFont.Medium
                 )
@@ -734,12 +734,13 @@ fun DeleteAccountDialog(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var deleteErrorMessage by remember { mutableStateOf("") } // Tambahkan state untuk error message
+    var deleteErrorMessage by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = UIWhite,
         shape = RoundedCornerShape(24.dp),
+        // ... (Icon bagian atas tetap sama)
         icon = {
             Box(
                 modifier = Modifier
@@ -770,8 +771,9 @@ fun DeleteAccountDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // UPDATE: Menambahkan instruksi "confirm" di sini agar lebih jelas
                 Text(
-                    text = "This action cannot be undone. All your data will be permanently deleted.",
+                    text = "This action cannot be undone. All your data will be permanently deleted. Please enter your password to confirm.",
                     color = UIDarkGrey,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
@@ -782,20 +784,31 @@ fun DeleteAccountDialog(
                 CustomTextField(
                     value = password,
                     onValueChange = { password = it; errorMessage = ""; deleteErrorMessage = "" },
-                    placeholder = "Enter password to confirm",
+                    // UPDATE: Mempersingkat placeholder agar tidak terpotong ikon mata
+                    placeholder = "Enter password",
                     isPassword = true,
                     showPassword = showPassword,
                     onShowPasswordToggle = { showPassword = !showPassword }
                 )
 
-                // Tampilkan error message di sini jika ada
                 if (deleteErrorMessage.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = deleteErrorMessage,
                         fontSize = 12.sp,
                         style = AppFont.Regular,
-                        color = Color.Red // Ubah dari hijau ke merah
+                        color = Color.Red
+                    )
+                }
+
+                // Menampilkan error validasi field kosong (jika ada)
+                if (errorMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = errorMessage,
+                        fontSize = 12.sp,
+                        style = AppFont.Regular,
+                        color = Color.Red
                     )
                 }
             }
@@ -807,11 +820,12 @@ fun DeleteAccountDialog(
                         errorMessage = "Password required"
                     } else {
                         onConfirm(password)
-                        onDismiss()
+                        // onDismiss() // Sebaiknya jangan dismiss dulu sebelum sukses, tapi tergantung logic Anda
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(horizontal = 8.dp) // Tambahan padding agar tidak terlalu mepet
             ) {
                 Text("Delete", color = Color.White, style = AppFont.SemiBold)
             }
@@ -820,7 +834,8 @@ fun DeleteAccountDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = UIGrey),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 Text("Cancel", color = UIBlack, style = AppFont.Medium)
             }
