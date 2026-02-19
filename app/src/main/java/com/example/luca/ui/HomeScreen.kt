@@ -1,0 +1,355 @@
+package com.example.luca.ui
+
+import com.example.luca.R
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.luca.data.LucaFirebaseRepository
+import com.example.luca.model.Event
+import com.example.luca.ui.theme.*
+import com.example.luca.viewmodel.HomeViewModel
+
+// --- STATEFUL COMPOSABLE (Logic) ---
+@Composable
+fun HomeScreen(
+    // Inject ViewModel dengan Factory (Repository)
+    viewModel: HomeViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                HomeViewModel(repository = LucaFirebaseRepository())
+            }
+        }
+    ),
+    onNavigateToDetail: (String) -> Unit = {},
+    onContactsClick: () -> Unit = {},
+    onAddEventClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
+) {
+    // Collect State dari ViewModel
+    val allEvents by viewModel.events.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState() // <-- NEW: State Loading
+
+    // Logic filter
+    val filteredEvents = viewModel.getFilteredEvents()
+
+    val listState = rememberLazyListState()
+
+    // Auto-scroll logic saat search
+    LaunchedEffect(searchQuery, allEvents) {
+        if (searchQuery.isNotEmpty() && allEvents.isNotEmpty()) {
+            val index = allEvents.indexOfFirst {
+                it.title.contains(searchQuery, ignoreCase = true)
+            }
+            if (index != -1) {
+                listState.animateScrollToItem(index)
+            }
+        }
+    }
+
+    HomeScreenContent(
+        searchQuery = searchQuery,
+        isLoading = isLoading, // <-- Oper ke UI
+        onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
+        filteredEvents = filteredEvents,
+        listState = listState,
+        onEventClick = onNavigateToDetail,
+        onAddEventClick = onAddEventClick,
+        onMenuClick = onMenuClick
+    )
+}
+
+// --- STATELESS COMPOSABLE (UI Only) ---
+@Composable
+fun HomeScreenContent(
+    searchQuery: String,
+    isLoading: Boolean, // <-- Parameter Baru
+    onSearchQueryChange: (String) -> Unit,
+    filteredEvents: List<Event>,
+    listState: LazyListState,
+    onEventClick: (String) -> Unit,
+    onAddEventClick: () -> Unit,
+    onMenuClick: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(UIAccentYellow)
+            .statusBarsPadding()
+    ) {
+
+        // 1. HEADER SECTION
+        HeaderSection(onLeftIconClick = onMenuClick)
+
+        // 2. SEARCH BAR AREA
+        Box(
+            modifier = Modifier
+                .height(90.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 25.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BetterSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange
+            )
+        }
+
+        // 3. WHITE CONTENT AREA
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                .background(UIBackground)
+        ) {
+
+            // --- LOGIC TAMPILAN (Loading vs Empty vs Data) ---
+            if (isLoading) {
+                // TAMPILAN SAAT LOADING
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = UIAccentYellow,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            } else if (filteredEvents.isEmpty()) {
+                // TAMPILAN SAAT DATA KOSONG
+                // Bedakan antara kosong karena search vs benar-benar kosong
+                if (searchQuery.isNotEmpty()) {
+                    // Tidak ada hasil search - tampilkan NotFoundMessage
+                    NotFoundMessage(
+                        searchQuery = searchQuery,
+                        emptyStateMessage = "You haven't made any events.\nClick the + button to add one!",
+                        notFoundMessage = "No events found for \"$searchQuery\"",
+                        showIcon = true
+                    )
+                } else {
+                    // Benar-benar kosong - tampilkan empty state dengan tombol add
+                    EmptyStateView(onAddEventClick = onAddEventClick)
+                }
+            } else {
+                // TAMPILAN DATA (CAROUSEL)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EventCarousel(
+                        events = filteredEvents,
+                        listState = listState,
+                        onEventClick = onEventClick
+                    )
+                }
+            }
+
+            // Spacer bawah agar tidak tertutup Navbar
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+    }
+}
+
+// --- COMPONENT: SEARCH BAR ---
+@Composable
+fun BetterSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    BasicTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        textStyle = TextStyle(
+            color = UIBlack,
+            fontSize = 16.sp,
+            fontFamily = AppFont.Regular.fontFamily
+        ),
+        singleLine = true,
+        cursorBrush = SolidColor(UIBlack),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(UIWhite)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_search_logo),
+                    contentDescription = "Search",
+                    tint = UIBlack,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Box(modifier = Modifier.weight(1f)) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Search",
+                            style = AppFont.Regular,
+                            color = UIDarkGrey,
+                            fontSize = 16.sp
+                        )
+                    }
+                    innerTextField()
+                }
+
+                // Clear button - shows when there's text
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQueryChange("") },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_x_logo),
+                            contentDescription = "Clear search",
+                            tint = UIDarkGrey,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+// --- COMPONENT: CAROUSEL ---
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun EventCarousel(
+    events: List<Event>,
+    listState: LazyListState,
+    onEventClick: (String) -> Unit
+) {
+    val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    val configuration = LocalConfiguration.current
+
+    val screenWidth = configuration.screenWidthDp.dp
+    val cardWidth = 280.dp
+    val cardSpacing = 20.dp
+    val sidePadding = (screenWidth - cardWidth) / 2
+
+    LazyRow(
+        state = listState,
+        flingBehavior = snapBehavior,
+        contentPadding = PaddingValues(horizontal = sidePadding),
+        horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        itemsIndexed(events) { index, event ->
+            EventCard(
+                event = event,
+                width = cardWidth,
+                onClick = { onEventClick(event.id) }
+            )
+        }
+    }
+}
+
+// --- COMPONENT: EMPTY STATE ---
+@Composable
+fun EmptyStateView(
+    onAddEventClick: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 100.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Oops.",
+            style = AppFont.Bold,
+            fontSize = 24.sp,
+            color = UIDarkGrey
+        )
+        Text(
+            text = "You haven't made any events.\nClick here to add one!",
+            style = AppFont.Regular,
+            fontSize = 16.sp,
+            color = UIDarkGrey,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Surface(
+            modifier = Modifier.size(64.dp),
+            shape = CircleShape,
+            color = UIAccentYellow,
+            shadowElevation = 4.dp,
+            onClick = onAddEventClick
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_plus_button),
+                    contentDescription = "Add",
+                    tint = UIBlack,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+// --- PREVIEW ---
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    LucaTheme {
+        HomeScreenContent(
+            searchQuery = "",
+            isLoading = false, // Preview tidak loading
+            onSearchQueryChange = {},
+            filteredEvents = emptyList(),
+            listState = rememberLazyListState(),
+            onEventClick = {},
+            onAddEventClick = {}
+        )
+    }
+}
+
+@Preview(name = "Loading State")
+@Composable
+fun HomeScreenLoadingPreview() {
+    LucaTheme {
+        HomeScreenContent(
+            searchQuery = "",
+            isLoading = true, // Preview sedang loading
+            onSearchQueryChange = {},
+            filteredEvents = emptyList(),
+            listState = rememberLazyListState(),
+            onEventClick = {},
+            onAddEventClick = {}
+        )
+    }
+}
