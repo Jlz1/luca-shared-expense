@@ -268,13 +268,13 @@ fun ScanResultScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Struk Belanja",
+                            text = "Shopping Receipt",
                             style = AppFont.Bold,
                             fontSize = 18.sp,
                             color = UIBlack
                         )
                         Text(
-                            text = "Hasil Scan OCR",
+                            text = "OCR Scan Results",
                             style = AppFont.Regular,
                             fontSize = 12.sp,
                             color = UIDarkGrey
@@ -413,7 +413,7 @@ fun ScanResultScreen(
                         shape = RoundedCornerShape(12.dp),
                         enabled = globalPaidBy != null && receiptItems.isNotEmpty()
                     ) {
-                        Text("Lihat Summary", color = UIBlack, fontWeight = FontWeight.Bold)
+                        Text("View Summary", color = UIBlack, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -588,7 +588,7 @@ fun ScanResultScreen(
             onDismissRequest = { showSummaryDialog = false },
             title = {
                 Text(
-                    "Summary Hasil Scan",
+                    "Scan Results Summary",
                     style = AppFont.Bold,
                     fontSize = 20.sp,
                     color = UIBlack
@@ -640,7 +640,7 @@ fun ScanResultScreen(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "Dibayar oleh:",
+                                text = "Paid by:",
                                 fontSize = 12.sp,
                                 color = UIDarkGrey,
                                 fontWeight = FontWeight.Medium
@@ -865,14 +865,14 @@ fun ScanResultScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "ℹ️ Informasi",
+                            text = "ℹ️ Information",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = UIBlack
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Settlements menunjukkan siapa yang harus membayar ke siapa. Tap edit item untuk assign shared by.",
+                            text = "Settlements show who should pay whom. Tap edit item to assign shared by.",
                             fontSize = 11.sp,
                             color = UIDarkGrey
                         )
