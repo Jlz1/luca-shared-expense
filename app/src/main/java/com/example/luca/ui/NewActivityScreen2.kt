@@ -144,21 +144,33 @@ fun AddActivityScreen2(
     }
 
     // If activity is null, fetch from repository using eventId & activityId (INCLUDE paidBy)
+    // OR fetch event participants if creating new activity (activityId is empty)
     LaunchedEffect(eventId, activityId) {
-        if (activity == null && eventId.isNotEmpty() && activityId.isNotEmpty()) {
+        if (activity == null && eventId.isNotEmpty()) {
             try {
                 val repo = LucaFirebaseRepository()
-                val loaded = withContext(Dispatchers.IO) { repo.getActivityById(eventId, activityId) }
-                loaded?.let { act ->
-                    val baseMembers = act.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
-                    val payerContact = act.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
-                    eventMembers = if (payerContact != null) {
-                        val exists = baseMembers.any { it.name == payerContact.name }
-                        if (exists) baseMembers else baseMembers + payerContact
-                    } else baseMembers
+
+                if (activityId.isNotEmpty()) {
+                    // Editing existing activity - load activity participants
+                    val loaded = withContext(Dispatchers.IO) { repo.getActivityById(eventId, activityId) }
+                    loaded?.let { act ->
+                        val baseMembers = act.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+                        val payerContact = act.paidBy?.let { Contact(name = it.name, avatarName = it.avatarName) }
+                        eventMembers = if (payerContact != null) {
+                            val exists = baseMembers.any { it.name == payerContact.name }
+                            if (exists) baseMembers else baseMembers + payerContact
+                        } else baseMembers
+                    }
+                } else {
+                    // Creating new activity - load event participants
+                    val event = withContext(Dispatchers.IO) { repo.getEventById(eventId) }
+                    event?.let { evt ->
+                        eventMembers = evt.participants.map { pd -> Contact(name = pd.name, avatarName = pd.avatarName) }
+                        android.util.Log.d("NewActivityScreen2", "✅ Loaded ${eventMembers.size} participants from event")
+                    }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("NewActivityScreen2", "Failed to load activity participants: ${e.message}")
+                android.util.Log.e("NewActivityScreen2", "Failed to load participants: ${e.message}")
             }
         }
     }
@@ -337,7 +349,15 @@ fun AddActivityScreen2(
     var showEditItemDialog by remember { mutableStateOf(false) }
     var editingItemIndex by remember { mutableStateOf(-1) }
     var showEditPayerDialog by remember { mutableStateOf(false) }
-    var selectedPayer by remember { mutableStateOf(activity?.payerName ?: eventMembers.firstOrNull()?.name ?: "") }
+    var selectedPayer by remember { mutableStateOf(activity?.payerName ?: "") }
+
+    // Update selectedPayer when eventMembers is loaded
+    LaunchedEffect(eventMembers) {
+        if (selectedPayer.isEmpty() && eventMembers.isNotEmpty()) {
+            selectedPayer = eventMembers.firstOrNull()?.name ?: ""
+            android.util.Log.d("NewActivityScreen2", "✅ Set default payer to: $selectedPayer")
+        }
+    }
 
     // --- STATE: Scan Camera Integration ---
     val scanViewModel: ScanViewModel = viewModel()
@@ -657,16 +677,16 @@ fun AddActivityScreen2(
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "Paid by ${selectedPayer}",
+                                        text = if (selectedPayer.isNotEmpty()) "Paid by $selectedPayer" else "Tap to select payer",
                                         style = AppFont.Regular,
                                         fontSize = 12.sp,
-                                        color = UIDarkGrey
+                                        color = if (selectedPayer.isNotEmpty()) UIDarkGrey else UIGrey
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         Icons.Default.Edit,
                                         contentDescription = "Edit Payer",
-                                        tint = UIDarkGrey,
+                                        tint = if (selectedPayer.isNotEmpty()) UIDarkGrey else UIGrey,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -2444,6 +2464,5 @@ fun createImageFileForCamera(context: android.content.Context): File {
         context.externalCacheDir
     )
 }
-
 
 
