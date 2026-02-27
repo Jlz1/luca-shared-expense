@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.luca"
+    namespace = "com.luca.shared"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.luca"
+        applicationId = "com.luca.shared"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
